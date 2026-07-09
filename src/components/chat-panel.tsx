@@ -1,0 +1,187 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { Loader2, Mic, Send, Sparkles } from "lucide-react";
+
+type ChatMessage = {
+  id: string;
+  role: "USER" | "ASSISTANT" | "SYSTEM" | "local-user" | "local-assistant";
+  content: string;
+  intent?: string;
+  metadata?: Record<string, unknown>;
+};
+
+export function ChatPanel() {
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: "welcome",
+      role: "local-assistant",
+      content:
+        "Mema wo akwaaba. Bisa maternal health asɛm anaa market price wɔ Twi anaa English. This is general guidance — not a doctor.",
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [conversationId, setConversationId] = useState<string | undefined>();
+  const [loading, setLoading] = useState(false);
+  const [listening, setListening] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  async function send(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed || loading) return;
+    setInput("");
+    const localId = crypto.randomUUID();
+    setMessages((m) => [...m, { id: localId, role: "local-user", content: trimmed }]);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: trimmed, conversationId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Chat failed");
+      setConversationId(data.conversationId);
+      setMessages((m) => [
+        ...m,
+        {
+          id: data.message.id,
+          role: "ASSISTANT",
+          content: data.message.content,
+          intent: data.message.intent,
+          metadata: data.message.metadata,
+        },
+      ]);
+    } catch (e) {
+      setMessages((m) => [
+        ...m,
+        {
+          id: crypto.randomUUID(),
+          role: "local-assistant",
+          content: e instanceof Error ? e.message : "Something went wrong",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function captureVoiceStub() {
+    setListening(true);
+    try {
+      const res = await fetch("/api/voice/transcribe", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Voice failed");
+      const text = data.transcript?.text as string;
+      setInput(text);
+      await send(text);
+    } catch (e) {
+      setMessages((m) => [
+        ...m,
+        {
+          id: crypto.randomUUID(),
+          role: "local-assistant",
+          content: e instanceof Error ? e.message : "Voice stub failed",
+        },
+      ]);
+    } finally {
+      setListening(false);
+    }
+  }
+
+  return (
+    <div className="glass flex h-[min(72vh,720px)] flex-col overflow-hidden rounded-[var(--radius)]">
+      <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-[var(--accent)]" />
+          <div>
+            <p className="text-sm font-medium">Health & Market Companion</p>
+            <p className="text-xs text-[var(--fg-muted)]">RAG over maternal KB · intent routing</p>
+          </div>
+        </div>
+        {conversationId && (
+          <span className="rounded-full bg-white/5 px-2.5 py-1 text-[10px] text-[var(--fg-muted)]">
+            {conversationId.slice(0, 8)}
+          </span>
+        )}
+      </div>
+
+      <div className="chat-scroll flex-1 space-y-3 overflow-y-auto px-4 py-4">
+        {messages.map((m) => {
+          const isUser = m.role === "USER" || m.role === "local-user";
+          return (
+            <div key={m.id} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+              <div
+                className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                  isUser
+                    ? "bg-[var(--teal)] text-[#062419]"
+                    : "bg-white/5 text-[var(--fg)] border border-white/5"
+                }`}
+              >
+                {m.content}
+                {m.intent && !isUser && (
+                  <p className="mt-2 text-[10px] uppercase tracking-wide text-[var(--accent-soft)]">
+                    intent · {m.intent}
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        {loading && (
+          <div className="flex items-center gap-2 text-sm text-[var(--fg-muted)]">
+            <Loader2 className="h-4 w-4 animate-spin" /> Thinking…
+          </div>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      <form
+        className="border-t border-white/5 p-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void send(input);
+        }}
+      >
+        <div className="flex items-end gap-2">
+          <button
+            type="button"
+            onClick={() => void captureVoiceStub()}
+            disabled={listening || loading}
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--teal-deep)] text-white transition hover:bg-[var(--teal)] disabled:opacity-50 ${
+              listening ? "mic-pulse" : ""
+            }`}
+            aria-label="Voice input"
+          >
+            <Mic className="h-5 w-5" />
+          </button>
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            rows={1}
+            placeholder="Ka asɛm… e.g. Me ti yɛ me ya / How much is rice?"
+            className="min-h-11 flex-1 resize-none rounded-2xl border border-white/10 bg-black/20 px-3.5 py-2.5 text-sm outline-none ring-[var(--accent)] placeholder:text-[var(--fg-muted)] focus:ring-1"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void send(input);
+              }
+            }}
+          />
+          <button
+            type="submit"
+            disabled={loading || !input.trim()}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[#1a1400] transition hover:bg-[var(--accent-soft)] disabled:opacity-50"
+            aria-label="Send"
+          >
+            <Send className="h-4 w-4" />
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

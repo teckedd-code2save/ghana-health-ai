@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.vscode
+.idea
+.claude
+.grok
+README.md
+modal/**/__pycache__
+**/*.md
+!public/**

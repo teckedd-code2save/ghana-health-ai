@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ghana Health AI
 
-## Getting Started
+Voice-first health companion for Ghana — **Twi-first** maternal health guidance, speaker-aware voice pipeline stubs, and everyday market ecommerce.
 
-First, run the development server:
+Built from [`Ghana_Health_AI_Technical_Spec.md`](../Ghana_Health_AI_Technical_Spec.md).
+
+## MVP scope (this repo)
+
+- Next.js PWA UI (home, chat, voice, market, account)
+- Postgres + Prisma 7 data platform
+- Health RAG over seeded maternal knowledge articles
+- Intent routing (health / ecommerce / general)
+- Cart + mock MoMo checkout
+- Voice ASR + Voice ID **stubs** (swap for Modal Parakeet in Phase 1)
+- Infisical project `ghana-health-ai` for secrets
+- Docker Compose Postgres + shippable Dockerfile
+
+## Quick start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd Documents/SoftwareEngineering/serendepify/ghana-health-ai
+
+docker compose up -d
+
+# Preferred: Infisical injection
+sec -- pnpm db:migrate
+sec -- pnpm db:seed
+sec -- pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**Demo login:** `demo@ghanahealth.ai` / `demo1234`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Local env fallback (gitignored)
 
-## Learn More
+```bash
+cat > .env.local <<'EOF'
+DATABASE_URL=postgresql://ghana_health:ghana_health_dev@localhost:5437/ghana_health_ai?schema=public
+JWT_SECRET=dev-local-jwt-secret-change-me-32
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:3000/api
+VOICE_MODE=stub
+HEALTH_DISCLAIMER_ENABLED=true
+EOF
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Architecture
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+Browser / PWA
+  → Next.js App Router (UI + /api)
+      → Prisma 7 + Postgres
+      → Health RAG (keyword MVP) / Cart / Orders / Voice stubs
+  → modal/  (GPU ASR/TTS jobs — deploy separately on Modal)
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Safety
 
-## Deploy on Vercel
+This product provides **general information only**. It is not a doctor. Emergency language is injected for high-severity symptom patterns; users should contact CHWs, clinics, or emergency services when needed.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Roadmap hooks
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Phase | Status in repo |
+|-------|----------------|
+| 0 Foundation | Schema, seed KB, stub voice, Modal skeletons |
+| 1 Twi health chat | RAG chat + voice UI live (LLM/ASR upgrade pending) |
+| 2 Multi-speaker + ecommerce | Market live; Parakeet/Sortformer pending Modal |
+| 3 Scale languages | Schema supports `ga` / `ee` / `dag` |
+
+## License
+
+UNLICENSED — Serendepify private.
