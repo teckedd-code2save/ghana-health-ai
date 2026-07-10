@@ -1,18 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Mic, Send, Sparkles, Square } from "lucide-react";
+import { Check, RotateCcw, Send, X } from "lucide-react";
 import { useLang } from "@/components/lang-provider";
 import { enqueueOffline } from "@/lib/offline-queue";
 import { recordUntilSilence } from "@/lib/browser-audio";
+import { VoiceOrb, modeLabel, type OrbMode } from "@/components/voice-orb";
 
 type ChatMessage = {
   id: string;
   role: "USER" | "ASSISTANT" | "SYSTEM" | "local-user" | "local-assistant";
   content: string;
   intent?: string;
-  metadata?: Record<string, unknown>;
-  kind?: "transcript-pending";
+  phase?: "heard" | "status" | "error";
 };
 
 export function ChatPanel() {
@@ -22,16 +22,25 @@ export function ChatPanel() {
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const [level, setLevel] = useState(0);
   const [vadState, setVadState] = useState<string | null>(null);
   const [online, setOnline] = useState(true);
   const [pendingTranscript, setPendingTranscript] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const abortVadRef = useRef(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const orbMode: OrbMode = recording
+    ? "listening"
+    : speaking
+      ? "speaking"
+      : loading
+        ? "thinking"
+        : "idle";
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading, pendingTranscript]);
+  }, [messages, loading, pendingTranscript, speaking]);
 
   useEffect(() => {
     const sync = () => setOnline(navigator.onLine);
@@ -44,13 +53,25 @@ export function ChatPanel() {
     };
   }, []);
 
+  function playTts(b64: string) {
+    audioRef.current?.pause();
+    const audio = new Audio(`data:audio/wav;base64,${b64}`);
+    audioRef.current = audio;
+    setSpeaking(true);
+    audio.onended = () => setSpeaking(false);
+    audio.onerror = () => setSpeaking(false);
+    void audio.play().catch(() => setSpeaking(false));
+  }
+
   async function send(text: string) {
     const trimmed = text.trim();
-    if (!trimmed || loading) return;
+    if (!trimmed || loading || recording) return;
     setInput("");
     setPendingTranscript(null);
-    const localId = crypto.randomUUID();
-    setMessages((m) => [...m, { id: localId, role: "local-user", content: trimmed }]);
+    setMessages((m) => [
+      ...m.filter((x) => x.phase !== "heard" && x.phase !== "status"),
+      { id: crypto.randomUUID(), role: "local-user", content: trimmed },
+    ]);
     setLoading(true);
     const payload = { message: trimmed, conversationId, language: lang };
     try {
@@ -61,7 +82,8 @@ export function ChatPanel() {
           {
             id: crypto.randomUUID(),
             role: "local-assistant",
-            content: "You're offline — message queued and will send when you're back online.",
+            content: "Offline — message queued.",
+            phase: "status",
           },
         ]);
         return;
@@ -81,13 +103,9 @@ export function ChatPanel() {
           role: "ASSISTANT",
           content: data.message.content,
           intent: data.message.intent,
-          metadata: data.message.metadata,
         },
       ]);
-      if (data.tts?.audioBase64) {
-        const audio = new Audio(`data:audio/wav;base64,${data.tts.audioBase64}`);
-        void audio.play();
-      }
+      if (data.tts?.audioBase64) playTts(data.tts.audioBase64);
     } catch (e) {
       enqueueOffline("chat", payload);
       setMessages((m) => [
@@ -95,9 +113,8 @@ export function ChatPanel() {
         {
           id: crypto.randomUUID(),
           role: "local-assistant",
-          content:
-            (e instanceof Error ? e.message : "Something went wrong") +
-            " — queued for retry when online.",
+          content: e instanceof Error ? e.message : "Something went wrong",
+          phase: "error",
         },
       ]);
     } finally {
@@ -106,10 +123,10 @@ export function ChatPanel() {
   }
 
   async function startMic() {
+    if (loading || speaking) return;
     setPendingTranscript(null);
     setRecording(true);
     setVadState("listening");
-    abortVadRef.current = false;
     try {
       const { blob, durationMs, peakLevel } = await recordUntilSilence({
         silenceMs: 1100,
@@ -123,71 +140,50 @@ export function ChatPanel() {
       setLevel(0);
 
       if (blob.size < 400 || peakLevel < 0.01) {
-        throw new Error("Too quiet — speak closer to the mic and try again");
+        throw new Error("Too quiet — move closer to the mic");
       }
-      if (durationMs < 400) {
-        throw new Error("Recording too short");
-      }
+      if (durationMs < 400) throw new Error("Too short — try again");
 
       setLoading(true);
-      setMessages((m) => [
-        ...m,
-        {
-          id: crypto.randomUUID(),
-          role: "local-assistant",
-          content: "Transcribing what you said…",
-          kind: "transcript-pending",
-        },
-      ]);
-
       const form = new FormData();
       form.append("audio", blob, "chat-utterance.webm");
       form.append("language", lang);
 
       const res = await fetch("/api/voice/transcribe", { method: "POST", body: form });
       const data = await res.json();
-
-      // Clear "transcribing…" bubble
-      setMessages((m) => m.filter((x) => x.kind !== "transcript-pending"));
-
       if (!res.ok) {
-        const err = data.error || data.transcript?.error || "Transcription failed";
+        const err = data.error || "Transcription failed";
         throw new Error(
           err === "audio_too_quiet_or_silent"
-            ? "Mic was too quiet — try again closer to the phone"
+            ? "Too quiet — try again"
             : err === "asr_hallucination_or_noise"
-              ? "Couldn’t hear clear speech — please try again"
+              ? "Couldn’t catch that — try once more"
               : String(err),
         );
       }
 
       const text = (data.transcript?.text as string | undefined)?.trim();
-      if (!text) {
-        throw new Error(
-          data.transcript?.error === "audio_too_quiet_or_silent"
-            ? "Too quiet — speak louder and try again"
-            : "Empty transcription — try speaking more clearly",
-        );
-      }
+      if (!text) throw new Error("No speech heard — try again");
 
-      // Show transcript first — do NOT auto-reply until user confirms/sends
       setPendingTranscript(text);
       setInput(text);
+      setMessages((m) => [
+        ...m.filter((x) => x.phase !== "heard"),
+        {
+          id: crypto.randomUUID(),
+          role: "local-assistant",
+          content: text,
+          phase: "heard",
+        },
+      ]);
+    } catch (e) {
       setMessages((m) => [
         ...m,
         {
           id: crypto.randomUUID(),
           role: "local-assistant",
-          content: `I heard: “${text}”\n\nEdit if needed, then press Send (or Send as-is).`,
-        },
-      ]);
-    } catch (e) {
-      setMessages((m) => [
-        ...m.filter((x) => x.kind !== "transcript-pending"),
-        {
-          id: crypto.randomUUID(),
-          role: "local-assistant",
-          content: e instanceof Error ? e.message : "Voice input failed",
+          content: e instanceof Error ? e.message : "Voice failed",
+          phase: "error",
         },
       ]);
     } finally {
@@ -198,92 +194,135 @@ export function ChatPanel() {
     }
   }
 
-  function cancelMic() {
-    // recordUntilSilence has no external abort; user can wait for max or we reload UX
-    abortVadRef.current = true;
-    setRecording(false);
-    setVadState(null);
-  }
-
   return (
-    <div className="glass flex h-[min(72vh,720px)] flex-col overflow-hidden rounded-[var(--radius)]">
-      <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
+    <div className="glass flex h-[min(78vh,760px)] flex-col overflow-hidden rounded-[calc(var(--radius)+4px)]">
+      {/* Presence header */}
+      <div className="flex flex-col items-center gap-2 border-b border-white/5 px-4 py-5">
+        <VoiceOrb
+          mode={orbMode}
+          level={level}
+          size="lg"
+          disabled={loading && !recording}
+          onClick={() => {
+            if (!recording && !loading && !speaking) void startMic();
+          }}
+          label={modeLabel(orbMode, vadState)}
+        />
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-[var(--accent)]" />
-          <div>
-            <p className="text-sm font-medium">Health & Market Companion</p>
-            <p className="text-xs text-[var(--fg-muted)]">
-              Lang · {lang.toUpperCase()} · {online ? "online" : "offline queue"} · mic auto-stops
-              when you finish
-            </p>
-          </div>
-        </div>
-        {conversationId && (
-          <span className="rounded-full bg-white/5 px-2.5 py-1 text-[10px] text-[var(--fg-muted)]">
-            {conversationId.slice(0, 8)}
+          <span
+            className={
+              recording
+                ? "status-chip status-chip--live"
+                : speaking
+                  ? "status-chip status-chip--speak"
+                  : "status-chip"
+            }
+          >
+            {recording
+              ? "Listening"
+              : speaking
+                ? "Speaking"
+                : loading
+                  ? "Thinking"
+                  : online
+                    ? "Ready"
+                    : "Offline"}
           </span>
-        )}
+          <span className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)]">
+            {lang}
+          </span>
+        </div>
       </div>
 
+      {/* Thread */}
       <div className="chat-scroll flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {messages.length === 0 && (
-          <p className="text-sm text-[var(--fg-muted)]">
-            Tap the mic, speak, pause when done — we show what we heard before answering.
+          <p className="mx-auto max-w-sm text-center text-sm text-[var(--fg-muted)]">
+            Tap the mic, speak, pause when done. We show what we heard — then answer.
           </p>
         )}
         {messages.map((m) => {
           const isUser = m.role === "USER" || m.role === "local-user";
+          const isHeard = m.phase === "heard";
           return (
-            <div key={m.id} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+            <div
+              key={m.id}
+              className={`flex ${isUser || isHeard ? "justify-end" : "justify-start"}`}
+            >
               <div
-                className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
                   isUser
                     ? "bg-[var(--teal)] text-[#062419]"
-                    : "bg-white/5 text-[var(--fg)] border border-white/5"
+                    : isHeard
+                      ? "border border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--fg)]"
+                      : m.phase === "error"
+                        ? "border border-[var(--coral)]/30 bg-[var(--coral)]/10 text-[var(--fg)]"
+                        : "border border-white/5 bg-white/5 text-[var(--fg)]"
                 }`}
               >
+                {isHeard && (
+                  <p className="mb-1 text-[10px] uppercase tracking-wider text-[var(--accent-soft)]">
+                    I heard
+                  </p>
+                )}
                 {m.content}
-                {m.intent && !isUser && (
+                {m.intent && !isUser && !isHeard && (
                   <p className="mt-2 text-[10px] uppercase tracking-wide text-[var(--accent-soft)]">
-                    intent · {m.intent}
+                    {m.intent}
                   </p>
                 )}
               </div>
             </div>
           );
         })}
-        {loading && (
-          <div className="flex items-center gap-2 text-sm text-[var(--fg-muted)]">
-            <Loader2 className="h-4 w-4 animate-spin" /> Working…
-          </div>
-        )}
         <div ref={bottomRef} />
       </div>
 
+      {/* Transcript confirm — icons only */}
       {pendingTranscript && (
-        <div className="flex items-center gap-2 border-t border-white/5 bg-black/20 px-3 py-2 text-xs">
-          <span className="text-[var(--fg-muted)]">Ready to send transcript</span>
-          <button
-            type="button"
-            className="rounded-full bg-[var(--accent)] px-3 py-1 font-medium text-[#1a1400]"
-            disabled={loading}
-            onClick={() => void send(input || pendingTranscript)}
-          >
-            Send as heard
-          </button>
-          <button
-            type="button"
-            className="rounded-full border border-white/15 px-3 py-1"
-            onClick={() => {
-              setPendingTranscript(null);
-              setInput("");
-            }}
-          >
-            Discard
-          </button>
+        <div className="flex items-center justify-between gap-3 border-t border-white/5 bg-black/25 px-4 py-3">
+          <p className="min-w-0 flex-1 truncate text-sm text-[var(--fg-muted)]">
+            <span className="text-[var(--accent-soft)]">Heard</span> · {pendingTranscript}
+          </p>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              className="icon-action"
+              title="Discard"
+              aria-label="Discard transcript"
+              onClick={() => {
+                setPendingTranscript(null);
+                setInput("");
+                setMessages((m) => m.filter((x) => x.phase !== "heard"));
+              }}
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              className="icon-action"
+              title="Re-record"
+              aria-label="Re-record"
+              disabled={loading || recording}
+              onClick={() => void startMic()}
+            >
+              <RotateCcw className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              className="icon-action icon-action--accent"
+              title="Send"
+              aria-label="Confirm and send"
+              disabled={loading}
+              onClick={() => void send(input || pendingTranscript)}
+            >
+              <Check className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 
+      {/* Composer — minimal */}
       <form
         className="border-t border-white/5 p-3"
         onSubmit={(e) => {
@@ -291,63 +330,19 @@ export function ChatPanel() {
           void send(input);
         }}
       >
-        {recording && (
-          <div className="mb-2 flex items-center gap-3 text-xs text-[var(--fg-muted)]">
-            <span className="mic-pulse text-[var(--coral)]">
-              {vadState === "speech"
-                ? "Hearing you…"
-                : vadState === "silence"
-                  ? "Pause detected — finishing…"
-                  : "Listening…"}
-            </span>
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full bg-[var(--teal)] transition-all duration-75"
-                style={{ width: `${Math.min(100, level * 800)}%` }}
-              />
-            </div>
-          </div>
-        )}
-        <div className="flex items-end gap-2">
-          {!recording ? (
-            <button
-              type="button"
-              onClick={() => void startMic()}
-              disabled={loading}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--teal-deep)] text-white transition hover:bg-[var(--teal)] disabled:opacity-50"
-              aria-label="Start voice input"
-            >
-              <Mic className="h-5 w-5" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={cancelMic}
-              className="mic-pulse flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--coral)] text-white"
-              aria-label="Stop voice"
-              title="Wait for auto-stop, or keep talking"
-            >
-              <Square className="h-4 w-4" />
-            </button>
-          )}
-          <textarea
+        <div className="flex items-center gap-2">
+          <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            rows={1}
-            placeholder="Ka asɛm… or use the mic"
-            className="min-h-11 flex-1 resize-none rounded-2xl border border-white/10 bg-black/20 px-3.5 py-2.5 text-sm outline-none ring-[var(--accent)] placeholder:text-[var(--fg-muted)] focus:ring-1"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                void send(input);
-              }
-            }}
+            placeholder={pendingTranscript ? "Edit what I heard…" : "Or type…"}
+            className="min-h-11 flex-1 rounded-full border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none placeholder:text-[var(--fg-muted)] focus:ring-1 focus:ring-[var(--accent)]"
+            disabled={recording}
           />
           <button
             type="submit"
-            disabled={loading || !input.trim()}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[#1a1400] transition hover:bg-[var(--accent-soft)] disabled:opacity-50"
-            aria-label="Send"
+            disabled={loading || recording || !input.trim()}
+            className="icon-action icon-action--accent"
+            aria-label="Send message"
           >
             <Send className="h-4 w-4" />
           </button>

@@ -1,50 +1,42 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Mic, ShieldCheck, Square, Volume2 } from "lucide-react";
+import { Check, Fingerprint, RotateCcw, Volume2, X } from "lucide-react";
 import { useLang } from "@/components/lang-provider";
 import { blobToPcmB64, recordUntilSilence, startLiveRecorder } from "@/lib/browser-audio";
+import { VoiceOrb, modeLabel, type OrbMode } from "@/components/voice-orb";
 
-type AsrPreview = {
-  text: string;
-  model?: string;
-  latencyMs?: number;
-  duration?: number;
-};
-
-type ReplyResult = {
-  reply: string;
-  intent?: string;
-  severity?: string;
-  engine?: string;
-  tts?: { audioBase64: string; model?: string } | null;
-  conversationId?: string;
-};
-
-function playWavBase64(b64: string) {
-  const audio = new Audio(`data:audio/wav;base64,${b64}`);
-  void audio.play();
-  return audio;
-}
+type AsrPreview = { text: string; model?: string; latencyMs?: number };
 
 export function VoicePanel() {
   const { lang } = useLang();
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const [level, setLevel] = useState(0);
   const [vadState, setVadState] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [status, setStatus] = useState<string | null>(null);
-  const [speak, setSpeak] = useState(true);
   const [asrPreview, setAsrPreview] = useState<AsrPreview | null>(null);
   const [editedText, setEditedText] = useState("");
-  const [reply, setReply] = useState<ReplyResult | null>(null);
+  const [reply, setReply] = useState<string | null>(null);
+  const [ttsB64, setTtsB64] = useState<string | null>(null);
+  const [showId, setShowId] = useState(false);
 
   const [vidBusy, setVidBusy] = useState(false);
   const [vidStatus, setVidStatus] = useState<string | null>(null);
   const [enrolled, setEnrolled] = useState(false);
   const [vidRecording, setVidRecording] = useState<"enroll" | "verify" | null>(null);
   const vidRecRef = useRef<Awaited<ReturnType<typeof startLiveRecorder>> | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const orbMode: OrbMode = recording
+    ? "listening"
+    : speaking
+      ? "speaking"
+      : busy
+        ? "thinking"
+        : "idle";
 
   useEffect(() => {
     void fetch("/api/voice/enroll")
@@ -53,10 +45,22 @@ export function VoicePanel() {
       .catch(() => setEnrolled(false));
   }, []);
 
+  function playWav(b64: string) {
+    audioRef.current?.pause();
+    const audio = new Audio(`data:audio/wav;base64,${b64}`);
+    audioRef.current = audio;
+    setSpeaking(true);
+    audio.onended = () => setSpeaking(false);
+    audio.onerror = () => setSpeaking(false);
+    void audio.play().catch(() => setSpeaking(false));
+  }
+
   async function listenAndTranscribe() {
+    if (busy || speaking) return;
     setStatus(null);
     setAsrPreview(null);
     setReply(null);
+    setTtsB64(null);
     setEditedText("");
     setRecording(true);
     setVadState("listening");
@@ -72,10 +76,8 @@ export function VoicePanel() {
       setVadState(null);
       setLevel(0);
 
-      if (blob.size < 400 || peakLevel < 0.01) {
-        throw new Error("Too quiet — speak closer to the mic");
-      }
-      if (durationMs < 400) throw new Error("Recording too short");
+      if (blob.size < 400 || peakLevel < 0.01) throw new Error("Too quiet — try closer");
+      if (durationMs < 400) throw new Error("Too short");
 
       setBusy(true);
       setStatus("Transcribing…");
@@ -87,28 +89,26 @@ export function VoicePanel() {
       const res = await fetch("/api/voice/transcribe", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok) {
-        const err = data.error || data.transcript?.error || "Transcription failed";
+        const err = data.error || "Transcription failed";
         throw new Error(
           err === "audio_too_quiet_or_silent"
-            ? "Too quiet — try again closer to the mic"
+            ? "Too quiet"
             : err === "asr_hallucination_or_noise"
-              ? "Couldn’t detect clear speech — please try again"
+              ? "Couldn’t catch clear speech"
               : String(err),
         );
       }
 
       const text = (data.transcript?.text as string | undefined)?.trim();
-      if (!text) throw new Error("Empty transcription — try speaking more clearly");
+      if (!text) throw new Error("No speech heard");
 
-      const preview: AsrPreview = {
+      setAsrPreview({
         text,
         model: data.transcript?.model,
         latencyMs: data.transcript?.latencyMs,
-        duration: data.transcript?.duration,
-      };
-      setAsrPreview(preview);
+      });
       setEditedText(text);
-      setStatus("Check the transcript, then Confirm to get a reply");
+      setStatus(null);
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Failed");
     } finally {
@@ -123,10 +123,9 @@ export function VoicePanel() {
     const text = editedText.trim();
     if (!text || busy) return;
     setBusy(true);
-    setStatus("Understanding…");
+    setStatus(null);
     setReply(null);
     try {
-      // Text path — same brain as chat; avoids re-running ASR
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -134,25 +133,18 @@ export function VoicePanel() {
           message: text,
           conversationId,
           language: lang,
-          speak,
+          speak: true,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Reply failed");
 
       setConversationId(data.conversationId);
-      setReply({
-        reply: data.message?.content ?? "",
-        intent: data.message?.intent,
-        severity: data.message?.metadata?.severity as string | undefined,
-        engine: data.message?.metadata?.engine as string | undefined,
-        tts: data.tts
-          ? { audioBase64: data.tts.audioBase64, model: data.tts.model }
-          : null,
-        conversationId: data.conversationId,
-      });
-      setStatus("Done");
-      if (data.tts?.audioBase64) playWavBase64(data.tts.audioBase64);
+      setReply(data.message?.content ?? "");
+      if (data.tts?.audioBase64) {
+        setTtsB64(data.tts.audioBase64);
+        playWav(data.tts.audioBase64);
+      }
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Failed");
     } finally {
@@ -165,7 +157,7 @@ export function VoicePanel() {
     try {
       vidRecRef.current = await startLiveRecorder();
       setVidRecording(mode);
-      setVidStatus(mode === "enroll" ? "Recording enrollment…" : "Recording verify sample…");
+      setVidStatus(mode === "enroll" ? "Recording enrollment…" : "Recording verify…");
     } catch (e) {
       setVidStatus(e instanceof Error ? e.message : "Mic denied");
     }
@@ -177,12 +169,11 @@ export function VoicePanel() {
     vidRecRef.current = null;
     setVidRecording(null);
     if (!rec || !mode) return;
-
     setVidBusy(true);
     try {
       const blob = await rec.stop();
       const { pcmB64, sampleRate, durationS } = await blobToPcmB64(blob);
-      if (durationS < 0.8) throw new Error("Speak for at least 1–2 seconds");
+      if (durationS < 0.8) throw new Error("Speak 1–2 seconds");
 
       if (mode === "enroll") {
         const res = await fetch("/api/voice/enroll", {
@@ -199,9 +190,7 @@ export function VoicePanel() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Enroll failed");
         setEnrolled(true);
-        setVidStatus(
-          `Enrolled from ${durationS.toFixed(1)}s audio · threshold ${data.enrollment?.threshold ?? 0.82}`,
-        );
+        setVidStatus("Enrolled");
       } else {
         const res = await fetch("/api/voice/verify", {
           method: "POST",
@@ -210,11 +199,7 @@ export function VoicePanel() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Verify failed");
-        setVidStatus(
-          data.verified
-            ? `Verified ✓ score ${data.score} (threshold ${data.threshold})`
-            : `Not verified · score ${data.score} (need ≥ ${data.threshold})`,
-        );
+        setVidStatus(data.verified ? `Verified · ${data.score}` : `Not verified · ${data.score}`);
       }
     } catch (e) {
       setVidStatus(e instanceof Error ? e.message : "Voice ID failed");
@@ -224,155 +209,159 @@ export function VoicePanel() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <section className="glass rounded-[var(--radius)] p-5">
-        <div className="mb-4 flex items-center gap-2">
-          <Mic className="h-5 w-5 text-[var(--teal)]" />
-          <h2 className="font-[family-name:var(--font-display)] text-xl">Live conversation</h2>
-        </div>
-        <p className="mb-4 text-sm text-[var(--fg-muted)]">
-          Speak freely — we auto-stop when you pause, show the transcript first, then reply only after
-          you confirm.
-        </p>
+    <div className="mx-auto max-w-lg space-y-6">
+      <section className="glass flex flex-col items-center rounded-[calc(var(--radius)+6px)] px-6 py-10">
+        <VoiceOrb
+          mode={orbMode}
+          level={level}
+          size="lg"
+          onClick={() => {
+            if (!recording && !busy && !speaking) void listenAndTranscribe();
+          }}
+          label={status || modeLabel(orbMode, vadState)}
+        />
 
-        <label className="mb-4 flex items-center gap-2 text-sm text-[var(--fg-muted)]">
-          <input type="checkbox" checked={speak} onChange={(e) => setSpeak(e.target.checked)} />
-          Speak reply (TTS)
-        </label>
-
-        {recording && (
-          <div className="mb-3 space-y-1 text-xs text-[var(--fg-muted)]">
-            <p className="text-[var(--coral)]">
-              {vadState === "speech"
-                ? "Hearing you…"
-                : vadState === "silence"
-                  ? "Pause — wrapping up…"
-                  : "Listening…"}
-            </p>
-            <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full bg-[var(--teal)] transition-all duration-75"
-                style={{ width: `${Math.min(100, level * 800)}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => void listenAndTranscribe()}
-            disabled={busy || recording}
-            className="inline-flex items-center gap-2 rounded-full bg-[var(--teal)] px-5 py-3 text-sm font-semibold text-[#062419] disabled:opacity-50"
+        <div className="mt-4 flex items-center gap-2">
+          <span
+            className={
+              recording
+                ? "status-chip status-chip--live"
+                : speaking
+                  ? "status-chip status-chip--speak"
+                  : "status-chip"
+            }
           >
-            {busy || recording ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Mic className="h-4 w-4" />
-            )}
-            {recording ? "Listening…" : busy ? "Working…" : "Talk (auto-stop)"}
+            {recording
+              ? "Listening"
+              : speaking
+                ? "Speaking"
+                : busy
+                  ? "Thinking"
+                  : "Ready"}
+          </span>
+          <button
+            type="button"
+            className="icon-action"
+            title="Voice ID"
+            aria-label="Voice ID"
+            onClick={() => setShowId((v) => !v)}
+          >
+            <Fingerprint className="h-4 w-4" />
           </button>
         </div>
+      </section>
 
-        {status && <p className="mt-4 text-xs text-[var(--accent-soft)]">{status}</p>}
-
-        {asrPreview && (
-          <div className="mt-4 space-y-3 rounded-2xl bg-black/20 p-4 text-sm">
-            <div>
-              <p className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)]">
-                You said (edit if wrong)
-              </p>
-              <textarea
-                value={editedText}
-                onChange={(e) => setEditedText(e.target.value)}
-                rows={3}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-              />
-              <p className="mt-1 text-[10px] text-[var(--fg-muted)]">
-                {asrPreview.model}
-                {asrPreview.latencyMs != null ? ` · ${asrPreview.latencyMs}ms` : ""}
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={busy || !editedText.trim()}
-                onClick={() => void confirmAndReply()}
-                className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[#1a1400] disabled:opacity-50"
-              >
-                Confirm &amp; reply
-              </button>
-              <button
-                type="button"
-                disabled={busy || recording}
-                onClick={() => void listenAndTranscribe()}
-                className="rounded-full border border-white/15 px-4 py-2 text-sm"
-              >
-                Re-record
-              </button>
-            </div>
+      {asrPreview && (
+        <section className="glass space-y-3 rounded-[var(--radius)] p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[var(--accent-soft)]">I heard</p>
+          <textarea
+            value={editedText}
+            onChange={(e) => setEditedText(e.target.value)}
+            rows={3}
+            className="w-full resize-none rounded-2xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+          />
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              className="icon-action"
+              title="Discard"
+              aria-label="Discard"
+              onClick={() => {
+                setAsrPreview(null);
+                setEditedText("");
+                setReply(null);
+              }}
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              className="icon-action"
+              title="Re-record"
+              aria-label="Re-record"
+              disabled={busy || recording}
+              onClick={() => void listenAndTranscribe()}
+            >
+              <RotateCcw className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              className="icon-action icon-action--accent"
+              title="Confirm reply"
+              aria-label="Confirm and reply"
+              disabled={busy || !editedText.trim()}
+              onClick={() => void confirmAndReply()}
+            >
+              <Check className="h-4 w-4" />
+            </button>
           </div>
-        )}
+        </section>
+      )}
 
-        {reply && (
-          <div className="mt-4 space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm">
-            <p className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)]">
-              Reply
-              {reply.intent ? ` · ${reply.intent}` : ""}
-              {reply.severity ? ` · ${reply.severity}` : ""}
-            </p>
-            <p className="whitespace-pre-wrap">{reply.reply}</p>
-            {reply.tts?.audioBase64 && (
+      {reply && (
+        <section className="glass space-y-3 rounded-[var(--radius)] p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)]">Assistant</p>
+            {ttsB64 && (
               <button
                 type="button"
-                onClick={() => playWavBase64(reply.tts!.audioBase64)}
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1.5 text-xs"
+                className="icon-action"
+                title="Replay"
+                aria-label="Replay voice"
+                onClick={() => playWav(ttsB64)}
               >
-                <Volume2 className="h-3.5 w-3.5" /> Replay voice
+                <Volume2 className="h-4 w-4" />
               </button>
             )}
           </div>
-        )}
-      </section>
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">{reply}</p>
+        </section>
+      )}
 
-      <section className="glass rounded-[var(--radius)] p-5">
-        <div className="mb-4 flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5 text-[var(--accent)]" />
-          <h2 className="font-[family-name:var(--font-display)] text-xl">Voice ID</h2>
-        </div>
-        <p className="mb-3 text-sm text-[var(--fg-muted)]">
-          Enroll and verify with real mic audio. Login + voice consent required.
-          {enrolled ? " · Enrollment on file." : " · Not enrolled yet."}
-        </p>
-
-        <div className="flex flex-wrap gap-2">
-          {!vidRecording ? (
-            <>
+      {showId && (
+        <section className="glass space-y-3 rounded-[var(--radius)] p-4">
+          <p className="text-sm text-[var(--fg-muted)]">
+            Voice ID · {enrolled ? "enrolled" : "not enrolled"} · login required
+          </p>
+          <div className="flex gap-2">
+            {!vidRecording ? (
+              <>
+                <button
+                  type="button"
+                  className="icon-action icon-action--accent"
+                  title="Enroll"
+                  aria-label="Enroll voice"
+                  disabled={vidBusy}
+                  onClick={() => void startVidCapture("enroll")}
+                >
+                  <Fingerprint className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  className="icon-action"
+                  title="Verify"
+                  aria-label="Verify voice"
+                  disabled={vidBusy || !enrolled}
+                  onClick={() => void startVidCapture("verify")}
+                >
+                  <Check className="h-4 w-4" />
+                </button>
+              </>
+            ) : (
               <button
-                disabled={vidBusy}
-                onClick={() => void startVidCapture("enroll")}
-                className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[#1a1400] disabled:opacity-50"
+                type="button"
+                className="icon-action icon-action--danger"
+                title="Stop"
+                aria-label="Stop recording"
+                onClick={() => void stopVidCapture()}
               >
-                {vidBusy ? "Working…" : "Enroll (record)"}
+                <X className="h-4 w-4" />
               </button>
-              <button
-                disabled={vidBusy || !enrolled}
-                onClick={() => void startVidCapture("verify")}
-                className="rounded-full border border-white/15 px-4 py-2 text-sm disabled:opacity-40"
-              >
-                Verify (record)
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={() => void stopVidCapture()}
-              className="mic-pulse inline-flex items-center gap-2 rounded-full bg-[var(--coral)] px-4 py-2 text-sm font-semibold text-white"
-            >
-              <Square className="h-3.5 w-3.5" /> Stop {vidRecording}
-            </button>
-          )}
-        </div>
-        {vidStatus && <p className="mt-3 text-sm text-[var(--accent-soft)]">{vidStatus}</p>}
-      </section>
+            )}
+          </div>
+          {vidStatus && <p className="text-xs text-[var(--accent-soft)]">{vidStatus}</p>}
+        </section>
+      )}
     </div>
   );
 }
