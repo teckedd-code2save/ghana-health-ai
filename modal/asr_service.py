@@ -1,7 +1,7 @@
 """
 Ghana Health AI — real Twi/Akan ASR on Modal.
 
-Model: teckedd/whisper_small-waxal_akan-asr-v1 (from akan-speech-lab)
+Model: teckedd/whisper-small-waxal-round2-specaug-v1 (Waxal Round 2, ~32.8% WER)
 Engine: HuggingFace WhisperForConditionalGeneration on GPU
 
   modal deploy modal/asr_service.py
@@ -18,7 +18,9 @@ from typing import Any, Optional
 import modal
 
 APP_NAME = "ghana-health-asr"
-DEFAULT_MODEL = os.environ.get("MODEL_ID", "teckedd/whisper_small-waxal_akan-asr-v1")
+DEFAULT_MODEL = os.environ.get(
+    "MODEL_ID", "teckedd/whisper-small-waxal-round2-specaug-v1"
+)
 FALLBACK_MODEL = "openai/whisper-small"
 
 app = modal.App(APP_NAME)
