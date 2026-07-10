@@ -2,7 +2,6 @@
 Ghana Health AI — real Akan/Twi TTS on Modal.
 
 Model: facebook/mms-tts-aka (Meta MMS VITS for Akan)
-Same stack as akan-speech-lab.
 
   modal deploy modal/tts_service.py
 """
@@ -78,7 +77,6 @@ class TtsEngine:
                 "error": "empty_text",
             }
 
-        # MMS-aka expects Akan orthography; keep text as-is (Twi code-mix ok-ish)
         inputs = self.tokenizer(clean, return_tensors="pt")
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         with torch.no_grad():
@@ -103,48 +101,27 @@ class TtsEngine:
         }
 
 
-@app.function(image=image, timeout=60)
-@modal.asgi_app()
-def api():
-    from fastapi import FastAPI, Request
-    from fastapi.responses import JSONResponse, Response
+@app.function(image=image, timeout=120)
+@modal.fastapi_endpoint(method="GET")
+def health():
+    return {
+        "ok": True,
+        "service": "ghana-health-tts",
+        "model": os.environ.get("TTS_MODEL_ID", DEFAULT_MODEL),
+        "engine": "mms-vits-aka",
+    }
 
-    web = FastAPI(title="Ghana Health TTS", version="1.0.1")
+
+@app.function(image=image, timeout=120)
+@modal.fastapi_endpoint(method="POST")
+def speak(item: dict):
+    """
+    POST JSON: { "text": "...", "language": "tw" }
+    Returns audio_base64 wav payload.
+    """
+    text = str(item.get("text") or "").strip()
+    language = item.get("language") or "tw"
+    if not text:
+        return {"error": "text required", "audio_base64": ""}
     engine = TtsEngine()
-
-    @web.get("/health")
-    async def health():
-        return {
-            "ok": True,
-            "service": "ghana-health-tts",
-            "model": os.environ.get("TTS_MODEL_ID", DEFAULT_MODEL),
-            "engine": "mms-vits-aka",
-        }
-
-    @web.post("/speak")
-    async def speak(request: Request):
-        try:
-            data = await request.json()
-        except Exception:
-            return JSONResponse({"error": "invalid json"}, status_code=400)
-        text = (data.get("text") or "").strip()
-        if not text:
-            return JSONResponse({"error": "text required"}, status_code=400)
-        language = data.get("language") or "tw"
-        return_bytes = bool(data.get("return_bytes"))
-        result = await engine.synthesize.remote.aio(text, language=language)
-        if result.get("error"):
-            return JSONResponse(result, status_code=400)
-        if return_bytes and result.get("audio_base64"):
-            raw = base64.b64decode(result["audio_base64"])
-            return Response(
-                content=raw,
-                media_type="audio/wav",
-                headers={
-                    "X-Model": result.get("model", ""),
-                    "X-Latency-Ms": str(result.get("latency_ms", 0)),
-                },
-            )
-        return result
-
-    return web
+    return engine.synthesize.remote(text, language=language)

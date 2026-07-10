@@ -9,22 +9,30 @@ export type ModalTtsResult = {
   error?: string;
 };
 
-function ttsBaseUrl(): string | null {
-  return process.env.MODAL_TTS_URL?.replace(/\/$/, "") || null;
+/**
+ * MODAL_TTS_URL can be either:
+ * - full speak endpoint: https://...--ghana-health-tts-speak.modal.run
+ * - base with /speak path (legacy ASGI)
+ */
+function ttsSpeakUrl(): string | null {
+  const raw = process.env.MODAL_TTS_URL?.replace(/\/$/, "");
+  if (!raw) return null;
+  if (raw.endsWith("/speak") || raw.includes("-speak")) return raw;
+  return `${raw}/speak`;
 }
 
 export function isModalTtsConfigured(): boolean {
-  return Boolean(ttsBaseUrl());
+  return Boolean(process.env.MODAL_TTS_URL);
 }
 
 export async function modalSpeak(
   text: string,
   language: string = "tw",
 ): Promise<ModalTtsResult> {
-  const base = ttsBaseUrl();
-  if (!base) throw new Error("MODAL_TTS_URL is not set");
+  const url = ttsSpeakUrl();
+  if (!url) throw new Error("MODAL_TTS_URL is not set");
 
-  const res = await fetch(`${base}/speak`, {
+  const res = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -32,7 +40,7 @@ export async function modalSpeak(
         ? { Authorization: `Bearer ${process.env.MODAL_TTS_TOKEN}` }
         : {}),
     },
-    body: JSON.stringify({ text, language, return_bytes: false }),
+    body: JSON.stringify({ text, language }),
   });
 
   if (!res.ok) {
