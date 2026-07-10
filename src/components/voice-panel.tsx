@@ -3,21 +3,22 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Mic, ShieldCheck, Square, Volume2 } from "lucide-react";
 import { useLang } from "@/components/lang-provider";
-import { blobToPcmB64, startLiveRecorder } from "@/lib/browser-audio";
+import { blobToPcmB64, recordUntilSilence, startLiveRecorder } from "@/lib/browser-audio";
 
-type ConverseResult = {
-  asr?: { text: string; model: string; latencyMs: number };
-  understanding?: {
-    reply: string;
-    intent: string;
-    severity: string;
-    escalate: boolean;
-    engine: string;
-  };
-  tts?: { audioBase64: string; sampleRate?: number; model?: string; latencyMs?: number } | null;
-  totalLatencyMs?: number;
+type AsrPreview = {
+  text: string;
+  model?: string;
+  latencyMs?: number;
+  duration?: number;
+};
+
+type ReplyResult = {
+  reply: string;
+  intent?: string;
+  severity?: string;
+  engine?: string;
+  tts?: { audioBase64: string; model?: string } | null;
   conversationId?: string;
-  error?: string;
 };
 
 function playWavBase64(b64: string) {
@@ -30,12 +31,14 @@ export function VoicePanel() {
   const { lang } = useLang();
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [level, setLevel] = useState(0);
+  const [vadState, setVadState] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | undefined>();
-  const [result, setResult] = useState<ConverseResult | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [speak, setSpeak] = useState(true);
-  const mediaRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const [asrPreview, setAsrPreview] = useState<AsrPreview | null>(null);
+  const [editedText, setEditedText] = useState("");
+  const [reply, setReply] = useState<ReplyResult | null>(null);
 
   const [vidBusy, setVidBusy] = useState(false);
   const [vidStatus, setVidStatus] = useState<string | null>(null);
@@ -50,26 +53,105 @@ export function VoicePanel() {
       .catch(() => setEnrolled(false));
   }, []);
 
-  async function runConverse(blob: Blob) {
-    setBusy(true);
-    setStatus("ASR → understand → TTS…");
-    setResult(null);
+  async function listenAndTranscribe() {
+    setStatus(null);
+    setAsrPreview(null);
+    setReply(null);
+    setEditedText("");
+    setRecording(true);
+    setVadState("listening");
     try {
+      const { blob, durationMs, peakLevel } = await recordUntilSilence({
+        silenceMs: 1100,
+        maxMs: 20_000,
+        minSpeechMs: 450,
+        onLevel: setLevel,
+        onState: setVadState,
+      });
+      setRecording(false);
+      setVadState(null);
+      setLevel(0);
+
+      if (blob.size < 400 || peakLevel < 0.01) {
+        throw new Error("Too quiet — speak closer to the mic");
+      }
+      if (durationMs < 400) throw new Error("Recording too short");
+
+      setBusy(true);
+      setStatus("Transcribing…");
+
       const form = new FormData();
       form.append("audio", blob, "utterance.webm");
       form.append("language", lang);
-      form.append("speak", speak ? "true" : "false");
-      if (conversationId) form.append("conversationId", conversationId);
 
-      const res = await fetch("/api/voice/converse", { method: "POST", body: form });
+      const res = await fetch("/api/voice/transcribe", { method: "POST", body: form });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Converse failed");
+      if (!res.ok) {
+        const err = data.error || data.transcript?.error || "Transcription failed";
+        throw new Error(
+          err === "audio_too_quiet_or_silent"
+            ? "Too quiet — try again closer to the mic"
+            : err === "asr_hallucination_or_noise"
+              ? "Couldn’t detect clear speech — please try again"
+              : String(err),
+        );
+      }
+
+      const text = (data.transcript?.text as string | undefined)?.trim();
+      if (!text) throw new Error("Empty transcription — try speaking more clearly");
+
+      const preview: AsrPreview = {
+        text,
+        model: data.transcript?.model,
+        latencyMs: data.transcript?.latencyMs,
+        duration: data.transcript?.duration,
+      };
+      setAsrPreview(preview);
+      setEditedText(text);
+      setStatus("Check the transcript, then Confirm to get a reply");
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setBusy(false);
+      setRecording(false);
+      setVadState(null);
+      setLevel(0);
+    }
+  }
+
+  async function confirmAndReply() {
+    const text = editedText.trim();
+    if (!text || busy) return;
+    setBusy(true);
+    setStatus("Understanding…");
+    setReply(null);
+    try {
+      // Text path — same brain as chat; avoids re-running ASR
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          conversationId,
+          language: lang,
+          speak,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Reply failed");
 
       setConversationId(data.conversationId);
-      setResult(data);
-      setStatus(
-        `Done in ${data.totalLatencyMs}ms · ASR ${data.asr?.model} · brain ${data.understanding?.engine}`,
-      );
+      setReply({
+        reply: data.message?.content ?? "",
+        intent: data.message?.intent,
+        severity: data.message?.metadata?.severity as string | undefined,
+        engine: data.message?.metadata?.engine as string | undefined,
+        tts: data.tts
+          ? { audioBase64: data.tts.audioBase64, model: data.tts.model }
+          : null,
+        conversationId: data.conversationId,
+      });
+      setStatus("Done");
       if (data.tts?.audioBase64) playWavBase64(data.tts.audioBase64);
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Failed");
@@ -78,41 +160,12 @@ export function VoicePanel() {
     }
   }
 
-  async function startRecording() {
-    setStatus(null);
-    setResult(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-      chunksRef.current = [];
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-      recorder.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        void runConverse(blob);
-      };
-      mediaRef.current = recorder;
-      recorder.start();
-      setRecording(true);
-    } catch (e) {
-      setStatus(e instanceof Error ? e.message : "Mic permission denied");
-    }
-  }
-
-  function stopRecording() {
-    mediaRef.current?.stop();
-    mediaRef.current = null;
-    setRecording(false);
-  }
-
   async function startVidCapture(mode: "enroll" | "verify") {
     setVidStatus(null);
     try {
       vidRecRef.current = await startLiveRecorder();
       setVidRecording(mode);
-      setVidStatus(mode === "enroll" ? "Recording enrollment phrase…" : "Recording verify sample…");
+      setVidStatus(mode === "enroll" ? "Recording enrollment…" : "Recording verify sample…");
     } catch (e) {
       setVidStatus(e instanceof Error ? e.message : "Mic denied");
     }
@@ -178,9 +231,8 @@ export function VoicePanel() {
           <h2 className="font-[family-name:var(--font-display)] text-xl">Live conversation</h2>
         </div>
         <p className="mb-4 text-sm text-[var(--fg-muted)]">
-          Real pipeline: <strong className="text-[var(--accent-soft)]">Twi ASR</strong> (Whisper
-          Waxal) → <strong className="text-[var(--accent-soft)]">LLM</strong> →{" "}
-          <strong className="text-[var(--accent-soft)]">Akan TTS</strong> (MMS).
+          Speak freely — we auto-stop when you pause, show the transcript first, then reply only after
+          you confirm.
         </p>
 
         <label className="mb-4 flex items-center gap-2 text-sm text-[var(--fg-muted)]">
@@ -188,53 +240,91 @@ export function VoicePanel() {
           Speak reply (TTS)
         </label>
 
+        {recording && (
+          <div className="mb-3 space-y-1 text-xs text-[var(--fg-muted)]">
+            <p className="text-[var(--coral)]">
+              {vadState === "speech"
+                ? "Hearing you…"
+                : vadState === "silence"
+                  ? "Pause — wrapping up…"
+                  : "Listening…"}
+            </p>
+            <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full bg-[var(--teal)] transition-all duration-75"
+                style={{ width: `${Math.min(100, level * 800)}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2">
-          {!recording ? (
-            <button
-              onClick={() => void startRecording()}
-              disabled={busy}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--teal)] px-5 py-3 text-sm font-semibold text-[#062419] disabled:opacity-50"
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
-              {busy ? "Thinking…" : "Start talking"}
-            </button>
-          ) : (
-            <button
-              onClick={stopRecording}
-              className="mic-pulse inline-flex items-center gap-2 rounded-full bg-[var(--coral)] px-5 py-3 text-sm font-semibold text-white"
-            >
-              <Square className="h-4 w-4" /> Stop &amp; process
-            </button>
-          )}
+          <button
+            onClick={() => void listenAndTranscribe()}
+            disabled={busy || recording}
+            className="inline-flex items-center gap-2 rounded-full bg-[var(--teal)] px-5 py-3 text-sm font-semibold text-[#062419] disabled:opacity-50"
+          >
+            {busy || recording ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Mic className="h-4 w-4" />
+            )}
+            {recording ? "Listening…" : busy ? "Working…" : "Talk (auto-stop)"}
+          </button>
         </div>
 
         {status && <p className="mt-4 text-xs text-[var(--accent-soft)]">{status}</p>}
 
-        {result?.asr && (
+        {asrPreview && (
           <div className="mt-4 space-y-3 rounded-2xl bg-black/20 p-4 text-sm">
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)]">You said</p>
-              <p className="mt-1">{result.asr.text}</p>
+              <p className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)]">
+                You said (edit if wrong)
+              </p>
+              <textarea
+                value={editedText}
+                onChange={(e) => setEditedText(e.target.value)}
+                rows={3}
+                className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+              />
               <p className="mt-1 text-[10px] text-[var(--fg-muted)]">
-                {result.asr.model} · {result.asr.latencyMs}ms
+                {asrPreview.model}
+                {asrPreview.latencyMs != null ? ` · ${asrPreview.latencyMs}ms` : ""}
               </p>
             </div>
-            {result.understanding && (
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)]">
-                  Understood · {result.understanding.intent} · {result.understanding.severity}
-                  {result.understanding.escalate ? " · ESCALATE" : ""}
-                </p>
-                <p className="mt-1 whitespace-pre-wrap">{result.understanding.reply}</p>
-                <p className="mt-1 text-[10px] text-[var(--fg-muted)]">
-                  brain: {result.understanding.engine}
-                </p>
-              </div>
-            )}
-            {result.tts?.audioBase64 && (
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => playWavBase64(result.tts!.audioBase64)}
+                disabled={busy || !editedText.trim()}
+                onClick={() => void confirmAndReply()}
+                className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[#1a1400] disabled:opacity-50"
+              >
+                Confirm &amp; reply
+              </button>
+              <button
+                type="button"
+                disabled={busy || recording}
+                onClick={() => void listenAndTranscribe()}
+                className="rounded-full border border-white/15 px-4 py-2 text-sm"
+              >
+                Re-record
+              </button>
+            </div>
+          </div>
+        )}
+
+        {reply && (
+          <div className="mt-4 space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm">
+            <p className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)]">
+              Reply
+              {reply.intent ? ` · ${reply.intent}` : ""}
+              {reply.severity ? ` · ${reply.severity}` : ""}
+            </p>
+            <p className="whitespace-pre-wrap">{reply.reply}</p>
+            {reply.tts?.audioBase64 && (
+              <button
+                type="button"
+                onClick={() => playWavBase64(reply.tts!.audioBase64)}
                 className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1.5 text-xs"
               >
                 <Volume2 className="h-3.5 w-3.5" /> Replay voice
@@ -250,8 +340,7 @@ export function VoicePanel() {
           <h2 className="font-[family-name:var(--font-display)] text-xl">Voice ID</h2>
         </div>
         <p className="mb-3 text-sm text-[var(--fg-muted)]">
-          Enroll and verify with <strong className="text-[var(--accent-soft)]">real mic audio</strong>{" "}
-          (PCM spectral embedding). Login + voice consent required.
+          Enroll and verify with real mic audio. Login + voice consent required.
           {enrolled ? " · Enrollment on file." : " · Not enrolled yet."}
         </p>
 

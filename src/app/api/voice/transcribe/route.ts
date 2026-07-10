@@ -57,7 +57,12 @@ export async function POST(req: Request) {
     });
 
     if (result.error && !result.text?.trim()) {
-      return jsonError(result.error, 422, { model: result.model });
+      return jsonError(result.error, 422, {
+        model: result.model,
+        duration: result.duration,
+        rms: result.rms,
+        rejected_text: result.rejected_text,
+      });
     }
 
     await prisma.transcriptSession.create({

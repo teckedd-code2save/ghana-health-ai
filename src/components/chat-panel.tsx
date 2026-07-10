@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Mic, Send, Sparkles, Square } from "lucide-react";
 import { useLang } from "@/components/lang-provider";
 import { enqueueOffline } from "@/lib/offline-queue";
-import { startLiveRecorder } from "@/lib/browser-audio";
+import { recordUntilSilence } from "@/lib/browser-audio";
 
 type ChatMessage = {
   id: string;
@@ -12,6 +12,7 @@ type ChatMessage = {
   content: string;
   intent?: string;
   metadata?: Record<string, unknown>;
+  kind?: "transcript-pending";
 };
 
 export function ChatPanel() {
@@ -21,13 +22,16 @@ export function ChatPanel() {
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [level, setLevel] = useState(0);
+  const [vadState, setVadState] = useState<string | null>(null);
   const [online, setOnline] = useState(true);
+  const [pendingTranscript, setPendingTranscript] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const recorderRef = useRef<Awaited<ReturnType<typeof startLiveRecorder>> | null>(null);
+  const abortVadRef = useRef(false);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages, loading, pendingTranscript]);
 
   useEffect(() => {
     const sync = () => setOnline(navigator.onLine);
@@ -44,6 +48,7 @@ export function ChatPanel() {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
     setInput("");
+    setPendingTranscript(null);
     const localId = crypto.randomUUID();
     setMessages((m) => [...m, { id: localId, role: "local-user", content: trimmed }]);
     setLoading(true);
@@ -101,30 +106,39 @@ export function ChatPanel() {
   }
 
   async function startMic() {
+    setPendingTranscript(null);
+    setRecording(true);
+    setVadState("listening");
+    abortVadRef.current = false;
     try {
-      recorderRef.current = await startLiveRecorder();
-      setRecording(true);
-    } catch (e) {
+      const { blob, durationMs, peakLevel } = await recordUntilSilence({
+        silenceMs: 1100,
+        maxMs: 20_000,
+        minSpeechMs: 450,
+        onLevel: setLevel,
+        onState: setVadState,
+      });
+      setRecording(false);
+      setVadState(null);
+      setLevel(0);
+
+      if (blob.size < 400 || peakLevel < 0.01) {
+        throw new Error("Too quiet — speak closer to the mic and try again");
+      }
+      if (durationMs < 400) {
+        throw new Error("Recording too short");
+      }
+
+      setLoading(true);
       setMessages((m) => [
         ...m,
         {
           id: crypto.randomUUID(),
           role: "local-assistant",
-          content: e instanceof Error ? e.message : "Mic permission denied",
+          content: "Transcribing what you said…",
+          kind: "transcript-pending",
         },
       ]);
-    }
-  }
-
-  async function stopMicAndTranscribe() {
-    const rec = recorderRef.current;
-    recorderRef.current = null;
-    setRecording(false);
-    if (!rec) return;
-    setLoading(true);
-    try {
-      const blob = await rec.stop();
-      if (blob.size < 200) throw new Error("Recording too short");
 
       const form = new FormData();
       form.append("audio", blob, "chat-utterance.webm");
@@ -132,22 +146,63 @@ export function ChatPanel() {
 
       const res = await fetch("/api/voice/transcribe", { method: "POST", body: form });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Transcription failed");
+
+      // Clear "transcribing…" bubble
+      setMessages((m) => m.filter((x) => x.kind !== "transcript-pending"));
+
+      if (!res.ok) {
+        const err = data.error || data.transcript?.error || "Transcription failed";
+        throw new Error(
+          err === "audio_too_quiet_or_silent"
+            ? "Mic was too quiet — try again closer to the phone"
+            : err === "asr_hallucination_or_noise"
+              ? "Couldn’t hear clear speech — please try again"
+              : String(err),
+        );
+      }
+
       const text = (data.transcript?.text as string | undefined)?.trim();
-      if (!text) throw new Error("Empty transcription — try speaking more clearly");
-      setLoading(false);
-      await send(text);
-    } catch (e) {
+      if (!text) {
+        throw new Error(
+          data.transcript?.error === "audio_too_quiet_or_silent"
+            ? "Too quiet — speak louder and try again"
+            : "Empty transcription — try speaking more clearly",
+        );
+      }
+
+      // Show transcript first — do NOT auto-reply until user confirms/sends
+      setPendingTranscript(text);
+      setInput(text);
       setMessages((m) => [
         ...m,
+        {
+          id: crypto.randomUUID(),
+          role: "local-assistant",
+          content: `I heard: “${text}”\n\nEdit if needed, then press Send (or Send as-is).`,
+        },
+      ]);
+    } catch (e) {
+      setMessages((m) => [
+        ...m.filter((x) => x.kind !== "transcript-pending"),
         {
           id: crypto.randomUUID(),
           role: "local-assistant",
           content: e instanceof Error ? e.message : "Voice input failed",
         },
       ]);
+    } finally {
       setLoading(false);
+      setRecording(false);
+      setVadState(null);
+      setLevel(0);
     }
+  }
+
+  function cancelMic() {
+    // recordUntilSilence has no external abort; user can wait for max or we reload UX
+    abortVadRef.current = true;
+    setRecording(false);
+    setVadState(null);
   }
 
   return (
@@ -158,7 +213,8 @@ export function ChatPanel() {
           <div>
             <p className="text-sm font-medium">Health & Market Companion</p>
             <p className="text-xs text-[var(--fg-muted)]">
-              Lang · {lang.toUpperCase()} · {online ? "online" : "offline queue"} · LLM + real ASR
+              Lang · {lang.toUpperCase()} · {online ? "online" : "offline queue"} · mic auto-stops
+              when you finish
             </p>
           </div>
         </div>
@@ -172,7 +228,7 @@ export function ChatPanel() {
       <div className="chat-scroll flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {messages.length === 0 && (
           <p className="text-sm text-[var(--fg-muted)]">
-            Type or hold the mic — answers come from the live model, not canned scripts.
+            Tap the mic, speak, pause when done — we show what we heard before answering.
           </p>
         )}
         {messages.map((m) => {
@@ -198,11 +254,35 @@ export function ChatPanel() {
         })}
         {loading && (
           <div className="flex items-center gap-2 text-sm text-[var(--fg-muted)]">
-            <Loader2 className="h-4 w-4 animate-spin" /> Thinking…
+            <Loader2 className="h-4 w-4 animate-spin" /> Working…
           </div>
         )}
         <div ref={bottomRef} />
       </div>
+
+      {pendingTranscript && (
+        <div className="flex items-center gap-2 border-t border-white/5 bg-black/20 px-3 py-2 text-xs">
+          <span className="text-[var(--fg-muted)]">Ready to send transcript</span>
+          <button
+            type="button"
+            className="rounded-full bg-[var(--accent)] px-3 py-1 font-medium text-[#1a1400]"
+            disabled={loading}
+            onClick={() => void send(input || pendingTranscript)}
+          >
+            Send as heard
+          </button>
+          <button
+            type="button"
+            className="rounded-full border border-white/15 px-3 py-1"
+            onClick={() => {
+              setPendingTranscript(null);
+              setInput("");
+            }}
+          >
+            Discard
+          </button>
+        </div>
+      )}
 
       <form
         className="border-t border-white/5 p-3"
@@ -211,6 +291,23 @@ export function ChatPanel() {
           void send(input);
         }}
       >
+        {recording && (
+          <div className="mb-2 flex items-center gap-3 text-xs text-[var(--fg-muted)]">
+            <span className="mic-pulse text-[var(--coral)]">
+              {vadState === "speech"
+                ? "Hearing you…"
+                : vadState === "silence"
+                  ? "Pause detected — finishing…"
+                  : "Listening…"}
+            </span>
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full bg-[var(--teal)] transition-all duration-75"
+                style={{ width: `${Math.min(100, level * 800)}%` }}
+              />
+            </div>
+          </div>
+        )}
         <div className="flex items-end gap-2">
           {!recording ? (
             <button
@@ -225,9 +322,10 @@ export function ChatPanel() {
           ) : (
             <button
               type="button"
-              onClick={() => void stopMicAndTranscribe()}
+              onClick={cancelMic}
               className="mic-pulse flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--coral)] text-white"
-              aria-label="Stop and send voice"
+              aria-label="Stop voice"
+              title="Wait for auto-stop, or keep talking"
             >
               <Square className="h-4 w-4" />
             </button>
@@ -236,7 +334,7 @@ export function ChatPanel() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             rows={1}
-            placeholder="Ka asɛm… e.g. Me ti yɛ me ya / How much is rice?"
+            placeholder="Ka asɛm… or use the mic"
             className="min-h-11 flex-1 resize-none rounded-2xl border border-white/10 bg-black/20 px-3.5 py-2.5 text-sm outline-none ring-[var(--accent)] placeholder:text-[var(--fg-muted)] focus:ring-1"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {

@@ -1,6 +1,6 @@
 /**
  * Conversational understanding — LLM is the brain.
- * No canned closers; answers end when the content is done.
+ * Grounded on the user's actual words; no canned closers.
  */
 
 import { chatComplete, isLlmConfigured } from "@/lib/llm";
@@ -17,27 +17,25 @@ export type UnderstandResult = {
 
 const HOTLINE = process.env.HEALTH_ESCALATION_HOTLINE || "112 / nearest CHW / facility";
 
-const SYSTEM = `You are Ghana Health AI — a voice companion for people in Ghana.
+const SYSTEM = `You are Ghana Health AI — a careful voice companion for people in Ghana.
 
-You understand spoken Twi (Akan), English, and code-mixed Twi-English.
-Reply in the same language mix the user used when possible.
-If user language is "tw", prefer natural Twi with light English as Ghanaians speak.
+Languages: Twi (Akan), English, and code-mixed Twi-English as Ghanaians actually speak.
+Match the user's language mix. Prefer clear short spoken answers (2–5 sentences).
 
-You can:
-- Discuss health, pregnancy, symptoms, wellbeing — carefully, never as a doctor
-- Help with market/shopping intent (products, prices, cart) conversationally
-- Chat generally with cultural awareness
+What you do well:
+- Maternal health, symptoms, wellbeing — general guidance only, never as a doctor
+- Market / shopping intent in natural conversation
+- Everyday questions with cultural awareness (family, CHW, clinic pathways)
 
 Hard rules:
-- You are NOT a medical professional. Never invent drug dosages or diagnoses.
-- For danger signs (heavy bleeding, unconscious, can't breathe, seizures, no fetal movement, suicidal thoughts): lead with URGENT action + hotline ${HOTLINE}.
-- Keep replies short enough to speak aloud (2–6 sentences) unless user asks for detail.
-- Be warm, clear, practical for low-literacy and rural users.
-- NEVER append canned closers, catchphrases, or filler invitations such as:
-  "Sɛ wopɛ nsɛm pii a, me ho yɛ hɔ!", "If you need anything else…", "Feel free to ask…",
-  "Me ho yɛ hɔ", "I'm here if you need me", or similar stock endings.
-  End the reply when the answer is complete — no signature line, no invitation to continue unless the user asked a follow-up question that requires it.
-- Do not repeat the same closing sentence across turns.
+1. Answer ONLY what the user actually said. Do not invent a different topic.
+2. If the user message looks like ASR noise, garbage, or unrelated filler (nonsense loops, random "mmea" boilerplate, empty meaning), reply briefly that you did not catch them and ask them to repeat once — do NOT give a long lecture on an unrelated subject.
+3. NOT a medical professional. Never invent drug dosages or definitive diagnoses.
+4. Danger signs (heavy bleeding/mogya, unconscious, can't breathe, seizures, no fetal movement, suicidal thoughts): lead with URGENT action + hotline ${HOTLINE}.
+5. No canned closers or catchphrases. Never end with stock lines like:
+   "Sɛ wopɛ nsɛm pii a, me ho yɛ hɔ", "Me ho yɛ hɔ", "Feel free to ask", "I'm here if you need me".
+   Stop when the answer is complete.
+6. Prefer concrete next steps (rest, hydrate, see CHW/clinic, price/cart) over vague encouragement.
 
 Respond with ONLY a JSON object (no markdown fences):
 {
@@ -47,7 +45,6 @@ Respond with ONLY a JSON object (no markdown fences):
   "escalate": boolean
 }`;
 
-/** Known LLM stock endings to strip if the model ignores the system prompt. */
 const CANNED_CLOSER_PATTERNS: RegExp[] = [
   /\s*Sɛ wopɛ nsɛm pii a,?\s*me ho yɛ hɔ!?\s*$/iu,
   /\s*Sɛ wopɛ (nsɛm|biribi) (pii|bio).*?(hɔ|ho)!?\s*$/iu,
@@ -62,7 +59,6 @@ const CANNED_CLOSER_PATTERNS: RegExp[] = [
 export function stripCannedClosers(text: string): string {
   let out = text.trim();
   let prev = "";
-  // Multiple passes — models sometimes stack closers
   while (out !== prev) {
     prev = out;
     for (const re of CANNED_CLOSER_PATTERNS) {
@@ -109,11 +105,10 @@ export async function understandUtterance(input: {
   const urgent = dangerHeuristic(input.text);
 
   if (!isLlmConfigured()) {
-    // Config error only — not a content template for normal turns
     const reply =
       language === "tw"
         ? urgent
-          ? `⚠️ EYI BETUMI AYƐ ƆHAW. Kɔ hospital anaa frɛ ${HOTLINE} ntɛm. (LLM key missing — set GROQ_API_KEY or OPENAI_API_KEY.)`
+          ? `⚠️ EYI BETUMI AYƐ ƆHAW. Kɔ hospital anaa frɛ ${HOTLINE} ntɛm. (LLM key missing.)`
           : "LLM key nni hɔ. Fa GROQ_API_KEY anaa OPENAI_API_KEY hyɛ configuration mu."
         : urgent
           ? `⚠️ This may be urgent. Go to a hospital or call ${HOTLINE} now. (LLM key missing.)`
@@ -138,18 +133,18 @@ export async function understandUtterance(input: {
       ...history,
       {
         role: "user",
-        content: `Preferred language code: ${language}\nUser said: ${input.text}`,
+        content: `Preferred language code: ${language}\nTranscript (what the user said — reply to THIS only):\n"""${input.text}"""`,
       },
     ],
-    { temperature: 0.35, maxTokens: 500 },
+    { temperature: 0.25, maxTokens: 420 },
   );
 
   if (!raw) {
     return {
       reply:
         language === "tw"
-          ? "Menni mmuae mprempren. Sɔ bio anaa kɔ clinic sɛ ɛyɛ den."
-          : "I couldn't form a reply just now. Try again, or visit a clinic if this is serious.",
+          ? "Menteee wo yie. Ka bio kakra, anaa twerɛ asɛm no."
+          : "I couldn't form a reply. Please say that again or type it.",
       intent: "UNKNOWN",
       severity: urgent ? "EMERGENCY" : "LOW",
       escalate: urgent,

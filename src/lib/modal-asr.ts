@@ -7,12 +7,14 @@ export type ModalAsrResult = {
   language: string;
   language_probability?: number;
   duration?: number;
+  rms?: number;
   segments?: { start: number; end: number; text: string }[];
   latency_ms: number;
   model: string;
   speaker?: string;
   verified?: boolean | null;
   error?: string;
+  rejected_text?: string;
 };
 
 function asrBaseUrl(): string | null {
@@ -20,7 +22,6 @@ function asrBaseUrl(): string | null {
 }
 
 export function isModalAsrConfigured(): boolean {
-  // Prefer real ASR whenever URL is set (VOICE_MODE optional)
   return Boolean(asrBaseUrl());
 }
 
@@ -54,8 +55,26 @@ export async function modalTranscribe(
       : undefined,
   });
 
+  const data = (await res.json().catch(() => ({}))) as ModalAsrResult & {
+    detail?: string;
+  };
+
   if (!res.ok) {
-    throw new Error(`Modal ASR ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const msg =
+      data.error ||
+      data.detail ||
+      `Modal ASR ${res.status}`;
+    // Surface structured error so UI can show "speak louder" etc.
+    return {
+      text: data.text || "",
+      language: data.language || "tw",
+      latency_ms: data.latency_ms || 0,
+      model: data.model || "unknown",
+      error: msg,
+      rejected_text: data.rejected_text,
+      duration: data.duration,
+      rms: data.rms,
+    };
   }
-  return (await res.json()) as ModalAsrResult;
+  return data;
 }

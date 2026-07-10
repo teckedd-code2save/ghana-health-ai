@@ -25,12 +25,34 @@ export function isModalTtsConfigured(): boolean {
   return Boolean(process.env.MODAL_TTS_URL);
 }
 
+/** Strip markdown / symbols that MMS-VITS mangles when spoken. */
+function speakableText(text: string): string {
+  return text
+    .replace(/[*_#`>~\[\]()]/g, " ")
+    .replace(/https?:\/\/\S+/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 500);
+}
+
 export async function modalSpeak(
   text: string,
   language: string = "tw",
 ): Promise<ModalTtsResult> {
   const url = ttsSpeakUrl();
   if (!url) throw new Error("MODAL_TTS_URL is not set");
+
+  const clean = speakableText(text);
+  if (!clean) {
+    return {
+      audio_base64: "",
+      sample_rate: 16000,
+      format: "wav",
+      latency_ms: 0,
+      model: "skipped",
+      error: "empty_text",
+    };
+  }
 
   const res = await fetch(url, {
     method: "POST",
@@ -40,7 +62,7 @@ export async function modalSpeak(
         ? { Authorization: `Bearer ${process.env.MODAL_TTS_TOKEN}` }
         : {}),
     },
-    body: JSON.stringify({ text, language }),
+    body: JSON.stringify({ text: clean, language }),
   });
 
   if (!res.ok) {
