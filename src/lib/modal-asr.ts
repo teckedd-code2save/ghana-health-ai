@@ -1,6 +1,5 @@
 /**
- * Client for Modal ASR service (faster-whisper on GPU).
- * Falls back handled by caller when VOICE_MODE=stub or MODAL_ASR_URL unset.
+ * Modal ASR client — real Twi Whisper fine-tune on GPU.
  */
 
 export type ModalAsrResult = {
@@ -17,12 +16,12 @@ export type ModalAsrResult = {
 };
 
 function asrBaseUrl(): string | null {
-  const url = process.env.MODAL_ASR_URL?.replace(/\/$/, "");
-  return url || null;
+  return process.env.MODAL_ASR_URL?.replace(/\/$/, "") || null;
 }
 
 export function isModalAsrConfigured(): boolean {
-  return process.env.VOICE_MODE === "modal" && Boolean(asrBaseUrl());
+  // Prefer real ASR whenever URL is set (VOICE_MODE optional)
+  return Boolean(asrBaseUrl());
 }
 
 export async function modalTranscribe(
@@ -30,9 +29,7 @@ export async function modalTranscribe(
   opts?: { language?: string; contentType?: string; filename?: string },
 ): Promise<ModalAsrResult> {
   const base = asrBaseUrl();
-  if (!base) {
-    throw new Error("MODAL_ASR_URL is not set");
-  }
+  if (!base) throw new Error("MODAL_ASR_URL is not set");
 
   const bytes =
     audio instanceof ArrayBuffer
@@ -42,33 +39,23 @@ export async function modalTranscribe(
         : Buffer.from(audio);
 
   const form = new FormData();
-  const blob = new Blob([new Uint8Array(bytes)], {
-    type: opts?.contentType ?? "audio/webm",
-  });
-  form.append("audio", blob, opts?.filename ?? "utterance.webm");
+  form.append(
+    "audio",
+    new Blob([new Uint8Array(bytes)], { type: opts?.contentType ?? "audio/webm" }),
+    opts?.filename ?? "utterance.webm",
+  );
 
   const qs = opts?.language ? `?language=${encodeURIComponent(opts.language)}` : "";
   const res = await fetch(`${base}/transcribe${qs}`, {
     method: "POST",
     body: form,
-    // Modal public endpoints don't need auth by default; add header if you lock them down
     headers: process.env.MODAL_ASR_TOKEN
       ? { Authorization: `Bearer ${process.env.MODAL_ASR_TOKEN}` }
       : undefined,
   });
 
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Modal ASR ${res.status}: ${body.slice(0, 200)}`);
+    throw new Error(`Modal ASR ${res.status}: ${(await res.text()).slice(0, 200)}`);
   }
-
   return (await res.json()) as ModalAsrResult;
-}
-
-export async function modalAsrHealth(): Promise<{ ok: boolean; service?: string }> {
-  const base = asrBaseUrl();
-  if (!base) return { ok: false };
-  const res = await fetch(`${base}/health`, { next: { revalidate: 0 } });
-  if (!res.ok) return { ok: false };
-  return res.json();
 }

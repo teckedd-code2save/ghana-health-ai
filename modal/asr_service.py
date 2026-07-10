@@ -1,25 +1,14 @@
 """
-Ghana Health AI — Modal ASR inference service.
+Ghana Health AI — real Twi/Akan ASR on Modal.
 
-Uses faster-whisper (CTranslate2) for low-latency transcription.
-Default model: whisper-small (swap to fine-tuned Twi checkpoint via MODEL_ID).
+Model: teckedd/whisper_small-waxal_akan-asr-v1 (from akan-speech-lab)
+Engine: HuggingFace WhisperForConditionalGeneration on GPU
 
-Deploy:
   modal deploy modal/asr_service.py
-
-Env / Modal secrets (optional):
-  HF_TOKEN via secret "huggingface-secret"
-  MODEL_ID  e.g. openai/whisper-small or teckedd/<twi-finetune>
-
-Web endpoints:
-  GET  /health
-  POST /transcribe  multipart file field "audio" OR raw body (audio/*)
-  WS   /ws/voice    binary audio frames → JSON transcripts
 """
 
 from __future__ import annotations
 
-import io
 import os
 import tempfile
 import time
@@ -28,22 +17,26 @@ from typing import Any
 import modal
 
 APP_NAME = "ghana-health-asr"
-DEFAULT_MODEL = os.environ.get("MODEL_ID", "openai/whisper-small")
+DEFAULT_MODEL = os.environ.get("MODEL_ID", "teckedd/whisper_small-waxal_akan-asr-v1")
+FALLBACK_MODEL = "openai/whisper-small"
 
 app = modal.App(APP_NAME)
-
 model_volume = modal.Volume.from_name("ghana-health-asr-models", create_if_missing=True)
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("ffmpeg", "libsndfile1")
     .pip_install(
-        "faster-whisper==1.1.1",
+        "torch==2.5.1",
+        "torchaudio==2.5.1",
+        "transformers==4.46.3",
+        "accelerate==1.1.1",
         "fastapi[standard]==0.115.12",
         "python-multipart==0.0.20",
         "numpy<2.3",
         "soundfile==0.13.1",
-        "websockets==14.2",
+        "librosa==0.10.2.post1",
+        "huggingface_hub==0.26.2",
     )
 )
 
@@ -58,13 +51,13 @@ def _write_temp_audio(data: bytes, suffix: str = ".webm") -> str:
 def _guess_suffix(content_type: str | None, filename: str | None) -> str:
     name = (filename or "").lower()
     ct = (content_type or "").lower()
-    if name.endswith(".wav") or "wav" in ct:
+    if "wav" in name or "wav" in ct:
         return ".wav"
-    if name.endswith(".mp3") or "mpeg" in ct or "mp3" in ct:
+    if "mp3" in name or "mpeg" in ct:
         return ".mp3"
-    if name.endswith(".ogg") or "ogg" in ct:
+    if "ogg" in name or "ogg" in ct:
         return ".ogg"
-    if name.endswith(".m4a") or "mp4" in ct or "m4a" in ct:
+    if "m4a" in name or "mp4" in ct:
         return ".m4a"
     return ".webm"
 
@@ -73,24 +66,33 @@ def _guess_suffix(content_type: str | None, filename: str | None) -> str:
     image=image,
     gpu="T4",
     timeout=600,
-    scaledown_window=120,
+    scaledown_window=180,
     volumes={"/models": model_volume},
 )
 class AsrEngine:
     @modal.enter()
     def load(self) -> None:
-        from faster_whisper import WhisperModel
+        import torch
+        from transformers import WhisperForConditionalGeneration, WhisperProcessor
 
         model_id = os.environ.get("MODEL_ID", DEFAULT_MODEL)
-        # Prefer volume cache; download on first cold start
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model_id = model_id
-        self.model = WhisperModel(
-            model_id,
-            device="cuda",
-            compute_type="float16",
-            download_root="/models",
-        )
-        self.ready = True
+        cache = "/models/hf"
+
+        try:
+            self.processor = WhisperProcessor.from_pretrained(model_id, cache_dir=cache)
+            self.model = WhisperForConditionalGeneration.from_pretrained(
+                model_id, cache_dir=cache
+            ).to(self.device)
+        except Exception as exc:  # noqa: BLE001
+            print(f"[asr] load {model_id} failed ({exc}); fallback {FALLBACK_MODEL}")
+            self.model_id = FALLBACK_MODEL
+            self.processor = WhisperProcessor.from_pretrained(FALLBACK_MODEL, cache_dir=cache)
+            self.model = WhisperForConditionalGeneration.from_pretrained(
+                FALLBACK_MODEL, cache_dir=cache
+            ).to(self.device)
+        self.model.eval()
 
     @modal.method()
     def transcribe(
@@ -99,6 +101,9 @@ class AsrEngine:
         language: str | None = None,
         suffix: str = ".webm",
     ) -> dict[str, Any]:
+        import librosa
+        import torch
+
         started = time.time()
         if not audio_bytes:
             return {
@@ -112,42 +117,44 @@ class AsrEngine:
 
         path = _write_temp_audio(audio_bytes, suffix=suffix)
         try:
-            # language=None → auto-detect; "ak" not always in whisper langs → use "en" fallback with multilingual
-            lang = language
-            if lang in ("tw", "ak", "twi"):
-                # Whisper has no dedicated Twi code; multilingual decode works better without force
-                lang = None
+            audio, _ = librosa.load(path, sr=16000, mono=True)
+            inputs = self.processor(audio, sampling_rate=16000, return_tensors="pt")
+            input_features = inputs.input_features.to(self.device)
 
-            segments_iter, info = self.model.transcribe(
-                path,
-                language=lang,
-                beam_size=5,
-                vad_filter=True,
-                word_timestamps=False,
-            )
-            segments = []
-            texts: list[str] = []
-            for seg in segments_iter:
-                texts.append(seg.text.strip())
-                segments.append(
-                    {
-                        "start": round(seg.start, 2),
-                        "end": round(seg.end, 2),
-                        "text": seg.text.strip(),
-                    }
+            # Free decode for Twi fine-tunes (forced language often hurts Akan models)
+            forced = None
+            if language == "en":
+                forced = self.processor.get_decoder_prompt_ids(
+                    language="english", task="transcribe"
                 )
-            text = " ".join(t for t in texts if t).strip()
-            detected = getattr(info, "language", None) or language or "und"
+
+            with torch.no_grad():
+                pred_ids = self.model.generate(
+                    input_features,
+                    max_new_tokens=225,
+                    forced_decoder_ids=forced,
+                )
+            text = self.processor.batch_decode(pred_ids, skip_special_tokens=True)[0].strip()
+            duration = float(len(audio) / 16000.0)
             return {
                 "text": text,
-                "language": detected,
-                "language_probability": float(getattr(info, "language_probability", 0) or 0),
-                "duration": float(getattr(info, "duration", 0) or 0),
-                "segments": segments,
+                "language": "en" if language == "en" else "tw",
+                "language_probability": 1.0,
+                "duration": duration,
+                "segments": [{"start": 0.0, "end": round(duration, 2), "text": text}],
                 "latency_ms": int((time.time() - started) * 1000),
                 "model": self.model_id,
                 "speaker": "Speaker 1 (User)",
                 "verified": None,
+            }
+        except Exception as exc:  # noqa: BLE001
+            return {
+                "text": "",
+                "language": language or "tw",
+                "segments": [],
+                "latency_ms": int((time.time() - started) * 1000),
+                "model": self.model_id,
+                "error": str(exc),
             }
         finally:
             try:
@@ -159,97 +166,40 @@ class AsrEngine:
 @app.function(image=image, timeout=60)
 @modal.asgi_app()
 def api():
-    from fastapi import FastAPI, File, UploadFile, WebSocket, WebSocketDisconnect
+    from fastapi import FastAPI, File, Request, UploadFile
     from fastapi.responses import JSONResponse
 
-    web = FastAPI(title="Ghana Health ASR", version="0.2.0")
+    web = FastAPI(title="Ghana Health ASR", version="1.0.0")
     engine = AsrEngine()
 
     @web.get("/health")
     async def health():
-        return {"ok": True, "service": "ghana-health-asr", "model": DEFAULT_MODEL}
+        return {
+            "ok": True,
+            "service": "ghana-health-asr",
+            "model": os.environ.get("MODEL_ID", DEFAULT_MODEL),
+            "engine": "transformers-whisper",
+        }
 
     @web.post("/transcribe")
     async def transcribe(
         audio: UploadFile | None = File(None),
         language: str | None = None,
     ):
-        raw = b""
-        suffix = ".webm"
-        if audio is not None:
-            raw = await audio.read()
-            suffix = _guess_suffix(audio.content_type, audio.filename)
+        if audio is None:
+            return JSONResponse({"error": "no audio"}, status_code=400)
+        raw = await audio.read()
         if not raw:
-            return JSONResponse({"error": "no audio provided"}, status_code=400)
-
-        result = await engine.transcribe.remote.aio(raw, language=language, suffix=suffix)
-        return result
-
-    @web.post("/transcribe/raw")
-    async def transcribe_raw(request_body: bytes, language: str | None = None):
-        # FastAPI will not bind raw body this way easily — use Request
-        return JSONResponse({"error": "use multipart /transcribe"}, status_code=400)
-
-    from fastapi import Request
+            return JSONResponse({"error": "empty audio"}, status_code=400)
+        suffix = _guess_suffix(audio.content_type, audio.filename)
+        return await engine.transcribe.remote.aio(raw, language=language, suffix=suffix)
 
     @web.post("/transcribe/bytes")
     async def transcribe_bytes(request: Request, language: str | None = None):
         raw = await request.body()
-        ct = request.headers.get("content-type")
-        suffix = _guess_suffix(ct, None)
         if not raw:
             return JSONResponse({"error": "empty body"}, status_code=400)
-        result = await engine.transcribe.remote.aio(raw, language=language, suffix=suffix)
-        return result
-
-    @web.websocket("/ws/voice")
-    async def ws_voice(websocket: WebSocket):
-        await websocket.accept()
-        buffer = bytearray()
-        try:
-            while True:
-                message = await websocket.receive()
-                if message.get("type") == "websocket.disconnect":
-                    break
-                if "bytes" in message and message["bytes"] is not None:
-                    buffer.extend(message["bytes"])
-                    # Transcribe when we have a reasonable chunk (~0.5s+ of compressed audio)
-                    if len(buffer) >= 24_000:
-                        chunk = bytes(buffer)
-                        buffer.clear()
-                        result = await engine.transcribe.remote.aio(chunk, language=None, suffix=".webm")
-                        await websocket.send_json(result)
-                elif "text" in message and message["text"]:
-                    # control: {"action":"flush"} or {"action":"set_lang","language":"en"}
-                    import json
-
-                    try:
-                        ctrl = json.loads(message["text"])
-                    except json.JSONDecodeError:
-                        continue
-                    if ctrl.get("action") == "flush" and buffer:
-                        chunk = bytes(buffer)
-                        buffer.clear()
-                        result = await engine.transcribe.remote.aio(chunk, language=ctrl.get("language"), suffix=".webm")
-                        await websocket.send_json(result)
-        except WebSocketDisconnect:
-            return
-        except Exception as exc:  # noqa: BLE001
-            try:
-                await websocket.send_json({"error": str(exc)})
-            except Exception:
-                pass
+        suffix = _guess_suffix(request.headers.get("content-type"), None)
+        return await engine.transcribe.remote.aio(raw, language=language, suffix=suffix)
 
     return web
-
-
-@app.local_entrypoint()
-def main(path: str = ""):
-    """Quick local smoke: modal run modal/asr_service.py --path sample.wav"""
-    if not path:
-        print("Deploy with: modal deploy modal/asr_service.py")
-        print("Or test: modal run modal/asr_service.py --path ./sample.wav")
-        return
-    data = open(path, "rb").read()
-    eng = AsrEngine()
-    print(eng.transcribe.remote(data, language=None, suffix=os.path.splitext(path)[1] or ".wav"))

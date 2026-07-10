@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Mic, Send, Sparkles } from "lucide-react";
+import { useLang } from "@/components/lang-provider";
+import { enqueueOffline } from "@/lib/offline-queue";
 
 type ChatMessage = {
   id: string;
@@ -12,23 +14,36 @@ type ChatMessage = {
 };
 
 export function ChatPanel() {
+  const { lang } = useLang();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "welcome",
       role: "local-assistant",
       content:
-        "Mema wo akwaaba. Bisa maternal health asɛm anaa market price wɔ Twi anaa English. This is general guidance — not a doctor.",
+        "Mema wo akwaaba. Bisa maternal health asɛm anaa market price. General guidance only — not a doctor.",
     },
   ]);
   const [input, setInput] = useState("");
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
+  const [online, setOnline] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  useEffect(() => {
+    const sync = () => setOnline(navigator.onLine);
+    sync();
+    window.addEventListener("online", sync);
+    window.addEventListener("offline", sync);
+    return () => {
+      window.removeEventListener("online", sync);
+      window.removeEventListener("offline", sync);
+    };
+  }, []);
 
   async function send(text: string) {
     const trimmed = text.trim();
@@ -37,11 +52,24 @@ export function ChatPanel() {
     const localId = crypto.randomUUID();
     setMessages((m) => [...m, { id: localId, role: "local-user", content: trimmed }]);
     setLoading(true);
+    const payload = { message: trimmed, conversationId, language: lang };
     try {
+      if (!navigator.onLine) {
+        enqueueOffline("chat", payload);
+        setMessages((m) => [
+          ...m,
+          {
+            id: crypto.randomUUID(),
+            role: "local-assistant",
+            content: "You're offline — message queued and will send when you're back online.",
+          },
+        ]);
+        return;
+      }
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: trimmed, conversationId }),
+        body: JSON.stringify({ ...payload, speak: true }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Chat failed");
@@ -56,13 +84,20 @@ export function ChatPanel() {
           metadata: data.message.metadata,
         },
       ]);
+      if (data.tts?.audioBase64) {
+        const audio = new Audio(`data:audio/wav;base64,${data.tts.audioBase64}`);
+        void audio.play();
+      }
     } catch (e) {
+      enqueueOffline("chat", payload);
       setMessages((m) => [
         ...m,
         {
           id: crypto.randomUUID(),
           role: "local-assistant",
-          content: e instanceof Error ? e.message : "Something went wrong",
+          content:
+            (e instanceof Error ? e.message : "Something went wrong") +
+            " — queued for retry when online.",
         },
       ]);
     } finally {
@@ -100,7 +135,9 @@ export function ChatPanel() {
           <Sparkles className="h-4 w-4 text-[var(--accent)]" />
           <div>
             <p className="text-sm font-medium">Health & Market Companion</p>
-            <p className="text-xs text-[var(--fg-muted)]">RAG over maternal KB · intent routing</p>
+            <p className="text-xs text-[var(--fg-muted)]">
+              Lang · {lang.toUpperCase()} · {online ? "online" : "offline queue"}
+            </p>
           </div>
         </div>
         {conversationId && (

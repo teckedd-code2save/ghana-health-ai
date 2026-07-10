@@ -243,6 +243,9 @@ model Order {
   phone         String?
   notes         String?       @db.Text
   momoRef       String?       @map("momo_ref")
+  paystackRef   String?       @unique @map("paystack_ref")
+  authorizationUrl String?    @map("authorization_url") @db.Text
+  paidAt        DateTime?     @map("paid_at")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
@@ -297,4 +300,32 @@ model TranscriptSession {
 
   @@index([userId])
   @@map("transcript_sessions")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  action     String
+  actorId    String?  @map("actor_id") @db.Uuid
+  entityType String?  @map("entity_type")
+  entityId   String?  @map("entity_id")
+  ip         String?
+  meta       Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([action, createdAt])
+  @@index([actorId])
+  @@map("audit_logs")
+}
+
+model OfflineQueueItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  sessionId String   @map("session_id")
+  kind      String   // chat | cart
+  payload   Json
+  status    String   @default("pending")
+  createdAt DateTime @default(now()) @map("created_at")
+  syncedAt  DateTime? @map("synced_at")
+
+  @@index([sessionId, status])
+  @@map("offline_queue_items")
 }

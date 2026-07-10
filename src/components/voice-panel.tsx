@@ -1,121 +1,72 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Mic, ShieldCheck, Square, UserRound } from "lucide-react";
+import { Loader2, Mic, ShieldCheck, Square, Volume2 } from "lucide-react";
+import { useLang } from "@/components/lang-provider";
+
+type ConverseResult = {
+  asr?: { text: string; model: string; latencyMs: number };
+  understanding?: {
+    reply: string;
+    intent: string;
+    severity: string;
+    escalate: boolean;
+    engine: string;
+  };
+  tts?: { audioBase64: string; sampleRate?: number; model?: string; latencyMs?: number } | null;
+  totalLatencyMs?: number;
+  conversationId?: string;
+  error?: string;
+};
+
+function playWavBase64(b64: string) {
+  const audio = new Audio(`data:audio/wav;base64,${b64}`);
+  void audio.play();
+  return audio;
+}
 
 export function VoicePanel() {
-  const [user, setUser] = useState<{
-    id: string;
-    displayName?: string | null;
-    consentVoice?: boolean;
-  } | null>(null);
-  const [passphrase, setPassphrase] = useState("Me din de Ama Mensah twi");
-  const [enrollment, setEnrollment] = useState<{ id: string; enrolledAt: string } | null>(null);
-  const [verifyResult, setVerifyResult] = useState<string | null>(null);
-  const [transcript, setTranscript] = useState<string | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const { lang } = useLang();
   const [recording, setRecording] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [conversationId, setConversationId] = useState<string | undefined>();
+  const [result, setResult] = useState<ConverseResult | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [speak, setSpeak] = useState(true);
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
-  useEffect(() => {
-    void (async () => {
-      const me = await fetch("/api/auth/me");
-      if (me.ok) {
-        const data = await me.json();
-        setUser(data.user);
-        const en = await fetch("/api/voice/enroll");
-        if (en.ok) {
-          const e = await en.json();
-          setEnrollment(e.enrollment);
-        }
-      }
-    })();
-  }, []);
-
-  async function enroll() {
+  async function runConverse(blob: Blob) {
     setBusy(true);
-    setStatus(null);
-    try {
-      const res = await fetch("/api/voice/enroll", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ passphrase, language: "tw", sampleDurationS: 30 }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setEnrollment(data.enrollment);
-      setStatus("Voice ID enrolled (stub embedding).");
-    } catch (e) {
-      setStatus(e instanceof Error ? e.message : "Enroll failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function verify() {
-    setBusy(true);
-    setVerifyResult(null);
-    try {
-      const res = await fetch("/api/voice/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ passphrase }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setVerifyResult(
-        data.verified
-          ? `Verified · score ${data.score} ≥ ${data.threshold}`
-          : `Rejected · score ${data.score} < ${data.threshold}`,
-      );
-    } catch (e) {
-      setVerifyResult(e instanceof Error ? e.message : "Verify failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function sendAudio(blob: Blob) {
-    setBusy(true);
+    setStatus("ASR → understand → TTS…");
+    setResult(null);
     try {
       const form = new FormData();
       form.append("audio", blob, "utterance.webm");
-      const res = await fetch("/api/voice/transcribe", { method: "POST", body: form });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      const t = data.transcript;
-      setTranscript(
-        `${t.text || "(empty)"}  ·  ${t.speaker}  ·  ${t.latencyMs}ms  ·  ${t.mode}${
-          t.model ? ` · ${t.model}` : ""
-        }`,
-      );
-    } catch (e) {
-      setTranscript(e instanceof Error ? e.message : "Transcribe failed");
-    } finally {
-      setBusy(false);
-    }
-  }
+      form.append("language", lang);
+      form.append("speak", speak ? "true" : "false");
+      if (conversationId) form.append("conversationId", conversationId);
 
-  async function stubListen() {
-    setBusy(true);
-    try {
-      const res = await fetch("/api/voice/transcribe", { method: "POST" });
+      const res = await fetch("/api/voice/converse", { method: "POST", body: form });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setTranscript(
-        `${data.transcript.text}  ·  ${data.transcript.speaker}  ·  ${data.transcript.latencyMs}ms · ${data.transcript.mode}`,
+      if (!res.ok) throw new Error(data.error || "Converse failed");
+
+      setConversationId(data.conversationId);
+      setResult(data);
+      setStatus(
+        `Done in ${data.totalLatencyMs}ms · ASR ${data.asr?.model} · brain ${data.understanding?.engine}`,
       );
+      if (data.tts?.audioBase64) playWavBase64(data.tts.audioBase64);
     } catch (e) {
-      setTranscript(e instanceof Error ? e.message : "Transcribe failed");
+      setStatus(e instanceof Error ? e.message : "Failed");
     } finally {
       setBusy(false);
     }
   }
 
   async function startRecording() {
-    setTranscript(null);
+    setStatus(null);
+    setResult(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
@@ -126,13 +77,13 @@ export function VoicePanel() {
       recorder.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        void sendAudio(blob);
+        void runConverse(blob);
       };
       mediaRef.current = recorder;
       recorder.start();
       setRecording(true);
     } catch (e) {
-      setTranscript(e instanceof Error ? e.message : "Mic permission denied");
+      setStatus(e instanceof Error ? e.message : "Mic permission denied");
     }
   }
 
@@ -142,95 +93,120 @@ export function VoicePanel() {
     setRecording(false);
   }
 
+  // Voice ID stubs kept minimal
+  const [passphrase, setPassphrase] = useState("Me din de Ama Mensah twi");
+  const [vidStatus, setVidStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    /* warm nothing — Modal cold-starts on first real call */
+  }, []);
+
+  async function enrollVoice() {
+    setVidStatus(null);
+    const res = await fetch("/api/voice/enroll", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ passphrase, language: "tw" }),
+    });
+    const data = await res.json();
+    setVidStatus(res.ok ? "Enrolled (embedding stub)" : data.error);
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <section className="glass rounded-[var(--radius)] p-5">
         <div className="mb-4 flex items-center gap-2">
           <Mic className="h-5 w-5 text-[var(--teal)]" />
-          <h2 className="font-[family-name:var(--font-display)] text-xl">Live ASR</h2>
+          <h2 className="font-[family-name:var(--font-display)] text-xl">Live conversation</h2>
         </div>
         <p className="mb-4 text-sm text-[var(--fg-muted)]">
-          Record from your mic (WebM → Modal faster-whisper when{" "}
-          <code className="text-[var(--accent-soft)]">VOICE_MODE=modal</code>), or run the
-          deterministic stub without audio.
+          Real pipeline: <strong className="text-[var(--accent-soft)]">Twi ASR</strong> (Whisper
+          Waxal fine-tune) → <strong className="text-[var(--accent-soft)]">LLM understand</strong> →{" "}
+          <strong className="text-[var(--accent-soft)]">Akan TTS</strong> (MMS-TTS-aka).
         </p>
+
+        <label className="mb-4 flex items-center gap-2 text-sm text-[var(--fg-muted)]">
+          <input type="checkbox" checked={speak} onChange={(e) => setSpeak(e.target.checked)} />
+          Speak reply (TTS)
+        </label>
+
         <div className="flex flex-wrap gap-2">
           {!recording ? (
             <button
               onClick={() => void startRecording()}
               disabled={busy}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--teal)] px-5 py-3 text-sm font-semibold text-[#062419]"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--teal)] px-5 py-3 text-sm font-semibold text-[#062419] disabled:opacity-50"
             >
-              <Mic className="h-4 w-4" /> Record &amp; transcribe
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
+              {busy ? "Thinking…" : "Hold to talk — click start"}
             </button>
           ) : (
             <button
               onClick={stopRecording}
               className="mic-pulse inline-flex items-center gap-2 rounded-full bg-[var(--coral)] px-5 py-3 text-sm font-semibold text-white"
             >
-              <Square className="h-4 w-4" /> Stop
+              <Square className="h-4 w-4" /> Stop &amp; process
             </button>
           )}
-          <button
-            onClick={() => void stubListen()}
-            disabled={busy || recording}
-            className="rounded-full border border-white/15 px-4 py-3 text-sm"
-          >
-            Stub only
-          </button>
         </div>
-        {transcript && (
-          <p className="mt-4 rounded-2xl bg-black/20 px-4 py-3 text-sm leading-relaxed">{transcript}</p>
+
+        {status && <p className="mt-4 text-xs text-[var(--accent-soft)]">{status}</p>}
+
+        {result?.asr && (
+          <div className="mt-4 space-y-3 rounded-2xl bg-black/20 p-4 text-sm">
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)]">You said</p>
+              <p className="mt-1">{result.asr.text}</p>
+              <p className="mt-1 text-[10px] text-[var(--fg-muted)]">
+                {result.asr.model} · {result.asr.latencyMs}ms
+              </p>
+            </div>
+            {result.understanding && (
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)]">
+                  Understood · {result.understanding.intent} · {result.understanding.severity}
+                  {result.understanding.escalate ? " · ESCALATE" : ""}
+                </p>
+                <p className="mt-1 whitespace-pre-wrap">{result.understanding.reply}</p>
+                <p className="mt-1 text-[10px] text-[var(--fg-muted)]">
+                  brain: {result.understanding.engine}
+                </p>
+              </div>
+            )}
+            {result.tts?.audioBase64 && (
+              <button
+                type="button"
+                onClick={() => playWavBase64(result.tts!.audioBase64)}
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1.5 text-xs"
+              >
+                <Volume2 className="h-3.5 w-3.5" /> Replay voice
+              </button>
+            )}
+          </div>
         )}
       </section>
 
       <section className="glass rounded-[var(--radius)] p-5">
         <div className="mb-4 flex items-center gap-2">
           <ShieldCheck className="h-5 w-5 text-[var(--accent)]" />
-          <h2 className="font-[family-name:var(--font-display)] text-xl">Voice ID</h2>
+          <h2 className="font-[family-name:var(--font-display)] text-xl">Voice ID (light)</h2>
         </div>
-        {!user ? (
-          <p className="text-sm text-[var(--fg-muted)]">
-            <UserRound className="mr-1 inline h-4 w-4" />
-            Log in and grant voice consent to enroll. Demo:{" "}
-            <span className="text-[var(--accent-soft)]">demo@ghanahealth.ai / demo1234</span>
-          </p>
-        ) : (
-          <>
-            <label className="mb-1 block text-xs text-[var(--fg-muted)]">
-              Twi passphrase (30–60s in prod)
-            </label>
-            <textarea
-              value={passphrase}
-              onChange={(e) => setPassphrase(e.target.value)}
-              rows={3}
-              className="mb-3 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-            />
-            <div className="flex flex-wrap gap-2">
-              <button
-                disabled={busy}
-                onClick={() => void enroll()}
-                className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[#1a1400]"
-              >
-                Enroll
-              </button>
-              <button
-                disabled={busy}
-                onClick={() => void verify()}
-                className="rounded-full border border-white/15 px-4 py-2 text-sm"
-              >
-                Verify
-              </button>
-            </div>
-            {enrollment && (
-              <p className="mt-3 text-xs text-[var(--fg-muted)]">
-                Active enrollment · {new Date(enrollment.enrolledAt).toLocaleString()}
-              </p>
-            )}
-            {status && <p className="mt-2 text-sm text-[var(--accent-soft)]">{status}</p>}
-            {verifyResult && <p className="mt-2 text-sm">{verifyResult}</p>}
-          </>
-        )}
+        <p className="mb-3 text-sm text-[var(--fg-muted)]">
+          Enrollment still uses a local embedding stub. Intelligence work is on ASR/TTS/LLM.
+        </p>
+        <textarea
+          value={passphrase}
+          onChange={(e) => setPassphrase(e.target.value)}
+          rows={3}
+          className="mb-3 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+        />
+        <button
+          onClick={() => void enrollVoice()}
+          className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[#1a1400]"
+        >
+          Enroll
+        </button>
+        {vidStatus && <p className="mt-2 text-sm text-[var(--accent-soft)]">{vidStatus}</p>}
       </section>
     </div>
   );

@@ -34,6 +34,9 @@ export function MarketPanel() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [payMethod, setPayMethod] = useState<"MOMO" | "MOCK" | "CASH">("MOMO");
+  const [phone, setPhone] = useState("");
+  const [paystackEnabled, setPaystackEnabled] = useState(false);
 
   const load = useCallback(async (query = "") => {
     setLoading(true);
@@ -54,6 +57,13 @@ export function MarketPanel() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void fetch("/api/config")
+      .then((r) => r.json())
+      .then((d) => setPaystackEnabled(Boolean(d.paystack)))
+      .catch(() => setPaystackEnabled(false));
+  }, []);
 
   async function addToCart(productId: string) {
     setBusy(true);
@@ -94,14 +104,22 @@ export function MarketPanel() {
     setBusy(true);
     setMessage(null);
     try {
+      const method = paystackEnabled ? payMethod : payMethod === "MOMO" ? "MOCK" : payMethod;
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paymentMethod: "MOCK" }),
+        body: JSON.stringify({ paymentMethod: method, phone: phone || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setMessage(`Order placed · ${data.order.id.slice(0, 8)} · ${formatGhs(data.order.totalGhs)}`);
+      if (data.payment?.authorizationUrl) {
+        setMessage("Redirecting to Paystack MoMo / card…");
+        window.location.href = data.payment.authorizationUrl as string;
+        return;
+      }
+      setMessage(
+        `Order ${data.order.status} · ${data.order.id.slice(0, 8)} · ${formatGhs(data.order.totalGhs)}`,
+      );
       await load(q);
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Checkout failed");
@@ -209,12 +227,29 @@ export function MarketPanel() {
             <span className="text-[var(--fg-muted)]">Total</span>
             <span className="font-semibold">{formatGhs(cart?.totalGhs ?? 0)}</span>
           </div>
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="MoMo phone e.g. 024…"
+            className="mb-2 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+          />
+          <select
+            value={payMethod}
+            onChange={(e) => setPayMethod(e.target.value as "MOMO" | "MOCK" | "CASH")}
+            className="mb-3 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm"
+          >
+            <option value="MOMO">
+              {paystackEnabled ? "Mobile Money (Paystack)" : "Mobile Money (mock — add Paystack keys)"}
+            </option>
+            <option value="MOCK">Demo pay (instant)</option>
+            <option value="CASH">Cash on pickup</option>
+          </select>
           <button
             disabled={busy || !cart?.items.length}
             onClick={() => void checkout()}
             className="w-full rounded-2xl bg-[var(--accent)] py-3 text-sm font-semibold text-[#1a1400] disabled:opacity-40"
           >
-            {busy ? "Working…" : "Checkout (Mock MoMo)"}
+            {busy ? "Working…" : "Checkout"}
           </button>
           {message && <p className="mt-3 text-xs text-[var(--accent-soft)]">{message}</p>}
         </div>

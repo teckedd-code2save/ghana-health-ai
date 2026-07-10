@@ -7,8 +7,19 @@ const envSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().default("http://localhost:3000"),
   NEXT_PUBLIC_API_URL: z.string().default("http://localhost:3000/api"),
   VOICE_MODE: z.enum(["stub", "modal"]).default("stub"),
-  MODAL_ASR_URL: z.string().url().optional().or(z.literal("")),
+  MODAL_ASR_URL: z.string().optional().or(z.literal("")),
   MODAL_ASR_TOKEN: z.string().optional(),
+  MODAL_TTS_URL: z.string().optional().or(z.literal("")),
+  MODAL_TTS_TOKEN: z.string().optional(),
+  GROQ_API_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_BASE_URL: z.string().optional(),
+  LLM_MODEL: z.string().optional(),
+  PAYSTACK_SECRET_KEY: z.string().optional(),
+  PAYSTACK_PUBLIC_KEY: z.string().optional(),
+  NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: z.string().optional(),
+  HEALTH_ESCALATION_HOTLINE: z.string().optional(),
+  SENTRY_DSN: z.string().optional(),
   HEALTH_DISCLAIMER_ENABLED: z
     .string()
     .optional()

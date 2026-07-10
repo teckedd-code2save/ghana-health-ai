@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HeartPulse, MessageCircle, ShoppingBag, Mic, Home, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLang, type AppLang } from "@/components/lang-provider";
 
 const nav = [
   { href: "/", label: "Home", icon: Home },
@@ -15,6 +16,7 @@ const nav = [
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { lang, setLang, labels } = useLang();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -29,30 +31,47 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <p className="font-[family-name:var(--font-display)] text-lg leading-none tracking-tight">
                 Ghana Health AI
               </p>
-              <p className="text-xs text-[var(--fg-muted)]">Voice-first · Twi + English</p>
+              <p className="text-xs text-[var(--fg-muted)]">Voice-first · {labels[lang]}</p>
             </div>
           </Link>
-          <nav className="hidden items-center gap-1 md:flex">
-            {nav.map((item) => {
-              const active = pathname === item.href;
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm transition",
-                    active
-                      ? "bg-[var(--accent)] text-[#1a1400] font-medium"
-                      : "text-[var(--fg-muted)] hover:bg-white/5 hover:text-white",
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+          <div className="flex items-center gap-2">
+            <label className="sr-only" htmlFor="lang">
+              Language
+            </label>
+            <select
+              id="lang"
+              value={lang}
+              onChange={(e) => setLang(e.target.value as AppLang)}
+              className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1.5 text-xs text-[var(--fg-muted)] outline-none focus:ring-1 focus:ring-[var(--accent)]"
+            >
+              {(Object.keys(labels) as AppLang[]).map((code) => (
+                <option key={code} value={code}>
+                  {labels[code]}
+                </option>
+              ))}
+            </select>
+            <nav className="hidden items-center gap-1 md:flex">
+              {nav.map((item) => {
+                const active = pathname === item.href;
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm transition",
+                      active
+                        ? "bg-[var(--accent)] text-[#1a1400] font-medium"
+                        : "text-[var(--fg-muted)] hover:bg-white/5 hover:text-white",
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
         </div>
       </header>
 

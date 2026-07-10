@@ -179,10 +179,63 @@ async function main() {
     });
   }
 
+  // Promote demo to admin for audit UI later if needed
+  await prisma.user.update({
+    where: { id: demo.id },
+    data: { role: "admin" },
+  });
+
+  const moreArticles = [
+    {
+      slug: "malaria-basics",
+      titleTw: "Malaria ho nsɛm",
+      titleEn: "Malaria basics",
+      bodyTw:
+        "Sɛ wo wɔ afe, tipae, anaa ahonhon a, kɔ clinic ma wɔnhwɛ malaria. Da wɔ ntoma a ɛbɔ mosquito ho ban ase. Yi nsuo a ɛgyina.",
+      bodyEn:
+        "Fever, chills, or headache may be malaria — get tested at a clinic. Sleep under a treated net and remove standing water.",
+      category: "general",
+      tags: ["malaria", "fever", "afe", "mosquito"],
+      source: "Community health summary",
+    },
+    {
+      slug: "mental-health-triage",
+      titleTw: "Adwene mu yare ho",
+      titleEn: "Mental health triage",
+      bodyTw:
+        "Sɛ wo adwenem nte yie anaa wo pɛ sɛ wobɛhaw wo ho a, ka kyerɛ obi a wo gye di anaa frɛ helpline. Yɛnka sɛ yɛyɛ oduruyɛfoɔ.",
+      bodyEn:
+        "If you feel hopeless or unsafe with yourself, tell a trusted person or call a helpline. This app is not a crisis service.",
+      category: "mental",
+      tags: ["mental", "stress", "suicide", "helpline"],
+      source: "Safety-first triage notes",
+    },
+    {
+      slug: "ors-dehydration",
+      titleTw: "Nsuo a ɛtew / ORS",
+      titleEn: "Dehydration and ORS",
+      bodyTw:
+        "Sɛ ɛyare a ɛma nsuo tew (diarrhea) a, nom ORS anaa nsuo a wɔde nkyene ne asikyire ayɛ. Sɛ mmɔfra anaa mmea a wɔnyinsen a, kɔ clinic ntɛm.",
+      bodyEn:
+        "For diarrhea, use ORS or clean fluids with salt/sugar as guided. Infants and pregnant people should seek clinic care early.",
+      category: "general",
+      tags: ["ors", "diarrhea", "dehydration", "nsuo"],
+      source: "CHW hydration guidance",
+    },
+  ];
+  for (const a of moreArticles) {
+    await prisma.knowledgeArticle.upsert({
+      where: { slug: a.slug },
+      update: a,
+      create: a,
+    });
+  }
+
   console.log("Seed complete:", {
     demoUser: demo.email,
     password: "demo1234",
-    articles: articles.length,
+    role: "admin",
+    articles: articles.length + moreArticles.length,
     products: products.length,
   });
 }

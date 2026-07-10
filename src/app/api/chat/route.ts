@@ -2,21 +2,32 @@ import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/db/prisma";
 import { getSessionUser } from "@/lib/auth";
-import { detectIntent, generateHealthReply } from "@/lib/health-rag";
+import { understandUtterance } from "@/lib/understand";
 import { jsonError, jsonOk } from "@/lib/api";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { writeAudit } from "@/lib/audit";
+import { isModalTtsConfigured, modalSpeak } from "@/lib/modal-tts";
 
 const schema = z.object({
   message: z.string().min(1).max(4000),
   conversationId: z.string().uuid().optional(),
   language: z.enum(["tw", "en", "ga", "ee", "dag"]).optional(),
+  speak: z.boolean().optional(),
 });
 
+/**
+ * Text chat — LLM understanding is the product.
+ * Optional TTS when speak=true and Modal TTS is configured.
+ */
 export async function POST(req: Request) {
   try {
+    const ip = clientIp(req);
+    const rl = rateLimit(`chat:${ip}`, 40, 60);
+    if (!rl.allowed) return jsonError("Too many messages — wait a minute", 429);
+
     const body = schema.parse(await req.json());
     const user = await getSessionUser();
     const language = body.language ?? user?.preferredLang ?? "tw";
-    const intent = detectIntent(body.message);
     const started = Date.now();
 
     let conversation = body.conversationId
@@ -28,17 +39,18 @@ export async function POST(req: Request) {
         data: {
           userId: user?.id,
           language,
-          intent,
           channel: "WEB",
           title: body.message.slice(0, 60),
+          intent: "UNKNOWN",
         },
       });
-    } else {
-      await prisma.conversation.update({
-        where: { id: conversation.id },
-        data: { intent, language },
-      });
     }
+
+    const prior = await prisma.message.findMany({
+      where: { conversationId: conversation.id },
+      orderBy: { createdAt: "asc" },
+      take: 12,
+    });
 
     await prisma.message.create({
       data: {
@@ -46,38 +58,41 @@ export async function POST(req: Request) {
         role: "USER",
         content: body.message,
         language,
-        intent,
       },
     });
 
-    let replyText: string;
-    let meta: Prisma.InputJsonValue = { intent };
-    let disclaimer = false;
+    const understanding = await understandUtterance({
+      text: body.message,
+      language,
+      history: prior.map((m) => ({
+        role: m.role === "USER" ? "user" : "assistant",
+        content: m.content,
+      })),
+    });
 
-    if (intent === "HEALTH") {
-      const health = await generateHealthReply(body.message, language);
-      replyText = health.reply;
-      disclaimer = true;
-      meta = {
-        intent,
-        severity: health.severity,
-        escalate: health.escalate,
-        sources: health.sources,
-      };
+    await prisma.conversation.update({
+      where: { id: conversation.id },
+      data: { intent: understanding.intent, language },
+    });
 
+    if (understanding.intent === "HEALTH") {
       await prisma.symptomCheck.create({
         data: {
           userId: user?.id,
           symptoms: body.message.split(/[\s,]+/).slice(0, 12),
           freeText: body.message,
-          severity: health.severity,
-          advice: health.reply,
-          escalate: health.escalate,
+          severity: understanding.severity,
+          advice: understanding.reply,
+          escalate: understanding.escalate,
           language,
-          disclaimer: health.disclaimer,
+          disclaimer: "LLM companion — not medical advice",
         },
       });
-    } else if (intent === "ECOMMERCE") {
+    }
+
+    // Lightweight product assist when intent is ecommerce — still from real DB, not hardcoded
+    let reply = understanding.reply;
+    if (understanding.intent === "ECOMMERCE") {
       const terms = body.message.toLowerCase().split(/\s+/).filter((t) => t.length > 2);
       const products = await prisma.product.findMany({
         where: {
@@ -88,54 +103,62 @@ export async function POST(req: Request) {
             { tags: { has: t } },
           ]),
         },
-        take: 5,
+        take: 4,
       });
-
-      if (products.length === 0) {
-        replyText =
-          language === "tw"
-            ? "Menhui nneɛma no wɔ gua so. Sɔ hwɛ 'rice', 'paracetamol', anaa 'soap'."
-            : "I couldn't find matching market items. Try rice, paracetamol, or soap.";
-      } else {
-        const lines = products.map(
-          (p) =>
-            `• ${language === "tw" ? p.nameTw : p.nameEn} — GH₵ ${Number(p.priceGhs).toFixed(2)} (${p.stock} left)`,
-        );
-        replyText =
-          (language === "tw"
-            ? "Gua so nneɛma a mehui:\n"
-            : "Here's what I found in the market:\n") +
-          lines.join("\n") +
-          (language === "tw"
-            ? "\n\nKɔ Market tab so de fa ka cart."
-            : "\n\nOpen the Market tab to add to cart.");
-        meta = {
-          intent,
-          products: products.map((p) => ({
-            id: p.id,
-            sku: p.sku,
-            nameEn: p.nameEn,
-            priceGhs: Number(p.priceGhs),
-          })),
-        };
+      if (products.length) {
+        const lines = products
+          .map((p) => `• ${p.nameTw} / ${p.nameEn} — GH₵ ${Number(p.priceGhs).toFixed(2)}`)
+          .join("\n");
+        reply = `${understanding.reply}\n\n${lines}`;
       }
-    } else {
-      replyText =
-        language === "tw"
-          ? "Mema wo akwaaba ɔ Ghana Health AI. Bisa health asɛm (nyinsen, afe) anaa market (tɔ nneɛma). Wobetumi nso de voice reka."
-          : "Welcome to Ghana Health AI. Ask a health question (pregnancy, fever) or shop the market by voice/text.";
     }
+
+    const meta: Prisma.InputJsonValue = {
+      intent: understanding.intent,
+      severity: understanding.severity,
+      escalate: understanding.escalate,
+      engine: understanding.engine,
+    };
 
     const assistant = await prisma.message.create({
       data: {
         conversationId: conversation.id,
         role: "ASSISTANT",
-        content: replyText,
+        content: reply,
         language,
-        intent,
-        disclaimer,
+        intent: understanding.intent,
+        disclaimer: understanding.intent === "HEALTH",
         latencyMs: Date.now() - started,
         metadata: meta,
+      },
+    });
+
+    let tts: { audioBase64: string; sampleRate?: number; model?: string } | null = null;
+    if (body.speak && isModalTtsConfigured()) {
+      try {
+        const spoken = await modalSpeak(reply, language === "en" ? "en" : "tw");
+        if (spoken.audio_base64) {
+          tts = {
+            audioBase64: spoken.audio_base64,
+            sampleRate: spoken.sample_rate,
+            model: spoken.model,
+          };
+        }
+      } catch (e) {
+        console.error("[chat tts]", e);
+      }
+    }
+
+    await writeAudit({
+      action: "chat.understand",
+      actorId: user?.id,
+      entityType: "conversation",
+      entityId: conversation.id,
+      ip,
+      meta: {
+        intent: understanding.intent,
+        engine: understanding.engine,
+        severity: understanding.severity,
       },
     });
 
@@ -145,10 +168,11 @@ export async function POST(req: Request) {
         id: assistant.id,
         role: assistant.role,
         content: assistant.content,
-        intent,
+        intent: understanding.intent,
         latencyMs: assistant.latencyMs,
         metadata: meta,
       },
+      tts,
     });
   } catch (e) {
     if (e instanceof z.ZodError) return jsonError(e.issues[0]?.message ?? "Invalid input");
@@ -161,7 +185,6 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const conversationId = searchParams.get("conversationId");
   if (!conversationId) return jsonError("conversationId required");
-
   const messages = await prisma.message.findMany({
     where: { conversationId },
     orderBy: { createdAt: "asc" },

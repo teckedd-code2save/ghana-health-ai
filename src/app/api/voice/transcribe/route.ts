@@ -3,14 +3,20 @@ import { getSessionUser } from "@/lib/auth";
 import { stubTranscribeChunk } from "@/lib/voice-stub";
 import { isModalAsrConfigured, modalTranscribe } from "@/lib/modal-asr";
 import { jsonOk, jsonError } from "@/lib/api";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { writeAudit } from "@/lib/audit";
 
 /**
  * Voice transcription:
- * - VOICE_MODE=modal + MODAL_ASR_URL → Modal faster-whisper GPU
+ * - VOICE_MODE=modal + MODAL_ASR_URL → Modal Twi Whisper GPU
  * - otherwise → local deterministic stub (dev / offline)
  */
 export async function POST(req: Request) {
   try {
+    const ip = clientIp(req);
+    const rl = rateLimit(`voice:${ip}`, 20, 60);
+    if (!rl.allowed) return jsonError("Too many voice requests", 429);
+
     const user = await getSessionUser();
     const contentType = req.headers.get("content-type") ?? "";
     let audio: ArrayBuffer | null = null;
@@ -54,6 +60,13 @@ export async function POST(req: Request) {
             retained: false,
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
           },
+        });
+
+        await writeAudit({
+          action: "voice.transcribe",
+          actorId: user?.id,
+          ip,
+          meta: { mode: "modal", model: result.model, latencyMs: result.latency_ms },
         });
 
         return jsonOk({
