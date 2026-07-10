@@ -6,7 +6,7 @@ export default function VoicePage() {
       <div>
         <h1 className="font-[family-name:var(--font-display)] text-3xl">Voice pipeline</h1>
         <p className="text-sm text-[var(--fg-muted)]">
-          ASR stub + Voice ID enrollment. Modal Parakeet scripts live under <code>/modal</code>.
+          Modal Whisper Round 2 ASR → LLM → Akan TTS, plus audio Voice ID enroll/verify.
         </p>
       </div>
       <VoicePanel />

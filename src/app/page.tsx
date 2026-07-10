@@ -8,7 +8,7 @@ export default function HomePage() {
         <div>
           <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[var(--fg-muted)]">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--teal)]" />
-            MVP · Twi maternal health + voice market
+            Live · Twi maternal health + voice market
           </p>
           <h1 className="font-[family-name:var(--font-display)] text-4xl leading-[1.1] tracking-tight md:text-5xl">
             Health guidance in the language of home.
@@ -29,7 +29,7 @@ export default function HomePage() {
               href="/voice"
               className="inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-3 text-sm"
             >
-              <Mic className="h-4 w-4" /> Voice demo
+              <Mic className="h-4 w-4" /> Voice
             </Link>
           </div>
         </div>
@@ -39,11 +39,11 @@ export default function HomePage() {
           <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[var(--fg-muted)]">Live pipeline</p>
           <ol className="mt-4 space-y-3 text-sm">
             {[
-              "Mic → streaming ASR (Parakeet / stub)",
-              "Diarization + Voice ID verify",
-              "Intent: Health · Market · General",
-              "RAG maternal KB · cart / MoMo",
-              "TTS reply + transcript",
+              "Mic → Twi Whisper ASR (Round 2, Modal GPU)",
+              "Voice ID enroll / verify from real audio",
+              "LLM intent: Health · Market · General",
+              "Live product search · cart · MoMo / Paystack",
+              "Akan TTS reply + ephemeral transcript",
             ].map((step, i) => (
               <li key={step} className="flex gap-3">
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--teal-deep)] text-xs">
@@ -60,24 +60,28 @@ export default function HomePage() {
         {[
           {
             icon: HeartPulse,
-            title: "Maternal health RAG",
-            body: "GAIN-style Q&A + GHS/WHO summaries with severity flags and escalation language.",
+            title: "Health companion",
+            body: "LLM answers in Twi/English with severity flags and escalation language — not a doctor.",
             href: "/chat",
           },
           {
             icon: Mic,
             title: "Voice ID",
-            body: "Enroll once, verify for sensitive sessions. Stub embeddings now; Modal GPU next.",
+            body: "Enroll and verify with your mic. PCM spectral embedding; login + voice consent required.",
             href: "/voice",
           },
           {
             icon: ShoppingBag,
-            title: "Voice market",
-            body: "Search staples & OTC in Twi/English, cart, mock MoMo checkout.",
+            title: "Market",
+            body: "Search staples & OTC in Twi/English, cart, Mobile Money via Paystack when configured.",
             href: "/market",
           },
         ].map((card) => (
-          <Link key={card.title} href={card.href} className="glass rounded-[var(--radius)] p-5 transition hover:border-[var(--accent)]/30">
+          <Link
+            key={card.title}
+            href={card.href}
+            className="glass rounded-[var(--radius)] p-5 transition hover:border-[var(--accent)]/30"
+          >
             <card.icon className="mb-3 h-5 w-5 text-[var(--accent)]" />
             <h2 className="font-[family-name:var(--font-display)] text-xl">{card.title}</h2>
             <p className="mt-2 text-sm leading-relaxed text-[var(--fg-muted)]">{card.body}</p>
@@ -96,7 +100,10 @@ export default function HomePage() {
             </p>
           </div>
         </div>
-        <Link href="/login" className="shrink-0 text-sm text-[var(--accent-soft)] underline-offset-4 hover:underline">
+        <Link
+          href="/login"
+          className="shrink-0 text-sm text-[var(--accent-soft)] underline-offset-4 hover:underline"
+        >
           Demo account: demo@ghanahealth.ai
         </Link>
       </section>

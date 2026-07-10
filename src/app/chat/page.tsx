@@ -6,7 +6,7 @@ export default function ChatPage() {
       <div>
         <h1 className="font-[family-name:var(--font-display)] text-3xl">Companion chat</h1>
         <p className="text-sm text-[var(--fg-muted)]">
-          Health RAG, ecommerce intent, and voice stub input — all from live API routes.
+          LLM understanding with real mic → Twi ASR. Optional Akan TTS on replies.
         </p>
       </div>
       <ChatPanel />

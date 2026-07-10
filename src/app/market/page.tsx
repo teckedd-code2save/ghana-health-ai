@@ -6,7 +6,7 @@ export default function MarketPage() {
       <div>
         <h1 className="font-[family-name:var(--font-display)] text-3xl">Market</h1>
         <p className="text-sm text-[var(--fg-muted)]">
-          Staples, OTC meds, household — prices from Postgres, cart and mock MoMo checkout.
+          Staples, OTC, household — live prices from Postgres, cart, Paystack MoMo when keys are set.
         </p>
       </div>
       <MarketPanel />

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Mic, Send, Sparkles } from "lucide-react";
+import { Loader2, Mic, Send, Sparkles, Square } from "lucide-react";
 import { useLang } from "@/components/lang-provider";
 import { enqueueOffline } from "@/lib/offline-queue";
+import { startLiveRecorder } from "@/lib/browser-audio";
 
 type ChatMessage = {
   id: string;
@@ -15,20 +16,14 @@ type ChatMessage = {
 
 export function ChatPanel() {
   const { lang } = useLang();
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome",
-      role: "local-assistant",
-      content:
-        "Mema wo akwaaba. Bisa maternal health asɛm anaa market price. General guidance only — not a doctor.",
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
-  const [listening, setListening] = useState(false);
+  const [recording, setRecording] = useState(false);
   const [online, setOnline] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const recorderRef = useRef<Awaited<ReturnType<typeof startLiveRecorder>> | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -105,14 +100,42 @@ export function ChatPanel() {
     }
   }
 
-  async function captureVoiceStub() {
-    setListening(true);
+  async function startMic() {
     try {
-      const res = await fetch("/api/voice/transcribe", { method: "POST" });
+      recorderRef.current = await startLiveRecorder();
+      setRecording(true);
+    } catch (e) {
+      setMessages((m) => [
+        ...m,
+        {
+          id: crypto.randomUUID(),
+          role: "local-assistant",
+          content: e instanceof Error ? e.message : "Mic permission denied",
+        },
+      ]);
+    }
+  }
+
+  async function stopMicAndTranscribe() {
+    const rec = recorderRef.current;
+    recorderRef.current = null;
+    setRecording(false);
+    if (!rec) return;
+    setLoading(true);
+    try {
+      const blob = await rec.stop();
+      if (blob.size < 200) throw new Error("Recording too short");
+
+      const form = new FormData();
+      form.append("audio", blob, "chat-utterance.webm");
+      form.append("language", lang);
+
+      const res = await fetch("/api/voice/transcribe", { method: "POST", body: form });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Voice failed");
-      const text = data.transcript?.text as string;
-      setInput(text);
+      if (!res.ok) throw new Error(data.error || "Transcription failed");
+      const text = (data.transcript?.text as string | undefined)?.trim();
+      if (!text) throw new Error("Empty transcription — try speaking more clearly");
+      setLoading(false);
       await send(text);
     } catch (e) {
       setMessages((m) => [
@@ -120,11 +143,10 @@ export function ChatPanel() {
         {
           id: crypto.randomUUID(),
           role: "local-assistant",
-          content: e instanceof Error ? e.message : "Voice stub failed",
+          content: e instanceof Error ? e.message : "Voice input failed",
         },
       ]);
-    } finally {
-      setListening(false);
+      setLoading(false);
     }
   }
 
@@ -136,7 +158,7 @@ export function ChatPanel() {
           <div>
             <p className="text-sm font-medium">Health & Market Companion</p>
             <p className="text-xs text-[var(--fg-muted)]">
-              Lang · {lang.toUpperCase()} · {online ? "online" : "offline queue"}
+              Lang · {lang.toUpperCase()} · {online ? "online" : "offline queue"} · LLM + real ASR
             </p>
           </div>
         </div>
@@ -148,6 +170,11 @@ export function ChatPanel() {
       </div>
 
       <div className="chat-scroll flex-1 space-y-3 overflow-y-auto px-4 py-4">
+        {messages.length === 0 && (
+          <p className="text-sm text-[var(--fg-muted)]">
+            Type or hold the mic — answers come from the live model, not canned scripts.
+          </p>
+        )}
         {messages.map((m) => {
           const isUser = m.role === "USER" || m.role === "local-user";
           return (
@@ -185,17 +212,26 @@ export function ChatPanel() {
         }}
       >
         <div className="flex items-end gap-2">
-          <button
-            type="button"
-            onClick={() => void captureVoiceStub()}
-            disabled={listening || loading}
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--teal-deep)] text-white transition hover:bg-[var(--teal)] disabled:opacity-50 ${
-              listening ? "mic-pulse" : ""
-            }`}
-            aria-label="Voice input"
-          >
-            <Mic className="h-5 w-5" />
-          </button>
+          {!recording ? (
+            <button
+              type="button"
+              onClick={() => void startMic()}
+              disabled={loading}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--teal-deep)] text-white transition hover:bg-[var(--teal)] disabled:opacity-50"
+              aria-label="Start voice input"
+            >
+              <Mic className="h-5 w-5" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => void stopMicAndTranscribe()}
+              className="mic-pulse flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--coral)] text-white"
+              aria-label="Stop and send voice"
+            >
+              <Square className="h-4 w-4" />
+            </button>
+          )}
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}

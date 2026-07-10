@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Mic, ShieldCheck, Square, Volume2 } from "lucide-react";
 import { useLang } from "@/components/lang-provider";
+import { blobToPcmB64, startLiveRecorder } from "@/lib/browser-audio";
 
 type ConverseResult = {
   asr?: { text: string; model: string; latencyMs: number };
@@ -35,6 +36,19 @@ export function VoicePanel() {
   const [speak, setSpeak] = useState(true);
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+
+  const [vidBusy, setVidBusy] = useState(false);
+  const [vidStatus, setVidStatus] = useState<string | null>(null);
+  const [enrolled, setEnrolled] = useState(false);
+  const [vidRecording, setVidRecording] = useState<"enroll" | "verify" | null>(null);
+  const vidRecRef = useRef<Awaited<ReturnType<typeof startLiveRecorder>> | null>(null);
+
+  useEffect(() => {
+    void fetch("/api/voice/enroll")
+      .then((r) => r.json())
+      .then((d) => setEnrolled(Boolean(d.enrollment)))
+      .catch(() => setEnrolled(false));
+  }, []);
 
   async function runConverse(blob: Blob) {
     setBusy(true);
@@ -93,23 +107,67 @@ export function VoicePanel() {
     setRecording(false);
   }
 
-  // Voice ID stubs kept minimal
-  const [passphrase, setPassphrase] = useState("Me din de Ama Mensah twi");
-  const [vidStatus, setVidStatus] = useState<string | null>(null);
-
-  useEffect(() => {
-    /* warm nothing — Modal cold-starts on first real call */
-  }, []);
-
-  async function enrollVoice() {
+  async function startVidCapture(mode: "enroll" | "verify") {
     setVidStatus(null);
-    const res = await fetch("/api/voice/enroll", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ passphrase, language: "tw" }),
-    });
-    const data = await res.json();
-    setVidStatus(res.ok ? "Enrolled (embedding stub)" : data.error);
+    try {
+      vidRecRef.current = await startLiveRecorder();
+      setVidRecording(mode);
+      setVidStatus(mode === "enroll" ? "Recording enrollment phrase…" : "Recording verify sample…");
+    } catch (e) {
+      setVidStatus(e instanceof Error ? e.message : "Mic denied");
+    }
+  }
+
+  async function stopVidCapture() {
+    const mode = vidRecording;
+    const rec = vidRecRef.current;
+    vidRecRef.current = null;
+    setVidRecording(null);
+    if (!rec || !mode) return;
+
+    setVidBusy(true);
+    try {
+      const blob = await rec.stop();
+      const { pcmB64, sampleRate, durationS } = await blobToPcmB64(blob);
+      if (durationS < 0.8) throw new Error("Speak for at least 1–2 seconds");
+
+      if (mode === "enroll") {
+        const res = await fetch("/api/voice/enroll", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pcmB64,
+            sampleRate,
+            language: lang,
+            sampleDurationS: durationS,
+            phraseHint: "spoken-enroll",
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Enroll failed");
+        setEnrolled(true);
+        setVidStatus(
+          `Enrolled from ${durationS.toFixed(1)}s audio · threshold ${data.enrollment?.threshold ?? 0.82}`,
+        );
+      } else {
+        const res = await fetch("/api/voice/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pcmB64, sampleRate }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Verify failed");
+        setVidStatus(
+          data.verified
+            ? `Verified ✓ score ${data.score} (threshold ${data.threshold})`
+            : `Not verified · score ${data.score} (need ≥ ${data.threshold})`,
+        );
+      }
+    } catch (e) {
+      setVidStatus(e instanceof Error ? e.message : "Voice ID failed");
+    } finally {
+      setVidBusy(false);
+    }
   }
 
   return (
@@ -121,8 +179,8 @@ export function VoicePanel() {
         </div>
         <p className="mb-4 text-sm text-[var(--fg-muted)]">
           Real pipeline: <strong className="text-[var(--accent-soft)]">Twi ASR</strong> (Whisper
-          Waxal fine-tune) → <strong className="text-[var(--accent-soft)]">LLM understand</strong> →{" "}
-          <strong className="text-[var(--accent-soft)]">Akan TTS</strong> (MMS-TTS-aka).
+          Waxal) → <strong className="text-[var(--accent-soft)]">LLM</strong> →{" "}
+          <strong className="text-[var(--accent-soft)]">Akan TTS</strong> (MMS).
         </p>
 
         <label className="mb-4 flex items-center gap-2 text-sm text-[var(--fg-muted)]">
@@ -138,7 +196,7 @@ export function VoicePanel() {
               className="inline-flex items-center gap-2 rounded-full bg-[var(--teal)] px-5 py-3 text-sm font-semibold text-[#062419] disabled:opacity-50"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
-              {busy ? "Thinking…" : "Hold to talk — click start"}
+              {busy ? "Thinking…" : "Start talking"}
             </button>
           ) : (
             <button
@@ -189,24 +247,42 @@ export function VoicePanel() {
       <section className="glass rounded-[var(--radius)] p-5">
         <div className="mb-4 flex items-center gap-2">
           <ShieldCheck className="h-5 w-5 text-[var(--accent)]" />
-          <h2 className="font-[family-name:var(--font-display)] text-xl">Voice ID (light)</h2>
+          <h2 className="font-[family-name:var(--font-display)] text-xl">Voice ID</h2>
         </div>
         <p className="mb-3 text-sm text-[var(--fg-muted)]">
-          Enrollment still uses a local embedding stub. Intelligence work is on ASR/TTS/LLM.
+          Enroll and verify with <strong className="text-[var(--accent-soft)]">real mic audio</strong>{" "}
+          (PCM spectral embedding). Login + voice consent required.
+          {enrolled ? " · Enrollment on file." : " · Not enrolled yet."}
         </p>
-        <textarea
-          value={passphrase}
-          onChange={(e) => setPassphrase(e.target.value)}
-          rows={3}
-          className="mb-3 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
-        />
-        <button
-          onClick={() => void enrollVoice()}
-          className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[#1a1400]"
-        >
-          Enroll
-        </button>
-        {vidStatus && <p className="mt-2 text-sm text-[var(--accent-soft)]">{vidStatus}</p>}
+
+        <div className="flex flex-wrap gap-2">
+          {!vidRecording ? (
+            <>
+              <button
+                disabled={vidBusy}
+                onClick={() => void startVidCapture("enroll")}
+                className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[#1a1400] disabled:opacity-50"
+              >
+                {vidBusy ? "Working…" : "Enroll (record)"}
+              </button>
+              <button
+                disabled={vidBusy || !enrolled}
+                onClick={() => void startVidCapture("verify")}
+                className="rounded-full border border-white/15 px-4 py-2 text-sm disabled:opacity-40"
+              >
+                Verify (record)
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => void stopVidCapture()}
+              className="mic-pulse inline-flex items-center gap-2 rounded-full bg-[var(--coral)] px-4 py-2 text-sm font-semibold text-white"
+            >
+              <Square className="h-3.5 w-3.5" /> Stop {vidRecording}
+            </button>
+          )}
+        </div>
+        {vidStatus && <p className="mt-3 text-sm text-[var(--accent-soft)]">{vidStatus}</p>}
       </section>
     </div>
   );

@@ -239,9 +239,11 @@ export function MarketPanel() {
             className="mb-3 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm"
           >
             <option value="MOMO">
-              {paystackEnabled ? "Mobile Money (Paystack)" : "Mobile Money (mock — add Paystack keys)"}
+              {paystackEnabled
+                ? "Mobile Money (Paystack)"
+                : "Mobile Money (needs PAYSTACK_SECRET_KEY)"}
             </option>
-            <option value="MOCK">Demo pay (instant)</option>
+            <option value="MOCK">Instant settle (dev)</option>
             <option value="CASH">Cash on pickup</option>
           </select>
           <button

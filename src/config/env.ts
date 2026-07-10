@@ -6,7 +6,7 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(16).default("dev-only-change-me-in-prod-32"),
   NEXT_PUBLIC_APP_URL: z.string().default("http://localhost:3000"),
   NEXT_PUBLIC_API_URL: z.string().default("http://localhost:3000/api"),
-  VOICE_MODE: z.enum(["stub", "modal"]).default("stub"),
+  VOICE_MODE: z.enum(["stub", "modal"]).default("modal"),
   MODAL_ASR_URL: z.string().optional().or(z.literal("")),
   MODAL_ASR_TOKEN: z.string().optional(),
   MODAL_TTS_URL: z.string().optional().or(z.literal("")),
