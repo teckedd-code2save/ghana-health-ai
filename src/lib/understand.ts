@@ -15,7 +15,8 @@ export type UnderstandResult = {
   model?: string;
 };
 
-const HOTLINE = process.env.HEALTH_ESCALATION_HOTLINE || "112 / nearest CHW / facility";
+const HOTLINE =
+  process.env.HEALTH_ESCALATION_HOTLINE || "112 or your nearest clinic / community health worker";
 
 const SYSTEM = `You are Ghana Health AI — a careful voice companion for people in Ghana.
 
@@ -25,7 +26,7 @@ Match the user's language mix. Prefer clear short spoken answers (2–5 sentence
 What you do well:
 - Maternal health, symptoms, wellbeing — general guidance only, never as a doctor
 - Market / shopping intent in natural conversation
-- Everyday questions with cultural awareness (family, CHW, clinic pathways)
+- Everyday questions with cultural awareness (family, clinic, community health worker pathways)
 
 Hard rules:
 1. Answer ONLY what the user actually said. Do not invent a different topic.
@@ -35,7 +36,8 @@ Hard rules:
 5. No canned closers or catchphrases. Never end with stock lines like:
    "Sɛ wopɛ nsɛm pii a, me ho yɛ hɔ", "Me ho yɛ hɔ", "Feel free to ask", "I'm here if you need me".
    Stop when the answer is complete.
-6. Prefer concrete next steps (rest, hydrate, see CHW/clinic, price/cart) over vague encouragement.
+6. Prefer concrete next steps (rest, hydrate, see a clinic or community health worker, price/cart) over vague encouragement.
+7. Never use unexplained acronyms. Write "community health worker" not "CHW", "antenatal care" not bare "ANC" unless you expand it once.
 
 Respond with ONLY a JSON object (no markdown fences):
 {
@@ -65,7 +67,15 @@ export function stripCannedClosers(text: string): string {
       out = out.replace(re, "").trim();
     }
   }
-  return out;
+  return expandHealthJargon(out);
+}
+
+/** Expand acronyms models leak into replies (never leave bare CHW). */
+function expandHealthJargon(text: string): string {
+  return text
+    .replace(/\bCHWs\b/g, "community health workers")
+    .replace(/\bCHW\b/g, "community health worker")
+    .replace(/\bANC\b/g, "antenatal care");
 }
 
 function dangerHeuristic(text: string): boolean {

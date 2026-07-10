@@ -6,6 +6,7 @@ export type ModalTtsResult = {
   latency_ms: number;
   model: string;
   text?: string;
+  language?: string;
   error?: string;
 };
 
@@ -25,9 +26,19 @@ export function isModalTtsConfigured(): boolean {
   return Boolean(process.env.MODAL_TTS_URL);
 }
 
-/** Strip markdown / symbols that MMS-VITS mangles when spoken. */
-function speakableText(text: string): string {
-  return text
+/** Expand jargon + strip symbols so speech models don't say "C H W". */
+export function speakableText(text: string, language: string = "tw"): string {
+  let clean = text;
+  const pairs: [RegExp, string][] = [
+    [/\bCHWs?\b/gi, language === "en" ? "community health workers" : "community health worker"],
+    [/\bANC\b/g, "antenatal care"],
+    [/\bOTC\b/g, "over the counter"],
+    [/\bMoMo\b/gi, "mobile money"],
+    [/\bGHS\b/g, "Ghana Health Service"],
+    [/\bWHO\b/g, "World Health Organization"],
+  ];
+  for (const [re, repl] of pairs) clean = clean.replace(re, repl);
+  return clean
     .replace(/[*_#`>~\[\]()]/g, " ")
     .replace(/https?:\/\/\S+/gi, " ")
     .replace(/\s+/g, " ")
@@ -42,7 +53,8 @@ export async function modalSpeak(
   const url = ttsSpeakUrl();
   if (!url) throw new Error("MODAL_TTS_URL is not set");
 
-  const clean = speakableText(text);
+  const lang = language === "en" ? "en" : "tw";
+  const clean = speakableText(text, lang);
   if (!clean) {
     return {
       audio_base64: "",
@@ -62,7 +74,7 @@ export async function modalSpeak(
         ? { Authorization: `Bearer ${process.env.MODAL_TTS_TOKEN}` }
         : {}),
     },
-    body: JSON.stringify({ text: clean, language }),
+    body: JSON.stringify({ text: clean, language: lang }),
   });
 
   if (!res.ok) {

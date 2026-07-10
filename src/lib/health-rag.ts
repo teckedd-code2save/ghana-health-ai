@@ -3,13 +3,14 @@ import type { LanguageCode, SeverityFlag } from "@prisma/client";
 import { chatComplete, isLlmConfigured } from "@/lib/llm";
 
 export const HEALTH_DISCLAIMER_TW =
-  "Yɛi nyɛ oduruyɛfoɔ adwuma — kɔ oduruyɛfoɔ anaa CHW hɔ sɛ ɛhia. This is not medical advice.";
+  "Yɛi nyɛ oduruyɛfoɔ adwuma — kɔ oduruyɛfoɔ anaa community health worker hɔ sɛ ɛhia. This is not medical advice.";
 
 export const HEALTH_DISCLAIMER_EN =
-  "This is not a substitute for professional medical care. If symptoms are severe, contact a health worker, CHW, or emergency services immediately.";
+  "This is not a substitute for professional medical care. If symptoms are severe, contact a clinic, community health worker, or emergency services immediately.";
 
 export const EMERGENCY_HOTLINE =
-  process.env.HEALTH_ESCALATION_HOTLINE || "112 / nearest CHW / facility";
+  process.env.HEALTH_ESCALATION_HOTLINE ||
+  "112 or your nearest clinic / community health worker";
 
 const DANGER_KEYWORDS = [
   "bleeding",
@@ -184,10 +185,11 @@ export async function generateHealthReply(
 Rules:
 - Respond primarily in ${language === "tw" ? "Twi (Akan) with light English mix where natural" : "clear simple English"}.
 - You are NOT a doctor. Never diagnose definitively or prescribe specific drug doses.
-- Use ONLY the knowledge base excerpts when making health claims; if unsure, say so and urge clinic/CHW care.
+- Use ONLY the knowledge base excerpts when making health claims; if unsure, say so and urge clinic or community health worker care.
 - Always end with a short disclaimer.
 - If severity is EMERGENCY, lead with urgent action and hotline ${EMERGENCY_HOTLINE}.
-- Cultural humility: respect Ghanaian family/CHW care pathways.
+- Cultural humility: respect Ghanaian family and community health worker care pathways.
+- Never use bare acronyms like CHW — say "community health worker".
 Severity assessed: ${severity}
 Knowledge base:
 ${kbBlock || "(no articles matched — speak generally and urge professional care)"}`;
