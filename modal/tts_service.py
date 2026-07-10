@@ -128,11 +128,11 @@ def api():
         }
 
     @web.post("/speak")
-    async def speak(body: SpeakBody):
-        result = await engine.synthesize.remote.aio(body.text, language=body.language)
+    async def speak(payload: SpeakBody):
+        result = await engine.synthesize.remote.aio(payload.text, language=payload.language)
         if result.get("error"):
             return JSONResponse(result, status_code=400)
-        if body.return_bytes and result.get("audio_base64"):
+        if payload.return_bytes and result.get("audio_base64"):
             raw = base64.b64decode(result["audio_base64"])
             return Response(
                 content=raw,
