@@ -106,17 +106,11 @@ class TtsEngine:
 @app.function(image=image, timeout=60)
 @modal.asgi_app()
 def api():
-    from fastapi import FastAPI
+    from fastapi import FastAPI, Request
     from fastapi.responses import JSONResponse, Response
-    from pydantic import BaseModel, Field
 
-    web = FastAPI(title="Ghana Health TTS", version="1.0.0")
+    web = FastAPI(title="Ghana Health TTS", version="1.0.1")
     engine = TtsEngine()
-
-    class SpeakBody(BaseModel):
-        text: str = Field(..., min_length=1, max_length=2000)
-        language: str | None = "tw"
-        return_bytes: bool = False
 
     @web.get("/health")
     async def health():
@@ -128,11 +122,20 @@ def api():
         }
 
     @web.post("/speak")
-    async def speak(payload: SpeakBody):
-        result = await engine.synthesize.remote.aio(payload.text, language=payload.language)
+    async def speak(request: Request):
+        try:
+            data = await request.json()
+        except Exception:
+            return JSONResponse({"error": "invalid json"}, status_code=400)
+        text = (data.get("text") or "").strip()
+        if not text:
+            return JSONResponse({"error": "text required"}, status_code=400)
+        language = data.get("language") or "tw"
+        return_bytes = bool(data.get("return_bytes"))
+        result = await engine.synthesize.remote.aio(text, language=language)
         if result.get("error"):
             return JSONResponse(result, status_code=400)
-        if payload.return_bytes and result.get("audio_base64"):
+        if return_bytes and result.get("audio_base64"):
             raw = base64.b64decode(result["audio_base64"])
             return Response(
                 content=raw,
