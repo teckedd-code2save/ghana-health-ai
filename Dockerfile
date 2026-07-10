@@ -13,7 +13,9 @@ COPY prisma ./prisma
 COPY prisma.config.ts ./
 RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
 ENV DATABASE_URL=postgresql://build:build@localhost:5432/build
-RUN pnpm install --frozen-lockfile
+# Skip postinstall prisma generate until lockfile install finishes cleanly;
+# we generate explicitly on the next line.
+RUN pnpm install --frozen-lockfile --ignore-scripts
 RUN pnpm exec prisma generate
 
 FROM node:20-alpine AS builder
