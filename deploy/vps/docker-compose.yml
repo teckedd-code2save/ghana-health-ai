@@ -1,0 +1,47 @@
+# Lives at /opt/ghana-health-ai/docker-compose.yml on the VPS.
+# Image is always pulled from GHCR; never built on the VPS.
+# .env is rendered by infisical-sync.yml (Phase 5).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ghana-health-ai-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ghana_health_ai
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ghana_health_ai
+    volumes:
+      - ghana-health-ai-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ghana_health_ai -d ghana_health_ai"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "127.0.0.1:15440:5432"
+    networks:
+      - ghana-health-ai
+
+  web:
+    # Pin via WEB_IMAGE env in deploy.yml + bin/rollback; default to :latest
+    # for manual operations from the VPS. Always pulled, never built.
+    image: ${WEB_IMAGE:-ghcr.io/teckedd-code2save/ghana-health-ai:latest}
+    container_name: ghana-health-ai-web
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:13020:3000"
+    networks:
+      - ghana-health-ai
+
+volumes:
+  ghana-health-ai-pg-data:
+
+networks:
+  ghana-health-ai:
+    name: ghana-health-ai

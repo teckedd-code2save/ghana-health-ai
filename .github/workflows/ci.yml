@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint · Type-check · Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.12.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.12.1 --activate
+          pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Type-check
+        run: pnpm exec tsc --noEmit
+
+      - name: Build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          # Build-time NEXT_PUBLIC_* placeholders — real values are
+          # injected at image build time in deploy.yml. CI just needs
+          # *something* present so the build doesn't crash on undefined.
+          # The ship-to-vps renderer expands this block from Infisical.
+          NEXT_PUBLIC_APP_URL: "https://ghanahealth.serendepify.com"
+          NEXT_PUBLIC_API_URL: "https://ghanahealth.serendepify.com/api"
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+          JWT_SECRET: "ci-build-placeholder-secret-32chars"
+        run: pnpm run build

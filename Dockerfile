@@ -1,34 +1,49 @@
-# Multi-stage Next.js + Prisma 7 (shippability contract)
+# Multi-stage Dockerfile for Next.js (App Router, standalone) + Prisma 7.
+# Rendered by ship-to-vps from templates/Dockerfile.nextjs-prisma7.
+#
+# Validated against every failure mode hit during the perfume-emporio
+# bootstrap. Do not "optimize" the runner stage without re-reading
+# ~/.claude/skills/ship-to-vps/references/shippability-contract.md item 1.
+
 FROM node:20-alpine AS deps
 WORKDIR /app
 RUN apk add --no-cache libc6-compat openssl
-RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
 COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./
+RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
+ENV DATABASE_URL=postgresql://build:build@localhost:5432/build
 RUN pnpm install --frozen-lockfile
 RUN pnpm exec prisma generate
 
 FROM node:20-alpine AS builder
 WORKDIR /app
 RUN apk add --no-cache libc6-compat openssl
-RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/prisma ./prisma
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
-ARG NEXT_PUBLIC_API_URL=http://localhost:3000/api
-ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-# Dummy URL for prisma generate during build if needed
 ENV DATABASE_URL=postgresql://build:build@localhost:5432/build
-RUN pnpm exec prisma generate
+# NEXT_PUBLIC_* must be present at build time to be inlined into the
+# client bundle. The ship-to-vps renderer expands the block below from
+# the list of NEXT_PUBLIC_* keys found in Infisical prod at setup time.
+# To add a new one later: add the key to Infisical, then add matching
+# ARG + ENV here AND a build-arg in .github/workflows/deploy.yml.
+# ──────── BEGIN public_build_args ────────
+ARG NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# ──────── END public_build_args ────────
+RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
 RUN pnpm run build
 
 FROM node:20-alpine AS runner
 WORKDIR /app
-LABEL org.opencontainers.image.source="https://github.com/serendepify/ghana-health-ai"
+# OCI labels — the source label auto-links this package to the repo on
+# GHCR, so the deploy workflow's GITHUB_TOKEN (packages:read) can pull.
+# Without this, deploys 403 until the package is manually linked.
+LABEL org.opencontainers.image.source="https://github.com/teckedd-code2save/ghana-health-ai"
 LABEL org.opencontainers.image.description="ghana-health-ai — Next.js app"
 LABEL org.opencontainers.image.licenses="UNLICENSED"
 RUN apk add --no-cache libc6-compat openssl
@@ -39,13 +54,24 @@ ENV HOSTNAME=0.0.0.0
 
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
+# Standalone Next.js bundle + static assets + public/.
+# public/ must contain at least .gitkeep — otherwise this COPY breaks on
+# CI (git doesn't track empty dirs, but local FS makes it look fine).
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+# Prisma 7 + migrations: the runner needs the FULL node_modules tree,
+# not just node_modules/prisma + @prisma. @prisma/config requires
+# `effect` (and other transitive deps); without them, `migrate deploy`
+# fails with MODULE_NOT_FOUND. Image grows ~300MB; this is the price
+# of running migrations from a one-shot container based on the runner
+# image. Splitting into a separate migrator stage is a future
+# optimization; see related "trim runner image" issue in any ship-to-vps
+# bootstrap.
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 
 USER nextjs
 EXPOSE 3000

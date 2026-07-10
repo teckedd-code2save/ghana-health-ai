@@ -7,6 +7,8 @@ const envSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().default("http://localhost:3000"),
   NEXT_PUBLIC_API_URL: z.string().default("http://localhost:3000/api"),
   VOICE_MODE: z.enum(["stub", "modal"]).default("stub"),
+  MODAL_ASR_URL: z.string().url().optional().or(z.literal("")),
+  MODAL_ASR_TOKEN: z.string().optional(),
   HEALTH_DISCLAIMER_ENABLED: z
     .string()
     .optional()

@@ -1,18 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Mic, ShieldCheck, UserRound } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Mic, ShieldCheck, Square, UserRound } from "lucide-react";
 
 export function VoicePanel() {
-  const [user, setUser] = useState<{ id: string; displayName?: string | null; consentVoice?: boolean } | null>(
-    null,
-  );
+  const [user, setUser] = useState<{
+    id: string;
+    displayName?: string | null;
+    consentVoice?: boolean;
+  } | null>(null);
   const [passphrase, setPassphrase] = useState("Me din de Ama Mensah twi");
   const [enrollment, setEnrollment] = useState<{ id: string; enrolledAt: string } | null>(null);
   const [verifyResult, setVerifyResult] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const mediaRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     void (async () => {
@@ -72,14 +77,19 @@ export function VoicePanel() {
     }
   }
 
-  async function stubListen() {
+  async function sendAudio(blob: Blob) {
     setBusy(true);
     try {
-      const res = await fetch("/api/voice/transcribe", { method: "POST" });
+      const form = new FormData();
+      form.append("audio", blob, "utterance.webm");
+      const res = await fetch("/api/voice/transcribe", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      const t = data.transcript;
       setTranscript(
-        `${data.transcript.text}  ·  ${data.transcript.speaker}  ·  ${data.transcript.latencyMs}ms`,
+        `${t.text || "(empty)"}  ·  ${t.speaker}  ·  ${t.latencyMs}ms  ·  ${t.mode}${
+          t.model ? ` · ${t.model}` : ""
+        }`,
       );
     } catch (e) {
       setTranscript(e instanceof Error ? e.message : "Transcribe failed");
@@ -88,26 +98,87 @@ export function VoicePanel() {
     }
   }
 
+  async function stubListen() {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/voice/transcribe", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setTranscript(
+        `${data.transcript.text}  ·  ${data.transcript.speaker}  ·  ${data.transcript.latencyMs}ms · ${data.transcript.mode}`,
+      );
+    } catch (e) {
+      setTranscript(e instanceof Error ? e.message : "Transcribe failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function startRecording() {
+    setTranscript(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      chunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        void sendAudio(blob);
+      };
+      mediaRef.current = recorder;
+      recorder.start();
+      setRecording(true);
+    } catch (e) {
+      setTranscript(e instanceof Error ? e.message : "Mic permission denied");
+    }
+  }
+
+  function stopRecording() {
+    mediaRef.current?.stop();
+    mediaRef.current = null;
+    setRecording(false);
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <section className="glass rounded-[var(--radius)] p-5">
         <div className="mb-4 flex items-center gap-2">
           <Mic className="h-5 w-5 text-[var(--teal)]" />
-          <h2 className="font-[family-name:var(--font-display)] text-xl">Live ASR (stub)</h2>
+          <h2 className="font-[family-name:var(--font-display)] text-xl">Live ASR</h2>
         </div>
         <p className="mb-4 text-sm text-[var(--fg-muted)]">
-          Phase 0 uses a deterministic stub. Production swaps to Modal Parakeet multi-talker +
-          Sortformer diarization under <code className="text-[var(--accent-soft)]">/modal</code>.
+          Record from your mic (WebM → Modal faster-whisper when{" "}
+          <code className="text-[var(--accent-soft)]">VOICE_MODE=modal</code>), or run the
+          deterministic stub without audio.
         </p>
-        <button
-          onClick={() => void stubListen()}
-          disabled={busy}
-          className={`inline-flex items-center gap-2 rounded-full bg-[var(--teal)] px-5 py-3 text-sm font-semibold text-[#062419] ${
-            busy ? "mic-pulse opacity-80" : ""
-          }`}
-        >
-          <Mic className="h-4 w-4" /> Simulate utterance
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {!recording ? (
+            <button
+              onClick={() => void startRecording()}
+              disabled={busy}
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--teal)] px-5 py-3 text-sm font-semibold text-[#062419]"
+            >
+              <Mic className="h-4 w-4" /> Record &amp; transcribe
+            </button>
+          ) : (
+            <button
+              onClick={stopRecording}
+              className="mic-pulse inline-flex items-center gap-2 rounded-full bg-[var(--coral)] px-5 py-3 text-sm font-semibold text-white"
+            >
+              <Square className="h-4 w-4" /> Stop
+            </button>
+          )}
+          <button
+            onClick={() => void stubListen()}
+            disabled={busy || recording}
+            className="rounded-full border border-white/15 px-4 py-3 text-sm"
+          >
+            Stub only
+          </button>
+        </div>
         {transcript && (
           <p className="mt-4 rounded-2xl bg-black/20 px-4 py-3 text-sm leading-relaxed">{transcript}</p>
         )}
@@ -126,7 +197,9 @@ export function VoicePanel() {
           </p>
         ) : (
           <>
-            <label className="mb-1 block text-xs text-[var(--fg-muted)]">Twi passphrase (30–60s in prod)</label>
+            <label className="mb-1 block text-xs text-[var(--fg-muted)]">
+              Twi passphrase (30–60s in prod)
+            </label>
             <textarea
               value={passphrase}
               onChange={(e) => setPassphrase(e.target.value)}
