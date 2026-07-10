@@ -7,12 +7,13 @@ Engine: HuggingFace WhisperForConditionalGeneration on GPU
   modal deploy modal/asr_service.py
 """
 
-from __future__ import annotations
-
+# NOTE: Do not add `from __future__ import annotations` here.
+# FastAPI cannot resolve postponed annotations like `UploadFile` (ForwardRef),
+# which crash-loops the Modal ASGI container at import time.
 import os
 import tempfile
 import time
-from typing import Any
+from typing import Any, Optional
 
 import modal
 
@@ -48,7 +49,7 @@ def _write_temp_audio(data: bytes, suffix: str = ".webm") -> str:
     return path
 
 
-def _guess_suffix(content_type: str | None, filename: str | None) -> str:
+def _guess_suffix(content_type: Optional[str], filename: Optional[str]) -> str:
     name = (filename or "").lower()
     ct = (content_type or "").lower()
     if "wav" in name or "wav" in ct:
@@ -98,7 +99,7 @@ class AsrEngine:
     def transcribe(
         self,
         audio_bytes: bytes,
-        language: str | None = None,
+        language: Optional[str] = None,
         suffix: str = ".webm",
     ) -> dict[str, Any]:
         import librosa
@@ -163,7 +164,8 @@ class AsrEngine:
                 pass
 
 
-@app.function(image=image, timeout=60)
+# ASGI must outlive cold-start model load + remote GPU inference (T4).
+@app.function(image=image, timeout=600)
 @modal.asgi_app()
 def api():
     from fastapi import FastAPI, File, Request, UploadFile
@@ -183,11 +185,9 @@ def api():
 
     @web.post("/transcribe")
     async def transcribe(
-        audio: UploadFile | None = File(None),
-        language: str | None = None,
+        audio: UploadFile = File(...),
+        language: Optional[str] = None,
     ):
-        if audio is None:
-            return JSONResponse({"error": "no audio"}, status_code=400)
         raw = await audio.read()
         if not raw:
             return JSONResponse({"error": "empty audio"}, status_code=400)
@@ -195,7 +195,7 @@ def api():
         return await engine.transcribe.remote.aio(raw, language=language, suffix=suffix)
 
     @web.post("/transcribe/bytes")
-    async def transcribe_bytes(request: Request, language: str | None = None):
+    async def transcribe_bytes(request: Request, language: Optional[str] = None):
         raw = await request.body()
         if not raw:
             return JSONResponse({"error": "empty body"}, status_code=400)
