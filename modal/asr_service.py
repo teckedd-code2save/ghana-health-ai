@@ -1,8 +1,13 @@
 """
 Ghana Health AI — real Twi/Akan ASR on Modal.
 
-Model: teckedd/whisper-small-waxal-round2-specaug-v1 (Waxal Round 2, ~32.8% WER)
+Model: teckedd/whisper-small-waxal-round2-specaug-v1 (Waxal Round 2)
 Engine: HuggingFace WhisperForConditionalGeneration on GPU
+
+Cost layout:
+  - Slim CPU ASGI handles /health (no torch, no GPU)
+  - One max GPU container runs inference only when /transcribe is called
+  - Short scaledown so idle T4s die quickly
 
   modal deploy modal/asr_service.py
 """
@@ -22,11 +27,14 @@ DEFAULT_MODEL = os.environ.get(
     "MODEL_ID", "teckedd/whisper-small-waxal-round2-specaug-v1"
 )
 FALLBACK_MODEL = "openai/whisper-small"
+# Cap utterance length so a single request can't pin the T4 forever
+MAX_AUDIO_SECONDS = float(os.environ.get("ASR_MAX_AUDIO_SECONDS", "45"))
 
 app = modal.App(APP_NAME)
 model_volume = modal.Volume.from_name("ghana-health-asr-models", create_if_missing=True)
 
-image = (
+# GPU worker only — heavy deps
+gpu_image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("ffmpeg", "libsndfile1")
     .pip_install(
@@ -34,12 +42,19 @@ image = (
         "torchaudio==2.5.1",
         "transformers==4.46.3",
         "accelerate==1.1.1",
-        "fastapi[standard]==0.115.12",
-        "python-multipart==0.0.20",
         "numpy<2.3",
         "soundfile==0.13.1",
         "librosa==0.10.2.post1",
         "huggingface_hub==0.26.2",
+    )
+)
+
+# Public API — no torch (health checks must not burn GPU)
+web_image = (
+    modal.Image.debian_slim(python_version="3.11")
+    .pip_install(
+        "fastapi[standard]==0.115.12",
+        "python-multipart==0.0.20",
     )
 )
 
@@ -66,10 +81,12 @@ def _guess_suffix(content_type: Optional[str], filename: Optional[str]) -> str:
 
 
 @app.cls(
-    image=image,
+    image=gpu_image,
     gpu="T4",
-    timeout=600,
-    scaledown_window=180,
+    timeout=180,
+    # Die fast when idle — was 180s and kept dual containers warm
+    scaledown_window=45,
+    max_containers=1,
     volumes={"/models": model_volume},
 )
 class AsrEngine:
@@ -91,11 +108,14 @@ class AsrEngine:
         except Exception as exc:  # noqa: BLE001
             print(f"[asr] load {model_id} failed ({exc}); fallback {FALLBACK_MODEL}")
             self.model_id = FALLBACK_MODEL
-            self.processor = WhisperProcessor.from_pretrained(FALLBACK_MODEL, cache_dir=cache)
+            self.processor = WhisperProcessor.from_pretrained(
+                FALLBACK_MODEL, cache_dir=cache
+            )
             self.model = WhisperForConditionalGeneration.from_pretrained(
                 FALLBACK_MODEL, cache_dir=cache
             ).to(self.device)
         self.model.eval()
+        print(f"[asr] ready model={self.model_id} device={self.device}")
 
     @modal.method()
     def transcribe(
@@ -118,26 +138,47 @@ class AsrEngine:
                 "error": "empty_audio",
             }
 
+        # Hard size guard (~1.5 MB/s webm worst case × max seconds)
+        max_bytes = int(MAX_AUDIO_SECONDS * 160_000)
+        if len(audio_bytes) > max_bytes:
+            return {
+                "text": "",
+                "language": language or "tw",
+                "segments": [],
+                "latency_ms": 0,
+                "model": self.model_id,
+                "error": f"audio_too_large_max_{int(MAX_AUDIO_SECONDS)}s",
+            }
+
         path = _write_temp_audio(audio_bytes, suffix=suffix)
         try:
             audio, _ = librosa.load(path, sr=16000, mono=True)
+            if len(audio) > int(MAX_AUDIO_SECONDS * 16000):
+                audio = audio[: int(MAX_AUDIO_SECONDS * 16000)]
+
             inputs = self.processor(audio, sampling_rate=16000, return_tensors="pt")
             input_features = inputs.input_features.to(self.device)
+            attention_mask = getattr(inputs, "attention_mask", None)
+            if attention_mask is not None:
+                attention_mask = attention_mask.to(self.device)
 
-            # Free decode for Twi fine-tunes (forced language often hurts Akan models)
-            forced = None
+            gen_kwargs: dict[str, Any] = {
+                "max_new_tokens": 225,
+            }
+            if attention_mask is not None:
+                gen_kwargs["attention_mask"] = attention_mask
             if language == "en":
-                forced = self.processor.get_decoder_prompt_ids(
-                    language="english", task="transcribe"
+                gen_kwargs["forced_decoder_ids"] = (
+                    self.processor.get_decoder_prompt_ids(
+                        language="english", task="transcribe"
+                    )
                 )
 
             with torch.no_grad():
-                pred_ids = self.model.generate(
-                    input_features,
-                    max_new_tokens=225,
-                    forced_decoder_ids=forced,
-                )
-            text = self.processor.batch_decode(pred_ids, skip_special_tokens=True)[0].strip()
+                pred_ids = self.model.generate(input_features, **gen_kwargs)
+            text = self.processor.batch_decode(pred_ids, skip_special_tokens=True)[
+                0
+            ].strip()
             duration = float(len(audio) / 16000.0)
             return {
                 "text": text,
@@ -166,23 +207,33 @@ class AsrEngine:
                 pass
 
 
-# ASGI must outlive cold-start model load + remote GPU inference (T4).
-@app.function(image=image, timeout=600)
+@app.function(
+    image=web_image,
+    timeout=200,
+    scaledown_window=10,
+    max_containers=2,
+    cpu=0.25,
+    memory=512,
+)
 @modal.asgi_app()
 def api():
+    """CPU-only gateway. GPU only spins when transcribe is called."""
     from fastapi import FastAPI, File, Request, UploadFile
     from fastapi.responses import JSONResponse
 
-    web = FastAPI(title="Ghana Health ASR", version="1.0.0")
+    web = FastAPI(title="Ghana Health ASR", version="1.1.0")
     engine = AsrEngine()
 
     @web.get("/health")
     async def health():
+        # Cheap — does not touch GPU / load Whisper
         return {
             "ok": True,
             "service": "ghana-health-asr",
             "model": os.environ.get("MODEL_ID", DEFAULT_MODEL),
             "engine": "transformers-whisper",
+            "gpu_scaledown_s": 45,
+            "max_audio_s": MAX_AUDIO_SECONDS,
         }
 
     @web.post("/transcribe")
@@ -194,7 +245,9 @@ def api():
         if not raw:
             return JSONResponse({"error": "empty audio"}, status_code=400)
         suffix = _guess_suffix(audio.content_type, audio.filename)
-        return await engine.transcribe.remote.aio(raw, language=language, suffix=suffix)
+        return await engine.transcribe.remote.aio(
+            raw, language=language, suffix=suffix
+        )
 
     @web.post("/transcribe/bytes")
     async def transcribe_bytes(request: Request, language: Optional[str] = None):
@@ -202,6 +255,8 @@ def api():
         if not raw:
             return JSONResponse({"error": "empty body"}, status_code=400)
         suffix = _guess_suffix(request.headers.get("content-type"), None)
-        return await engine.transcribe.remote.aio(raw, language=language, suffix=suffix)
+        return await engine.transcribe.remote.aio(
+            raw, language=language, suffix=suffix
+        )
 
     return web

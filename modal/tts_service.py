@@ -3,45 +3,54 @@ Ghana Health AI — real Akan/Twi TTS on Modal.
 
 Model: facebook/mms-tts-aka (Meta MMS VITS for Akan)
 
+Cost layout:
+  - Cheap CPU health endpoint (no torch / GPU)
+  - One max GPU container for speak, short scaledown
+
   modal deploy modal/tts_service.py
 """
 
-from __future__ import annotations
-
+# Avoid postponed annotations on FastAPI file endpoints if added later.
 import base64
 import io
 import os
 import time
-from typing import Any
+from typing import Any, Optional
 
 import modal
 
 APP_NAME = "ghana-health-tts"
 DEFAULT_MODEL = os.environ.get("TTS_MODEL_ID", "facebook/mms-tts-aka")
+MAX_CHARS = int(os.environ.get("TTS_MAX_CHARS", "800"))
 
 app = modal.App(APP_NAME)
 model_volume = modal.Volume.from_name("ghana-health-tts-models", create_if_missing=True)
 
-image = (
+gpu_image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("libsndfile1")
     .pip_install(
         "torch==2.5.1",
         "transformers==4.46.3",
         "accelerate==1.1.1",
-        "fastapi[standard]==0.115.12",
         "numpy<2.3",
         "soundfile==0.13.1",
         "huggingface_hub==0.26.2",
     )
 )
 
+web_image = (
+    modal.Image.debian_slim(python_version="3.11")
+    .pip_install("fastapi[standard]==0.115.12")
+)
+
 
 @app.cls(
-    image=image,
+    image=gpu_image,
     gpu="T4",
-    timeout=300,
-    scaledown_window=180,
+    timeout=120,
+    scaledown_window=45,
+    max_containers=1,
     volumes={"/models": model_volume},
 )
 class TtsEngine:
@@ -58,9 +67,10 @@ class TtsEngine:
         self.model = VitsModel.from_pretrained(model_id, cache_dir=cache).to(self.device)
         self.model.eval()
         self.sample_rate = int(getattr(self.model.config, "sampling_rate", 16000))
+        print(f"[tts] ready model={self.model_id} device={self.device}")
 
     @modal.method()
-    def synthesize(self, text: str, language: str | None = None) -> dict[str, Any]:
+    def synthesize(self, text: str, language: Optional[str] = None) -> dict[str, Any]:
         import numpy as np
         import soundfile as sf
         import torch
@@ -76,6 +86,8 @@ class TtsEngine:
                 "model": self.model_id,
                 "error": "empty_text",
             }
+        if len(clean) > MAX_CHARS:
+            clean = clean[:MAX_CHARS]
 
         inputs = self.tokenizer(clean, return_tensors="pt")
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
@@ -101,7 +113,7 @@ class TtsEngine:
         }
 
 
-@app.function(image=image, timeout=120)
+@app.function(image=web_image, timeout=30, scaledown_window=5, cpu=0.125, memory=256)
 @modal.fastapi_endpoint(method="GET")
 def health():
     return {
@@ -109,15 +121,16 @@ def health():
         "service": "ghana-health-tts",
         "model": os.environ.get("TTS_MODEL_ID", DEFAULT_MODEL),
         "engine": "mms-vits-aka",
+        "gpu_scaledown_s": 45,
     }
 
 
-@app.function(image=image, timeout=120)
+@app.function(image=web_image, timeout=150, scaledown_window=10, cpu=0.25, memory=512)
 @modal.fastapi_endpoint(method="POST")
 def speak(item: dict):
     """
     POST JSON: { "text": "...", "language": "tw" }
-    Returns audio_base64 wav payload.
+    Returns audio_base64 wav payload. GPU only for this call.
     """
     text = str(item.get("text") or "").strip()
     language = item.get("language") or "tw"
