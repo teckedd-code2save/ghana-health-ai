@@ -27,7 +27,8 @@ APP_NAME = "ghana-health-asr-train"
 DEFAULT_BASE = "teckedd/whisper-small-waxal-round2-specaug-v1"
 
 app = modal.App(APP_NAME)
-vol = modal.Volume.from_name("ghana-health-asr-train", create_if_missing=True)
+hf_cache = modal.Volume.from_name("akan-speech-hf-cache", create_if_missing=True)
+ckpt_vol = modal.Volume.from_name("akan-speech-checkpoints", create_if_missing=True)
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -48,10 +49,9 @@ image = (
     )
 )
 
-# Prefer secret name you already use; create with: modal secret create huggingface HF_TOKEN=...
+# Workspace secret: modal secret create huggingface-token HF_TOKEN=...
 try:
-    hf_secret = modal.Secret.from_name("huggingface")
-    SECRETS = [hf_secret]
+    SECRETS = [modal.Secret.from_name("huggingface-token")]
 except Exception:  # noqa: BLE001
     SECRETS = []
 
@@ -71,7 +71,10 @@ def _normalize_text(text: str) -> str:
     image=image,
     gpu="A100",
     timeout=4 * 60 * 60,
-    volumes={"/data": vol},
+    volumes={
+        "/root/.cache/huggingface": hf_cache,
+        "/checkpoints": ckpt_vol,
+    },
     secrets=SECRETS,
     memory=32768,
 )
@@ -97,7 +100,6 @@ def train(
         Seq2SeqTrainingArguments,
         WhisperForConditionalGeneration,
         WhisperProcessor,
-        TrainerCallback,
     )
     import evaluate
 
@@ -105,10 +107,15 @@ def train(
         max_steps = min(max_steps, 15)
         batch_size = min(batch_size, 2)
 
-    token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
-    cache = "/data/hf"
-    os.makedirs(cache, exist_ok=True)
-    out_dir = f"/data/runs/{base_model.replace('/', '_')}_{max_steps}"
+    token = (
+        os.environ.get("HF_TOKEN")
+        or os.environ.get("HUGGING_FACE_HUB_TOKEN")
+        or os.environ.get("HUGGINGFACE_TOKEN")
+        or os.environ.get("HF_API_TOKEN")
+    )
+    os.environ.setdefault("HF_HOME", "/root/.cache/huggingface")
+    cache = "/root/.cache/huggingface"
+    out_dir = f"/checkpoints/gha-asr/{base_model.replace('/', '_')}_steps{max_steps}"
     os.makedirs(out_dir, exist_ok=True)
 
     print(f"[train] base={base_model} steps={max_steps} freeze_encoder={freeze_encoder}")
@@ -263,7 +270,7 @@ def train(
     eval_metrics = trainer.evaluate()
     trainer.save_model(out_dir)
     processor.save_pretrained(out_dir)
-    vol.commit()
+    ckpt_vol.commit()
 
     summary = {
         "status": "ok",

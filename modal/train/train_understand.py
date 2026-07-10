@@ -40,7 +40,7 @@ image = (
 )
 
 try:
-    SECRETS = [modal.Secret.from_name("huggingface")]
+    SECRETS = [modal.Secret.from_name("huggingface-token")]
 except Exception:  # noqa: BLE001
     SECRETS = []
 

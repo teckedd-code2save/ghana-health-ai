@@ -14,7 +14,9 @@ from typing import Any, Optional
 import modal
 
 app = modal.App("ghana-health-asr-eval")
-vol = modal.Volume.from_name("ghana-health-asr-train", create_if_missing=True)
+# Reuse existing HF cache from prior Akan Speech Lab runs (Waxal already there)
+hf_cache = modal.Volume.from_name("akan-speech-hf-cache", create_if_missing=True)
+results_vol = modal.Volume.from_name("akan-speech-eval-results", create_if_missing=True)
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -33,8 +35,9 @@ image = (
     )
 )
 
+# Workspace secret is `huggingface-token` (HF_TOKEN / HUGGING_FACE_HUB_TOKEN)
 try:
-    SECRETS = [modal.Secret.from_name("huggingface")]
+    SECRETS = [modal.Secret.from_name("huggingface-token")]
 except Exception:  # noqa: BLE001
     SECRETS = []
 
@@ -54,7 +57,10 @@ def _normalize_text(text: str) -> str:
     image=image,
     gpu="T4",
     timeout=2 * 60 * 60,
-    volumes={"/data": vol},
+    volumes={
+        "/root/.cache/huggingface": hf_cache,
+        "/results": results_vol,
+    },
     secrets=SECRETS,
 )
 def evaluate_checkpoint(
@@ -64,6 +70,7 @@ def evaluate_checkpoint(
     split: str = "test",
     max_samples: int = 500,
 ) -> dict[str, Any]:
+    import json
     import torch
     import evaluate
     from datasets import Audio, load_dataset
@@ -71,7 +78,11 @@ def evaluate_checkpoint(
     from tqdm import tqdm
 
     token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
-    cache = "/data/hf"
+    # Prefer keys your Modal secret may already use
+    if not token:
+        token = os.environ.get("HUGGINGFACE_TOKEN") or os.environ.get("HF_API_TOKEN")
+    os.environ.setdefault("HF_HOME", "/root/.cache/huggingface")
+    cache = "/root/.cache/huggingface"
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     processor = WhisperProcessor.from_pretrained(model_id, cache_dir=cache, token=token)
@@ -125,10 +136,22 @@ def evaluate_checkpoint(
         "model_id": model_id,
         "dataset": f"{dataset_name}/{dataset_config}:{split}",
         "n": len(preds),
-        "wer": wer,
-        "cer": cer,
+        "wer": float(wer),
+        "cer": float(cer),
+        "wer_pct": round(float(wer) * 100, 2),
+        "cer_pct": round(float(cer) * 100, 2),
+        "beat_this": {
+            "goal_wer_pct": 28.0,
+            "stretch_wer_pct": 22.0,
+            "note": "Promote only if new checkpoint WER < this run on the same split",
+        },
     }
+    out_path = f"/results/baseline_{model_id.replace('/', '_')}__{split}_n{len(preds)}.json"
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(result, f, indent=2)
+    results_vol.commit()
     print(result)
+    print(f"[eval] wrote {out_path}")
     return result
 
 
