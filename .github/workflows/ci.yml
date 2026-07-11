@@ -17,9 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # version comes only from package.json "packageManager" — do not also
+      # pass with.version (pnpm/action-setup@v4 rejects dual specification)
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10.12.1
 
       - uses: actions/setup-node@v4
         with:
@@ -29,7 +29,6 @@ jobs:
       - name: Install dependencies
         run: |
           corepack enable
-          corepack prepare pnpm@10.12.1 --activate
           pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
