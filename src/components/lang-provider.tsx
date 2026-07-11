@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useSyncExternalStore,
+} from "react";
 
 export type AppLang = "tw" | "en" | "ga" | "ee" | "dag";
 
@@ -12,6 +18,34 @@ const labels: Record<AppLang, string> = {
   dag: "Dagbani",
 };
 
+const LANG_KEY = "gha_lang";
+const listeners = new Set<() => void>();
+
+function emit() {
+  for (const l of listeners) l();
+}
+
+function subscribe(onStoreChange: () => void) {
+  listeners.add(onStoreChange);
+  return () => {
+    listeners.delete(onStoreChange);
+  };
+}
+
+function readLang(): AppLang {
+  try {
+    const saved = localStorage.getItem(LANG_KEY) as AppLang | null;
+    if (saved && labels[saved]) return saved;
+  } catch {
+    /* SSR / private mode */
+  }
+  return "tw";
+}
+
+function getServerSnapshot(): AppLang {
+  return "tw";
+}
+
 type Ctx = {
   lang: AppLang;
   setLang: (l: AppLang) => void;
@@ -22,21 +56,20 @@ type Ctx = {
 const LangContext = createContext<Ctx | null>(null);
 
 export function LangProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<AppLang>("tw");
+  const lang = useSyncExternalStore(subscribe, readLang, getServerSnapshot);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("gha_lang") as AppLang | null;
-    if (saved && labels[saved]) setLangState(saved);
+  const setLang = useCallback((l: AppLang) => {
+    try {
+      localStorage.setItem(LANG_KEY, l);
+    } catch {
+      /* ignore */
+    }
+    emit();
   }, []);
-
-  const setLang = (l: AppLang) => {
-    setLangState(l);
-    localStorage.setItem("gha_lang", l);
-  };
 
   const value = useMemo(
     () => ({ lang, setLang, label: labels[lang], labels }),
-    [lang],
+    [lang, setLang],
   );
 
   return <LangContext.Provider value={value}>{children}</LangContext.Provider>;

@@ -54,15 +54,22 @@ export function MarketPanel() {
     }
   }, []);
 
+  // Defer so setState is not synchronous in the effect body (react-hooks/set-state-in-effect)
   useEffect(() => {
-    void load();
+    const t = setTimeout(() => {
+      void load();
+    }, 0);
+    return () => clearTimeout(t);
   }, [load]);
 
   useEffect(() => {
-    void fetch("/api/config")
-      .then((r) => r.json())
-      .then((d) => setPaystackEnabled(Boolean(d.paystack)))
-      .catch(() => setPaystackEnabled(false));
+    const t = setTimeout(() => {
+      void fetch("/api/config")
+        .then((r) => r.json())
+        .then((d) => setPaystackEnabled(Boolean(d.paystack)))
+        .catch(() => setPaystackEnabled(false));
+    }, 0);
+    return () => clearTimeout(t);
   }, []);
 
   async function addToCart(productId: string) {
