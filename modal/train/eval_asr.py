@@ -168,12 +168,15 @@ def main(
     max_samples: int = 200,
     split: str = "test",
     num_beams: int = 1,
+    wait: bool = True,
 ):
-    print(
-        evaluate_checkpoint.remote(
-            model_id=model_id,
-            max_samples=max_samples,
-            split=split,
-            num_beams=num_beams,
-        )
+    call = evaluate_checkpoint.spawn(
+        model_id=model_id,
+        max_samples=max_samples,
+        split=split,
+        num_beams=num_beams,
     )
+    print(f"[eval] spawned {call.object_id} model={model_id} beams={num_beams}")
+    if not wait:
+        return
+    print(call.get())

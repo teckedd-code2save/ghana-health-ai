@@ -29,6 +29,10 @@ MAX_AUDIO_SECONDS = float(os.environ.get("ASR_MAX_AUDIO_SECONDS", "45"))
 # RMS below this (float32 [-1,1]) → treat as silence / reject (Whisper hallucinates)
 MIN_RMS = float(os.environ.get("ASR_MIN_RMS", "0.008"))
 MIN_SECONDS = float(os.environ.get("ASR_MIN_SECONDS", "0.35"))
+# Beam search free win: Round 2 full Waxal test n=1522
+#   greedy beams=1 → WER 32.83% / CER 11.79%
+#   beams=5        → WER 31.52% / CER 11.27%  (−1.31 pp WER)
+NUM_BEAMS = max(1, int(os.environ.get("ASR_NUM_BEAMS", "5")))
 
 app = modal.App(APP_NAME)
 model_volume = modal.Volume.from_name("ghana-health-asr-models", create_if_missing=True)
@@ -259,7 +263,7 @@ class AsrEngine:
 
             gen_kwargs: dict[str, Any] = {
                 "max_new_tokens": 96,
-                "num_beams": 1,
+                "num_beams": NUM_BEAMS,
                 "do_sample": False,
                 "no_repeat_ngram_size": 3,
             }

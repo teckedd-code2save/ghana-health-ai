@@ -87,7 +87,8 @@ Everything good starts with clean, versioned data.
 
 | Checkpoint | WER | CER | Val WER | Status |
 |------------|-----|-----|---------|--------|
-| **Round 2** `…round2-specaug-v1` | **32.83%** | **11.79%** | — | **production — still wins** |
+| **Round 2** greedy | **32.83%** | **11.79%** | — | checkpoint weights |
+| **Round 2** `num_beams=5` | **31.52%** | **11.27%** | — | **production decode (shipped)** |
 | v3 `gha-whisper-small-twi-v3` | 33.99% | 12.21% | low | do not promote (same-Waxal FT overfit) |
 | v4 `gha-whisper-small-twi-v4` | 34.96% | 12.62% | ~27.7% | do not promote (freeze-enc still overfit) |
 | v5 `gha-whisper-small-twi-v5` | **34.13%** | **12.29%** | **26.19%** | do not promote (+1.30pp vs R2; multi-source still overfits) |
