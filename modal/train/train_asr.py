@@ -1,28 +1,37 @@
 """
-Fine-tune Whisper ASR for Twi/Akan on Modal — beat Round 2 baseline.
+Fine-tune Whisper ASR for Twi/Akan from OpenAI bases — go for gold.
 
-Baseline to beat (full Waxal test n=1522, greedy generate):
-  WER 32.83%  CER 11.79%  model=teckedd/whisper-small-waxal-round2-specaug-v1
+Promotion bar (immutable full Waxal test n=1522, greedy):
+  Round 2 greedy  WER 32.83%  CER 11.79%
+  Round 2 beam=5  WER 31.52%  CER 11.27%  (serving decode only)
 
-Lessons:
-  v3 — full FT, no SpecAug, same Waxal only → test WER 33.99% (overfit)
-  v4 — freeze encoder + SpecAug, same Waxal only → test WER 34.96% (still overfit)
-  v5 — NEW DATA + stronger regularization. Do not only replay Waxal train.
+Past failures (continued FT from Round 2 overfit val):
+  v3 33.99% · v4 34.96% · v5 34.13%  — do not promote
 
-v5 recipe:
-  - Mix: Waxal train (foundation) + GhanaNLP Twi multispeaker (domain diversity)
-  - Filter clips 0.5–28 s; drop empty / near-empty labels
-  - Speed perturbation {0.9, 1.0, 1.1} on train audio
-  - Stronger SpecAugment (time + feature)
-  - Freeze encoder; low decoder LR; label smoothing; early-stop on val WER
-  - Full processor always saved with weights
-  - Promote ONLY if full-test WER < 0.3283
+v6 recipe (retrain FROM openai/whisper-* bases):
+  Data:
+    - google/WaxalNLP aka_asr train (foundation; NEVER touch test)
+    - Common Voice 22 Twi (fsicoli) train + validated-only filter (CC0)
+    - optional GhanaNLP Twi multispeaker (lower weight; CC BY-NC research)
+  Method:
+    - Full FT (encoder unfrozen) — base is English-pretrained
+    - SpecAugment + speed-pert {0.9,1.0,1.1}
+    - Early-stop on Waxal validation WER
+    - Auto full-test gate; promote only if WER < 0.3283
+  Ladder:
+    1) openai/whisper-small  → teckedd/gha-whisper-small-twi-v6
+    2) openai/whisper-medium → teckedd/gha-whisper-medium-twi-v6
 
-  modal run modal/train/train_asr.py --smoke
-  modal run modal/train/train_asr.py \\
-    --run-name v5 \\
-    --max-steps 800 \\
-    --push-repo teckedd/gha-whisper-small-twi-v5
+  modal run --detach modal/train/train_asr.py \\
+    --base-model openai/whisper-small \\
+    --run-name v6-small --max-steps 3000 \\
+    --push-repo teckedd/gha-whisper-small-twi-v6 --no-wait
+
+  modal run --detach modal/train/train_asr.py \\
+    --base-model openai/whisper-medium \\
+    --run-name v6-medium --max-steps 2500 \\
+    --batch-size 4 --grad-accum 8 \\
+    --push-repo teckedd/gha-whisper-medium-twi-v6 --no-wait
 
 Secret: huggingface-token
 """
@@ -35,19 +44,29 @@ from typing import Any, Optional
 import modal
 
 APP_NAME = "ghana-health-asr-train"
-DEFAULT_BASE = "teckedd/whisper-small-waxal-round2-specaug-v1"
-# Official bar — do not promote unless full-test WER is below this
+DEFAULT_BASE = "openai/whisper-small"
 BASELINE_WER = 0.3283
 BASELINE_CER = 0.1179
+BEAM5_WER = 0.3152  # serving bar with beams=5
 
-# Extra Twi speech (multi-speaker) — new signal Round 2 never saw
+# Extra corpora mixed into train (Waxal always primary)
 EXTRA_DATASETS = [
+    {
+        "name": "fsicoli/common_voice_22_0",
+        "config": "tw",
+        "split": "train",
+        "weight": 0.25,
+        "validated_only": True,
+        "note": "Common Voice 22 Twi CC0 — validated votes filter",
+    },
     {
         "name": "ghananlpcommunity/twi-speech-text-multispeaker-16k",
         "config": None,
         "split": "train",
-        "weight": 0.35,
-        "note": "CC BY-NC 4.0 — research/non-commercial train only",
+        "weight": 0.15,
+        "validated_only": False,
+        "max_n": 4000,
+        "note": "CC BY-NC 4.0 research train only",
     },
 ]
 
@@ -73,6 +92,7 @@ image = (
         "tensorboard==2.18.0",
         "numpy<2.3",
         "tqdm",
+        "pandas",
     )
 )
 
@@ -103,7 +123,7 @@ def _hf_token() -> Optional[str]:
 
 
 def _find_text_col(columns: list[str]) -> Optional[str]:
-    for c in ("text", "sentence", "transcription", "transcript", "normalized_text"):
+    for c in ("sentence", "text", "transcription", "transcript", "normalized_text"):
         if c in columns:
             return c
     return None
@@ -118,38 +138,39 @@ def _find_audio_col(columns: list[str]) -> str:
 @app.function(
     image=image,
     gpu="A100",
-    timeout=6 * 60 * 60,
+    timeout=10 * 60 * 60,
     volumes={
         "/root/.cache/huggingface": hf_cache,
         "/checkpoints": ckpt_vol,
         "/results": results_vol,
     },
     secrets=SECRETS,
-    memory=32768,
+    memory=65536,
 )
 def train(
     base_model: str = DEFAULT_BASE,
     dataset_name: str = "google/WaxalNLP",
     dataset_config: str = "aka_asr",
-    max_steps: int = 800,
-    learning_rate: float = 8e-6,
+    max_steps: int = 3000,
+    learning_rate: float = 1e-5,
     batch_size: int = 8,
     grad_accum: int = 4,
-    freeze_encoder: bool = True,
-    weight_decay: float = 0.05,
-    waxal_weight: float = 0.65,
+    freeze_encoder: bool = False,
+    weight_decay: float = 0.01,
+    waxal_weight: float = 0.60,
     use_extra_data: bool = True,
     push_repo: Optional[str] = None,
     smoke: bool = False,
-    run_name: str = "v5",
+    run_name: str = "v6-small",
     full_test_after: bool = True,
 ) -> dict[str, Any]:
     """
-    v5 multi-source continued fine-tune from Round 2.
-    Mixes external Twi speech so we are not only replaying Waxal train.
+    Retrain from openai/whisper-* on Waxal + Common Voice Twi (+ optional extras).
     """
     import json
     import random
+    import tarfile
+    from pathlib import Path
 
     import numpy as np
     import torch
@@ -168,28 +189,29 @@ def train(
         batch_size = min(batch_size, 2)
         full_test_after = False
 
+    # Medium needs smaller micro-batch
+    if "medium" in base_model.lower() and batch_size > 4 and not smoke:
+        batch_size = 4
+        grad_accum = max(grad_accum, 8)
+        if learning_rate > 8e-6:
+            learning_rate = 8e-6
+
     token = _hf_token()
     os.environ.setdefault("HF_HOME", "/root/.cache/huggingface")
     cache = "/root/.cache/huggingface"
     out_dir = f"/checkpoints/gha-asr/{run_name}_{base_model.replace('/', '_')}_s{max_steps}"
     os.makedirs(out_dir, exist_ok=True)
 
-    # Decoder-only FT defaults: slightly higher LR when encoder frozen
-    if freeze_encoder and learning_rate < 5e-6:
-        learning_rate = 8e-6
-    if not freeze_encoder and learning_rate > 5e-6:
-        learning_rate = 3e-6
-
     print(
         f"[train] {run_name} base={base_model} steps={max_steps} "
         f"freeze_encoder={freeze_encoder} lr={learning_rate} "
-        f"extra_data={use_extra_data} waxal_w={waxal_weight}"
+        f"bs={batch_size}x{grad_accum} extra={use_extra_data} waxal_w={waxal_weight}"
     )
 
-    # ── primary: Waxal ──────────────────────────────────────────────
+    # ── Waxal foundation ────────────────────────────────────────────
     raw = load_dataset(dataset_name, dataset_config, token=token, cache_dir=cache)
     print("[train] waxal splits", list(raw.keys()))
-
+    assert "test" in raw, "Waxal must have immutable test split"
     split_train = "train" if "train" in raw else list(raw.keys())[0]
     if "validation" in raw:
         split_eval = "validation"
@@ -208,32 +230,56 @@ def train(
         cut = max(1, int(0.05 * n))
         eval_ds = waxal_train.select(idx[:cut])
         waxal_train = waxal_train.select(idx[cut:])
-        print(f"[train] no dev split — held out {cut} from waxal train for selection")
+        print(f"[train] no dev — held out {cut} from waxal train")
 
-    # NEVER use test for training or model selection
-    print(f"[train] waxal train={len(waxal_train)} eval={len(eval_ds)}")
+    print(f"[train] waxal train={len(waxal_train)} eval={len(eval_ds)} test={len(raw['test'])} (unused)")
 
     audio_col = _find_audio_col(waxal_train.column_names)
     text_col = _find_text_col(waxal_train.column_names)
     if text_col is None:
         raise RuntimeError(f"No text column in waxal: {waxal_train.column_names}")
 
-    def _to_audio_text(ds, a_col: str, t_col: str, source: str, max_n: int | None = None):
-        """
-        Fast path: filter on non-audio columns only (input_columns avoids decode),
-        rename, optional cap. Bad clips dropped later in feature prep.
-        """
-        # Duration filter — metadata only, never touches audio bytes
+    def _to_audio_text(
+        ds,
+        a_col: str,
+        t_col: str,
+        source: str,
+        max_n: int | None = None,
+        validated_only: bool = False,
+    ):
+        """Filter metadata-only; rename to {audio,text}; cast 16 kHz."""
+        # Common Voice vote filter (validated gold)
+        if validated_only and "up_votes" in ds.column_names and "down_votes" in ds.column_names:
+            before = len(ds)
+
+            def vote_ok(ex):
+                try:
+                    up = int(ex.get("up_votes") or 0)
+                    down = int(ex.get("down_votes") or 0)
+                except Exception:  # noqa: BLE001
+                    return True
+                return up >= 2 and down == 0
+
+            # filter without loading audio
+            try:
+                ds = ds.filter(
+                    lambda up, down: int(up or 0) >= 2 and int(down or 0) == 0,
+                    input_columns=["up_votes", "down_votes"],
+                    desc=f"votes-{source}",
+                )
+            except Exception:  # noqa: BLE001
+                ds = ds.filter(vote_ok, desc=f"votes-{source}")
+            print(f"[train] {source} validated votes {before} → {len(ds)}")
+
         if "duration" in ds.column_names:
             before = len(ds)
             ds = ds.filter(
-                lambda d: 0.5 <= float(d) <= 28.0,
+                lambda d: 0.5 <= float(d or 0) <= 28.0,
                 input_columns=["duration"],
                 desc=f"dur-{source}",
             )
             print(f"[train] {source} duration filter {before} → {len(ds)}")
 
-        # Text filter without loading audio
         before = len(ds)
         ds = ds.filter(
             lambda t: len(_normalize_text(t or "")) >= 2,
@@ -256,10 +302,105 @@ def train(
             ds = ds.rename_column(a_col, "audio")
         if t_col != "text":
             ds = ds.rename_column(t_col, "text")
-        # Decode deferred until feature map
         ds = ds.cast_column("audio", Audio(sampling_rate=16000))
         print(f"[train] {source} ready n={len(ds)}")
         return ds
+
+    def _load_common_voice_tw(cfg: dict) -> Optional[Dataset]:
+        """Load CV Twi train (+ optional validated.tsv paths). Prefer HF script; fallback tar+tsv."""
+        name = cfg["name"]
+        config = cfg.get("config") or "tw"
+        try:
+            print(f"[train] loading Common Voice {name} config={config} …")
+            # Prefer train split (speaker-disjoint from test by CorporaCreator)
+            eds = load_dataset(
+                name,
+                config,
+                split=cfg.get("split") or "train",
+                token=token,
+                cache_dir=cache,
+                trust_remote_code=True,
+            )
+            print(f"[train] CV via load_dataset n={len(eds)} cols={eds.column_names}")
+            return eds
+        except Exception as exc:  # noqa: BLE001
+            print(f"[train] CV load_dataset failed ({exc}); trying manual tsv+tar …")
+
+        try:
+            from huggingface_hub import hf_hub_download
+            import pandas as pd
+            import soundfile as sf
+
+            work = Path(cache) / "cv_tw_manual"
+            work.mkdir(parents=True, exist_ok=True)
+
+            # validated.tsv is the gold list; we take rows that appear in train.tsv
+            # (never test) so we stay out of CV test.
+            train_tsv = hf_hub_download(
+                name, "transcript/tw/train.tsv", repo_type="dataset", token=token, cache_dir=cache
+            )
+            val_tsv = hf_hub_download(
+                name, "transcript/tw/validated.tsv", repo_type="dataset", token=token, cache_dir=cache
+            )
+            train_tar = hf_hub_download(
+                name, "audio/tw/train/tw_train_0.tar", repo_type="dataset", token=token, cache_dir=cache
+            )
+
+            train_df = pd.read_csv(train_tsv, sep="\t")
+            val_df = pd.read_csv(val_tsv, sep="\t")
+            # intersection: in train split AND validated
+            val_paths = set(val_df["path"].astype(str))
+            train_df = train_df[train_df["path"].astype(str).isin(val_paths)].copy()
+            if "up_votes" in train_df.columns:
+                train_df = train_df[
+                    (train_df["up_votes"].fillna(0).astype(int) >= 2)
+                    & (train_df["down_votes"].fillna(0).astype(int) == 0)
+                ]
+            print(f"[train] CV manual validated∩train rows={len(train_df)}")
+
+            extract_dir = work / "audio_train"
+            extract_dir.mkdir(exist_ok=True)
+            # extract only needed mp3s if not already
+            marker = extract_dir / ".extracted"
+            if not marker.exists():
+                with tarfile.open(train_tar, "r") as tar:
+                    tar.extractall(extract_dir)
+                marker.write_text("ok")
+
+            rows = []
+            for _, r in train_df.iterrows():
+                path = str(r["path"])
+                # files may be nested after extract
+                candidates = list(extract_dir.rglob(path))
+                if not candidates:
+                    candidates = list(extract_dir.rglob(Path(path).name))
+                if not candidates:
+                    continue
+                fpath = candidates[0]
+                try:
+                    audio_arr, sr = sf.read(str(fpath), always_2d=False)
+                    if getattr(audio_arr, "ndim", 1) > 1:
+                        audio_arr = audio_arr.mean(axis=1)
+                    sentence = r.get("sentence") or r.get("text") or ""
+                    if len(_normalize_text(str(sentence))) < 2:
+                        continue
+                    rows.append(
+                        {
+                            "audio": {"array": np.asarray(audio_arr, dtype=np.float32), "sampling_rate": int(sr)},
+                            "sentence": str(sentence),
+                            "up_votes": int(r.get("up_votes") or 0),
+                            "down_votes": int(r.get("down_votes") or 0),
+                        }
+                    )
+                except Exception:  # noqa: BLE001
+                    continue
+            print(f"[train] CV manual decoded clips={len(rows)}")
+            if len(rows) < 20:
+                return None
+            return Dataset.from_list(rows)
+        except Exception as exc2:  # noqa: BLE001
+            print(f"[train] CV manual load failed: {exc2}")
+            return None
 
     waxal_std = _to_audio_text(waxal_train, audio_col, text_col, "waxal")
     eval_std = _to_audio_text(eval_ds, audio_col, text_col, "waxal-val")
@@ -268,49 +409,55 @@ def train(
     mix_weights: list[float] = [waxal_weight]
     sources_used = ["waxal"]
 
-    # Cap external set so prep finishes in minutes not hours
-    EXTRA_CAP = 4000
-
     if use_extra_data and not smoke:
         for extra in EXTRA_DATASETS:
             try:
-                print(f"[train] loading extra {extra['name']} …")
-                load_kwargs: dict[str, Any] = {
-                    "token": token,
-                    "cache_dir": cache,
-                    "split": extra.get("split") or "train",
-                }
-                if extra.get("config"):
-                    eds = load_dataset(
-                        extra["name"], extra["config"], **load_kwargs
-                    )
+                if "common_voice" in extra["name"]:
+                    eds = _load_common_voice_tw(extra)
+                    if eds is None:
+                        continue
                 else:
-                    eds = load_dataset(extra["name"], **load_kwargs)
-                if hasattr(eds, "keys") and not hasattr(eds, "column_names"):
-                    eds = eds[extra.get("split") or "train"]
+                    print(f"[train] loading extra {extra['name']} …")
+                    load_kwargs: dict[str, Any] = {
+                        "token": token,
+                        "cache_dir": cache,
+                        "split": extra.get("split") or "train",
+                    }
+                    if extra.get("config"):
+                        eds = load_dataset(extra["name"], extra["config"], **load_kwargs)
+                    else:
+                        eds = load_dataset(extra["name"], **load_kwargs)
+                    if hasattr(eds, "keys") and not hasattr(eds, "column_names"):
+                        eds = eds[extra.get("split") or "train"]
+
                 ea = _find_audio_col(eds.column_names)
                 et = _find_text_col(eds.column_names)
                 if et is None:
-                    print(f"[train] skip {extra['name']}: no text col {eds.column_names}")
+                    print(f"[train] skip {extra['name']}: no text {eds.column_names}")
                     continue
                 std = _to_audio_text(
-                    eds, ea, et, extra["name"].split("/")[-1], max_n=EXTRA_CAP
+                    eds,
+                    ea,
+                    et,
+                    extra["name"].split("/")[-1],
+                    max_n=extra.get("max_n"),
+                    validated_only=bool(extra.get("validated_only")),
                 )
-                if len(std) < 50:
-                    print("[train] skip extra — too small after filter")
+                if len(std) < 30:
+                    print("[train] skip extra — too small")
                     continue
                 train_parts.append(std)
-                mix_weights.append(float(extra.get("weight") or 0.35))
+                mix_weights.append(float(extra.get("weight") or 0.2))
                 sources_used.append(extra["name"])
             except Exception as exc:  # noqa: BLE001
-                print(f"[train] extra load failed {extra['name']}: {exc}")
+                print(f"[train] extra failed {extra['name']}: {exc}")
 
     wsum = sum(mix_weights)
     mix_weights = [w / wsum for w in mix_weights]
 
     if len(train_parts) == 1:
         train_std = train_parts[0]
-        print(f"[train] single-source train n={len(train_std)}")
+        print(f"[train] single-source n={len(train_std)}")
     else:
         train_std = interleave_datasets(
             train_parts,
@@ -319,8 +466,8 @@ def train(
             stopping_strategy="all_exhausted",
         )
         print(
-            f"[train] mixed train sources={sources_used} "
-            f"weights={mix_weights} parts={[len(p) for p in train_parts]}"
+            f"[train] MIX sources={sources_used} weights={mix_weights} "
+            f"parts={[len(p) for p in train_parts]}"
         )
 
     if smoke:
@@ -331,7 +478,6 @@ def train(
     model = WhisperForConditionalGeneration.from_pretrained(
         base_model, cache_dir=cache, token=token
     )
-    # Whisper needs these for shift_tokens_right when labels are provided
     model.config.forced_decoder_ids = None
     model.config.suppress_tokens = []
     model.config.use_cache = False
@@ -354,11 +500,10 @@ def train(
     if freeze_encoder:
         for p in model.model.encoder.parameters():
             p.requires_grad = False
-        trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
-        total = sum(p.numel() for p in model.parameters())
-        print(f"[train] encoder frozen · trainable {trainable:,}/{total:,}")
+    trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    total = sum(p.numel() for p in model.parameters())
+    print(f"[train] trainable {trainable:,}/{total:,} freeze_encoder={freeze_encoder}")
 
-    # Speed-perturb + feature extract in ONE pass (no prior audio rewrite)
     SPEEDS = (0.9, 1.0, 1.1)
 
     def prepare_train(batch: dict) -> dict:
@@ -366,7 +511,6 @@ def train(
         arr = np.asarray(audio["array"], dtype=np.float32)
         sr = int(audio.get("sampling_rate") or 16000)
         dur = len(arr) / float(sr)
-        # Clip/pad absurd lengths instead of empty labels (empty → Whisper crash)
         if dur < 0.3:
             pad = max(0, int(0.5 * sr) - len(arr))
             if pad:
@@ -382,9 +526,7 @@ def train(
         feats = processor.feature_extractor(
             arr, sampling_rate=sr, return_tensors="np"
         ).input_features[0]
-        text = _normalize_text(batch["text"])
-        if not text:
-            text = " "
+        text = _normalize_text(batch["text"]) or " "
         labels = processor.tokenizer(text).input_ids
         if not labels:
             labels = [processor.tokenizer.eos_token_id or 50256]
@@ -409,7 +551,6 @@ def train(
             labels = [processor.tokenizer.eos_token_id or 50256]
         return {"input_features": feats, "labels": labels}
 
-    # Single feature map — this is the only heavy pass
     train_prep = train_std.map(
         prepare_train,
         remove_columns=train_std.column_names,
@@ -424,12 +565,9 @@ def train(
     )
 
     class DataCollatorSpecAug:
-        """Pad + SpecAugment (time + feature masks) on train features."""
-
         def __init__(self, processor, train: bool = True, strong: bool = True):
             self.processor = processor
             self.train = train
-            # v5: stronger masks than v4 (0.05 → 0.08/0.10)
             self.mask_time_prob = 0.10 if strong else 0.05
             self.mask_time_length = 12 if strong else 10
             self.mask_feature_prob = 0.08 if strong else 0.05
@@ -460,17 +598,14 @@ def train(
             return out
 
         def __call__(self, features: list[dict]) -> dict[str, torch.Tensor]:
-            # Drop any rows with empty/invalid labels before padding
             clean = []
             for f in features:
                 labs = f.get("labels") or []
                 if isinstance(labs, torch.Tensor):
                     labs = labs.tolist()
-                if not labs:
-                    continue
-                clean.append({"input_features": f["input_features"], "labels": labs})
+                if labs:
+                    clean.append({"input_features": f["input_features"], "labels": labs})
             if not clean:
-                # Fallback: keep first sample with a dummy eos label
                 f0 = features[0]
                 clean = [
                     {
@@ -478,7 +613,6 @@ def train(
                         "labels": [self.processor.tokenizer.eos_token_id or 50256],
                     }
                 ]
-
             input_features = [{"input_features": f["input_features"]} for f in clean]
             label_features = [{"input_ids": f["labels"]} for f in clean]
             batch = self.processor.feature_extractor.pad(
@@ -490,14 +624,12 @@ def train(
             labels = labels_batch["input_ids"].masked_fill(
                 labels_batch.attention_mask.ne(1), -100
             )
-            # Whisper: strip leading BOS if present so shift_tokens_right works
             if (
                 self.processor.tokenizer.bos_token_id is not None
                 and labels.size(1) > 1
                 and (labels[:, 0] == self.processor.tokenizer.bos_token_id).all().cpu().item()
             ):
                 labels = labels[:, 1:]
-            # Ensure at least one non-ignored label per row (decoder needs content)
             for i in range(labels.size(0)):
                 if (labels[i] != -100).sum().item() == 0:
                     labels[i, 0] = self.processor.tokenizer.eos_token_id or 50256
@@ -524,26 +656,28 @@ def train(
             "cer": float(cer_metric.compute(predictions=pred_str, references=label_str)),
         }
 
-    eval_steps = 40 if not smoke else 10
+    eval_steps = 100 if not smoke else 10
+    if "medium" in base_model.lower():
+        eval_steps = 80 if not smoke else 10
+
     args = Seq2SeqTrainingArguments(
         output_dir=out_dir,
         per_device_train_batch_size=batch_size,
-        per_device_eval_batch_size=batch_size,
+        per_device_eval_batch_size=max(1, batch_size // 2),
         gradient_accumulation_steps=grad_accum,
         learning_rate=learning_rate,
         weight_decay=weight_decay,
-        warmup_steps=min(80, max(10, max_steps // 10)),
+        warmup_steps=min(200, max(20, max_steps // 10)),
         max_steps=max_steps,
         lr_scheduler_type="cosine",
-        # NEVER set label_smoothing_factor with Whisper — Trainer pops `labels`
-        # before forward, then decoder raises "decoder_input_ids required".
+        # Never use label_smoothing with Whisper — Trainer pops labels before forward
         label_smoothing_factor=0.0,
         fp16=torch.cuda.is_available(),
         eval_strategy="steps",
         eval_steps=eval_steps,
         save_steps=eval_steps,
         save_total_limit=2,
-        logging_steps=20,
+        logging_steps=25,
         predict_with_generate=True,
         generation_max_length=225,
         load_best_model_at_end=not smoke,
@@ -554,7 +688,10 @@ def train(
         remove_unused_columns=False,
         dataloader_num_workers=2,
         max_grad_norm=1.0,
+        gradient_checkpointing=bool("medium" in base_model.lower()),
     )
+    if args.gradient_checkpointing:
+        model.config.use_cache = False
 
     trainer = Seq2SeqTrainer(
         args=args,
@@ -569,7 +706,7 @@ def train(
             if smoke
             else [
                 EarlyStoppingCallback(
-                    early_stopping_patience=3,
+                    early_stopping_patience=5,
                     early_stopping_threshold=0.002,
                 )
             ]
@@ -611,43 +748,59 @@ def train(
     val_wer = float(eval_metrics.get("eval_wer", 1.0))
     val_cer = float(eval_metrics.get("eval_cer", 1.0))
 
-    # ── optional full Waxal test (promotion gate) ───────────────────
     full_test: Optional[dict[str, Any]] = None
     if full_test_after and not smoke:
-        print("[train] running FULL Waxal test (promotion gate) …")
+        print("[train] FULL Waxal test (promotion gate, greedy) …")
         full_test = _run_full_test(
             model=model,
             processor=processor,
             token=token,
             cache=cache,
             device="cuda" if torch.cuda.is_available() else "cpu",
+            num_beams=1,
         )
-        print("[train] full test", full_test)
+        print("[train] full test greedy", full_test)
+        # Also beam=5 for fair compare to production serving
+        print("[train] FULL Waxal test beam=5 …")
+        full_test_beam = _run_full_test(
+            model=model,
+            processor=processor,
+            token=token,
+            cache=cache,
+            device="cuda" if torch.cuda.is_available() else "cpu",
+            num_beams=5,
+        )
+        print("[train] full test beam5", full_test_beam)
+        full_test["beam5"] = full_test_beam
 
-    beats = False
-    if full_test is not None:
-        beats = full_test["wer"] < BASELINE_WER
+    beats_greedy = bool(full_test and full_test["wer"] < BASELINE_WER)
+    beats_beam = bool(
+        full_test
+        and full_test.get("beam5")
+        and full_test["beam5"]["wer"] < BEAM5_WER
+    )
 
     summary = {
         "status": "ok",
         "run_name": run_name,
         "base_model": base_model,
         "output_dir": out_dir,
-        "recipe": "v5-mix-specaug-speedpert-freezeenc",
+        "recipe": "v6-from-openai-mix-cv-waxal",
         "sources": sources_used,
         "mix_weights": mix_weights,
         "freeze_encoder": freeze_encoder,
         "learning_rate": learning_rate,
         "max_steps": max_steps,
-        "weight_decay": weight_decay,
-        "label_smoothing": 0.0,
+        "batch_size": batch_size,
+        "grad_accum": grad_accum,
         "baseline_wer_to_beat": BASELINE_WER,
-        "baseline_cer": BASELINE_CER,
+        "beam5_bar": BEAM5_WER,
         "val_wer": val_wer,
         "val_cer": val_cer,
         "full_test": full_test,
-        "beats_round2": beats,
-        "promote": beats,
+        "beats_round2_greedy": beats_greedy,
+        "beats_round2_beam5": beats_beam,
+        "promote": beats_greedy,
         "train_metrics": {
             k: float(v) if isinstance(v, (int, float)) else v for k, v in metrics.items()
         },
@@ -657,7 +810,7 @@ def train(
         "hub": hub_status,
         "push_repo": push_repo,
         "note": (
-            "PROMOTE" if beats else "DO NOT PROMOTE — keep Round 2 in production"
+            "PROMOTE" if beats_greedy else "DO NOT PROMOTE — keep Round 2 weights"
         ),
     }
     with open(f"/results/train_{run_name}_summary.json", "w", encoding="utf-8") as f:
@@ -667,16 +820,13 @@ def train(
     return summary
 
 
-def _run_full_test(model, processor, token, cache, device) -> dict[str, Any]:
-    """Immutable Waxal test n=all — same protocol as eval_asr.py."""
+def _run_full_test(model, processor, token, cache, device, num_beams: int = 1) -> dict[str, Any]:
     import evaluate
     import torch
     from datasets import Audio, load_dataset
     from tqdm import tqdm
 
-    raw = load_dataset(
-        "google/WaxalNLP", "aka_asr", token=token, cache_dir=cache
-    )
+    raw = load_dataset("google/WaxalNLP", "aka_asr", token=token, cache_dir=cache)
     split = "test" if "test" in raw else list(raw.keys())[-1]
     ds = raw[split]
     audio_col = "audio" if "audio" in ds.column_names else ds.column_names[0]
@@ -690,14 +840,16 @@ def _run_full_test(model, processor, token, cache, device) -> dict[str, Any]:
     refs: list[str] = []
     model.eval()
 
-    for row in tqdm(ds, desc="full-test"):
+    for row in tqdm(ds, desc=f"full-test-b{num_beams}"):
         audio = row[audio_col]
-        inputs = processor(
-            audio["array"], sampling_rate=16000, return_tensors="pt"
-        )
+        inputs = processor(audio["array"], sampling_rate=16000, return_tensors="pt")
         input_features = inputs.input_features.to(device)
         with torch.no_grad():
-            ids = model.generate(input_features, max_new_tokens=225, num_beams=1)
+            ids = model.generate(
+                input_features,
+                max_new_tokens=225,
+                num_beams=max(1, int(num_beams)),
+            )
         hyp = processor.batch_decode(ids, skip_special_tokens=True)[0]
         preds.append(_normalize_text(hyp))
         refs.append(_normalize_text(row[text_col]))
@@ -707,6 +859,7 @@ def _run_full_test(model, processor, token, cache, device) -> dict[str, Any]:
     return {
         "dataset": f"google/WaxalNLP/aka_asr:{split}",
         "n": len(preds),
+        "num_beams": int(num_beams),
         "wer": wer,
         "cer": cer,
         "wer_pct": round(wer * 100, 2),
@@ -719,20 +872,22 @@ def _run_full_test(model, processor, token, cache, device) -> dict[str, Any]:
 @app.local_entrypoint()
 def main(
     base_model: str = DEFAULT_BASE,
-    max_steps: int = 800,
-    push_repo: str = "teckedd/gha-whisper-small-twi-v5",
+    max_steps: int = 3000,
+    push_repo: str = "teckedd/gha-whisper-small-twi-v6",
     smoke: bool = False,
-    freeze_encoder: bool = True,
-    learning_rate: float = 8e-6,
-    run_name: str = "v5",
+    freeze_encoder: bool = False,
+    learning_rate: float = 1e-5,
+    batch_size: int = 8,
+    grad_accum: int = 4,
+    run_name: str = "v6-small",
     use_extra_data: bool = True,
-    waxal_weight: float = 0.65,
+    waxal_weight: float = 0.60,
     full_test_after: bool = True,
     wait: bool = True,
 ):
     """
-    Uses spawn() so `modal run --detach` keeps the GPU job alive after client exit.
-    Pass --no-wait to fire-and-forget (check Modal dashboard / results volume).
+    spawn() so `modal run --detach` keeps the GPU job alive.
+    --no-wait: fire and forget.
     """
     call = train.spawn(
         base_model=base_model,
@@ -741,13 +896,15 @@ def main(
         smoke=smoke,
         freeze_encoder=freeze_encoder,
         learning_rate=learning_rate,
+        batch_size=batch_size,
+        grad_accum=grad_accum,
         run_name=run_name,
         use_extra_data=use_extra_data,
         waxal_weight=waxal_weight,
         full_test_after=full_test_after,
     )
-    print(f"[train] spawned function call: {call.object_id}")
-    print("[train] follow logs in Modal dashboard; summary → akan-speech-eval-results")
+    print(f"[train] spawned {call.object_id} run={run_name} base={base_model}")
+    print("[train] follow Modal dashboard; summary → akan-speech-eval-results")
     if not wait:
         print("[train] --no-wait: exiting; job continues on Modal")
         return
@@ -756,10 +913,13 @@ def main(
     print(result)
     if result.get("full_test"):
         ft = result["full_test"]
+        b5 = ft.get("beam5") or {}
         print(
             f"\n=== PROMOTION GATE ===\n"
-            f"  Round 2:  WER {BASELINE_WER*100:.2f}%  CER {BASELINE_CER*100:.2f}%\n"
-            f"  {run_name}:     WER {ft['wer_pct']}%  CER {ft['cer_pct']}%  "
-            f"(Δ {ft['delta_wer_pp']:+.2f} pp)\n"
-            f"  → {'PROMOTE' if result.get('beats_round2') else 'KEEP ROUND 2'}\n"
+            f"  Round 2 greedy:  WER {BASELINE_WER*100:.2f}%\n"
+            f"  Round 2 beam5:   WER {BEAM5_WER*100:.2f}%\n"
+            f"  {run_name} greedy: WER {ft.get('wer_pct')}%  CER {ft.get('cer_pct')}% "
+            f"(Δ {ft.get('delta_wer_pp'):+.2f} pp)\n"
+            f"  {run_name} beam5:  WER {b5.get('wer_pct', 'n/a')}%\n"
+            f"  → {'PROMOTE' if result.get('beats_round2_greedy') else 'KEEP ROUND 2'}\n"
         )

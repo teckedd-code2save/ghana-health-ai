@@ -92,10 +92,30 @@ Everything good starts with clean, versioned data.
 | v3 `gha-whisper-small-twi-v3` | 33.99% | 12.21% | low | do not promote (same-Waxal FT overfit) |
 | v4 `gha-whisper-small-twi-v4` | 34.96% | 12.62% | ~27.7% | do not promote (freeze-enc still overfit) |
 | v5 `gha-whisper-small-twi-v5` | **34.13%** | **12.29%** | **26.19%** | do not promote (+1.30pp vs R2; multi-source still overfits) |
+| v6-small from `openai/whisper-small` | TBD | TBD | TBD | Waxal + **Common Voice 22 Twi validated** + GhanaNLP |
+| v6-medium from `openai/whisper-medium` | TBD | TBD | TBD | same data, larger base |
 
-**Hard rule:** Promote only if full-test WER &lt; 32.83%. Val WER alone is not enough (v3/v4/v5 all looked strong on val).
+**Hard rule:** Promote only if full-test WER &lt; 32.83% greedy (or better than beam=5 serving bar 31.52% for decode-matched compare). Val WER alone is not enough.
 
-**v5 takeaway:** Mixing GhanaNLP Twi multispeaker (CC BY-NC) + speed-pert + strong SpecAug improved val but **hurt** immutable Waxal test. Continued FT from Round 2 keeps failing the gate. Next win likely needs (a) retrain from `openai/whisper-small` with a better recipe than Round 2, (b) cleaner in-domain data, or (c) decoding/LM — not more same-path continued FT.
+**v5 takeaway:** Continued FT from Round 2 overfits. **v6** retrains from OpenAI bases with:
+- `google/WaxalNLP` aka_asr train (foundation; test frozen)
+- `fsicoli/common_voice_22_0` config `tw` (CC0) — train split + `up_votes≥2 & down_votes==0`
+- optional GhanaNLP Twi multispeaker (lower weight)
+
+```bash
+# small first
+modal run --detach modal/train/train_asr.py \
+  --base-model openai/whisper-small \
+  --run-name v6-small --max-steps 3000 \
+  --push-repo teckedd/gha-whisper-small-twi-v6 --no-wait
+
+# then medium
+modal run --detach modal/train/train_asr.py \
+  --base-model openai/whisper-medium \
+  --run-name v6-medium --max-steps 2500 \
+  --batch-size 4 --learning-rate 8e-6 \
+  --push-repo teckedd/gha-whisper-medium-twi-v6 --no-wait
+```
 
 ### B1b. v5 train (current)
 
