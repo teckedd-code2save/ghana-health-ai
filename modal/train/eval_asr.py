@@ -69,6 +69,7 @@ def evaluate_checkpoint(
     dataset_config: str = "aka_asr",
     split: str = "test",
     max_samples: int = 500,
+    num_beams: int = 1,
 ) -> dict[str, Any]:
     import json
     import torch
@@ -125,7 +126,11 @@ def evaluate_checkpoint(
         )
         input_features = inputs.input_features.to(device)
         with torch.no_grad():
-            ids = model.generate(input_features, max_new_tokens=225)
+            ids = model.generate(
+                input_features,
+                max_new_tokens=225,
+                num_beams=max(1, int(num_beams)),
+            )
         hyp = processor.batch_decode(ids, skip_special_tokens=True)[0]
         preds.append(_normalize_text(hyp))
         refs.append(_normalize_text(row[text_col]))
@@ -136,6 +141,7 @@ def evaluate_checkpoint(
         "model_id": model_id,
         "dataset": f"{dataset_name}/{dataset_config}:{split}",
         "n": len(preds),
+        "num_beams": int(num_beams),
         "wer": float(wer),
         "cer": float(cer),
         "wer_pct": round(float(wer) * 100, 2),
@@ -143,7 +149,8 @@ def evaluate_checkpoint(
         "beat_this": {
             "goal_wer_pct": 28.0,
             "stretch_wer_pct": 22.0,
-            "note": "Promote only if new checkpoint WER < this run on the same split",
+            "baseline_greedy_wer_pct": 32.83,
+            "note": "Promote only if new checkpoint WER < Round 2 on same split + decode",
         },
     }
     out_path = f"/results/baseline_{model_id.replace('/', '_')}__{split}_n{len(preds)}.json"
@@ -160,5 +167,13 @@ def main(
     model_id: str = "teckedd/whisper-small-waxal-round2-specaug-v1",
     max_samples: int = 200,
     split: str = "test",
+    num_beams: int = 1,
 ):
-    print(evaluate_checkpoint.remote(model_id=model_id, max_samples=max_samples, split=split))
+    print(
+        evaluate_checkpoint.remote(
+            model_id=model_id,
+            max_samples=max_samples,
+            split=split,
+            num_beams=num_beams,
+        )
+    )

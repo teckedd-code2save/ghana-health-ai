@@ -83,30 +83,45 @@ Everything good starts with clean, versioned data.
 
 ## Phase B — ASR (weeks 1–6)
 
-### B1. Immediate next train (from Round 2)
+### B1. Scoreboard (full Waxal test n=1522, greedy)
+
+| Checkpoint | WER | CER | Val WER | Status |
+|------------|-----|-----|---------|--------|
+| **Round 2** `…round2-specaug-v1` | **32.83%** | **11.79%** | — | **production — still wins** |
+| v3 `gha-whisper-small-twi-v3` | 33.99% | 12.21% | low | do not promote (same-Waxal FT overfit) |
+| v4 `gha-whisper-small-twi-v4` | 34.96% | 12.62% | ~27.7% | do not promote (freeze-enc still overfit) |
+| v5 `gha-whisper-small-twi-v5` | **34.13%** | **12.29%** | **26.19%** | do not promote (+1.30pp vs R2; multi-source still overfits) |
+
+**Hard rule:** Promote only if full-test WER &lt; 32.83%. Val WER alone is not enough (v3/v4/v5 all looked strong on val).
+
+**v5 takeaway:** Mixing GhanaNLP Twi multispeaker (CC BY-NC) + speed-pert + strong SpecAug improved val but **hurt** immutable Waxal test. Continued FT from Round 2 keeps failing the gate. Next win likely needs (a) retrain from `openai/whisper-small` with a better recipe than Round 2, (b) cleaner in-domain data, or (c) decoding/LM — not more same-path continued FT.
+
+### B1b. v5 train (current)
 
 ```text
 Base: teckedd/whisper-small-waxal-round2-specaug-v1
-Data: Waxal train (replay) + cleaned GhanaNLP Twi (+ later Ewe/Ga)
-Method: full FT or LoRA on decoder; freeze encoder only if data is small
-GPU: Modal A100/H100
-Eval: same immutable test as Round 2 card + new health set
+Data: Waxal train (65%) + ghananlpcommunity/twi-speech-text-multispeaker-16k (35%)
+      note: GhanaNLP set is CC BY-NC — research train only
+Method: freeze encoder, decoder LR 8e-6, label_smoothing 0.1,
+        speed-pert {0.9,1.0,1.1}, strong SpecAug, early-stop on val WER
+GPU: Modal A100
+Eval: immutable full Waxal test auto-runs after train
 ```
 
 **Script:** `modal/train/train_asr.py`
 
 ```bash
 modal run modal/train/train_asr.py \
-  --base-model teckedd/whisper-small-waxal-round2-specaug-v1 \
-  --max-steps 1500 \
-  --push-repo teckedd/gha-whisper-small-twi-v3
+  --run-name v5 \
+  --max-steps 800 \
+  --push-repo teckedd/gha-whisper-small-twi-v5
 ```
 
 ### B2. Scaling ladder
 
-1. **v3-twi-clean** — Round 2 + cleaned GhanaNLP only; beat 32.8% Waxal WER *without* regression.  
-2. **v3-twi-health** — + health phrase reads + AfriSpeech GH medical.  
-3. **v3-multi** — joint Twi + Ewe + Ga + Dagbani with language tags / balanced sampling.  
+1. **v5-mix** — Round 2 + GhanaNLP Twi multispeaker; beat 32.8% Waxal WER *without* regression.  
+2. **v5-health** — + health phrase reads + AfriSpeech GH medical.  
+3. **v6-multi** — joint Twi + Ewe + Ga + Dagbani with language tags / balanced sampling.  
 4. **Larger base only if needed** — `whisper-medium` or `large-v3-turbo` if small plateaus &gt; 25% WER.
 
 ### B3. Serving upgrades after each good train
