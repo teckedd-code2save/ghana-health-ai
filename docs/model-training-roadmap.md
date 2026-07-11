@@ -11,7 +11,7 @@ Do not spend more cycles on UI gimmicks. Every improvement below should move **W
 
 | Component | Live model | Known ceiling |
 |-----------|------------|---------------|
-| **ASR** | `teckedd/whisper-small-waxal-round2-specaug-v1` | ~**32.8% WER** held-out Waxal test |
+| **ASR** | `teckedd/gha-whisper-small-twi-v6` (beam=5) | **30.44% WER** full Waxal test (beats Round 2) |
 | **TTS (Twi)** | `facebook/mms-tts-aka` | Generic Akan; not health-domain, not multi-speaker natural |
 | **TTS (EN)** | `facebook/mms-tts-eng` | Acceptable English; not Ghana-accent |
 | **Understand** | Groq Llama / OpenAI chat | General LLM; not Twi-native; health jargon leakage fixed in prompt only |
@@ -87,12 +87,11 @@ Everything good starts with clean, versioned data.
 
 | Checkpoint | WER | CER | Val WER | Status |
 |------------|-----|-----|---------|--------|
-| **Round 2** greedy | **32.83%** | **11.79%** | — | checkpoint weights |
-| **Round 2** `num_beams=5` | **31.52%** | **11.27%** | — | **production decode (shipped)** |
-| v3 `gha-whisper-small-twi-v3` | 33.99% | 12.21% | low | do not promote (same-Waxal FT overfit) |
-| v4 `gha-whisper-small-twi-v4` | 34.96% | 12.62% | ~27.7% | do not promote (freeze-enc still overfit) |
-| v5 `gha-whisper-small-twi-v5` | **34.13%** | **12.29%** | **26.19%** | do not promote (+1.30pp vs R2; multi-source still overfits) |
-| v6-small from `openai/whisper-small` | TBD | TBD | TBD | Waxal + **Common Voice 22 Twi validated** + GhanaNLP |
+| Round 2 greedy | 32.83% | 11.79% | — | previous weights |
+| Round 2 beam=5 | 31.52% | 11.27% | — | previous serving decode |
+| v3 / v4 / v5 | 33.99–34.96% | — | low val | do not promote (continued FT overfit) |
+| **v6-small greedy** | **31.49%** | **11.27%** | **29.44%** | **−1.34 pp vs R2 greedy** |
+| **v6-small beam=5** | **30.44%** | **10.62%** | — | **production (shipped)** |
 | v6-medium from `openai/whisper-medium` | TBD | TBD | TBD | same data, larger base |
 
 **Hard rule:** Promote only if full-test WER &lt; 32.83% greedy (or better than beam=5 serving bar 31.52% for decode-matched compare). Val WER alone is not enough.

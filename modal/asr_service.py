@@ -1,7 +1,14 @@
 """
 Ghana Health AI — real Twi/Akan ASR on Modal.
 
-Model: teckedd/whisper-small-waxal-round2-specaug-v1 (Waxal Round 2)
+Model: teckedd/gha-whisper-small-twi-v6
+  (openai/whisper-small + Waxal + Common Voice 22 Twi validated + GhanaNLP)
+
+Full Waxal test n=1522 (promotion win over Round 2):
+  v6 greedy  WER 31.49%  CER 11.27%
+  v6 beam=5  WER 30.44%  CER 10.62%
+  R2 greedy  WER 32.83%  CER 11.79%
+  R2 beam=5  WER 31.52%  CER 11.27%
 
 Cost layout:
   - Slim CPU ASGI handles /health (no torch, no GPU)
@@ -22,16 +29,14 @@ import modal
 
 APP_NAME = "ghana-health-asr"
 DEFAULT_MODEL = os.environ.get(
-    "MODEL_ID", "teckedd/whisper-small-waxal-round2-specaug-v1"
+    "MODEL_ID", "teckedd/gha-whisper-small-twi-v6"
 )
-FALLBACK_MODEL = "openai/whisper-small"
+FALLBACK_MODEL = "teckedd/whisper-small-waxal-round2-specaug-v1"
 MAX_AUDIO_SECONDS = float(os.environ.get("ASR_MAX_AUDIO_SECONDS", "45"))
 # RMS below this (float32 [-1,1]) → treat as silence / reject (Whisper hallucinates)
 MIN_RMS = float(os.environ.get("ASR_MIN_RMS", "0.008"))
 MIN_SECONDS = float(os.environ.get("ASR_MIN_SECONDS", "0.35"))
-# Beam search free win: Round 2 full Waxal test n=1522
-#   greedy beams=1 → WER 32.83% / CER 11.79%
-#   beams=5        → WER 31.52% / CER 11.27%  (−1.31 pp WER)
+# Beam=5: v6 full test 30.44% WER (best known serving decode)
 NUM_BEAMS = max(1, int(os.environ.get("ASR_NUM_BEAMS", "5")))
 
 app = modal.App(APP_NAME)

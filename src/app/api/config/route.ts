@@ -13,7 +13,7 @@ export async function GET() {
     llm: isLlmConfigured(),
     paystack: isPaystackConfigured(),
     paystackPublicKey: getPaystackPublicKey() || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "",
-    asrModel: "teckedd/whisper-small-waxal-round2-specaug-v1",
+    asrModel: "teckedd/gha-whisper-small-twi-v6",
     ttsModel: "facebook/mms-tts-aka | facebook/mms-tts-eng",
     languages: ["tw", "en", "ga", "ee", "dag"],
     hotline: process.env.HEALTH_ESCALATION_HOTLINE || "112 / community health worker",

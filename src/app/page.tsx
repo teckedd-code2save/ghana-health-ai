@@ -39,7 +39,7 @@ export default function HomePage() {
           <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[var(--fg-muted)]">Live pipeline</p>
           <ol className="mt-4 space-y-3 text-sm">
             {[
-              "Mic → Twi Whisper ASR (Round 2, Modal GPU)",
+              "Mic → Twi Whisper ASR (v6, Modal GPU)",
               "Voice ID enroll / verify from real audio",
               "LLM intent: Health · Market · General",
               "Live product search · cart · MoMo / Paystack",
