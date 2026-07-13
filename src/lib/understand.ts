@@ -1,9 +1,16 @@
 /**
- * Conversational understanding — LLM is the brain.
- * Grounded on the user's actual words; no canned closers.
+ * Understanding — research path.
+ *
+ * 1. English ONLY if preferredLang === "en"
+ * 2. ABENA retrieval over Twi knowledge/products (Ghana-NLP encoder)
+ * 3. Twi-first generation from transcript + retrieved Twi context
+ * 4. No hand-written semantic bank; no English KB dump as primary brain
+ *
+ * See docs/research-stack.md
  */
 
 import { chatComplete, isLlmConfigured } from "@/lib/llm";
+import { retrieveTwiContext } from "@/lib/twi-retrieve";
 import type { LanguageCode } from "@prisma/client";
 
 export type UnderstandResult = {
@@ -11,51 +18,65 @@ export type UnderstandResult = {
   intent: "HEALTH" | "ECOMMERCE" | "GENERAL" | "UNKNOWN";
   severity: "LOW" | "MEDIUM" | "HIGH" | "EMERGENCY";
   escalate: boolean;
-  engine: "llm" | "fallback";
+  engine: "abena+llm" | "llm" | "fallback";
   model?: string;
+  replyLanguage: "tw" | "en";
+  retrieve?: {
+    engine: string;
+    model?: string;
+    articles: { slug: string; score: number }[];
+    products: { id: string; score: number }[];
+  };
 };
 
 const HOTLINE =
   process.env.HEALTH_ESCALATION_HOTLINE || "112 or your nearest clinic / community health worker";
 
-const SYSTEM = `You are Ghana Health AI — a careful voice companion for people in Ghana.
+export function resolveReplyLanguage(preferred?: LanguageCode): "tw" | "en" {
+  return preferred === "en" ? "en" : "tw";
+}
 
-Languages: Twi (Akan), English, and code-mixed Twi-English as Ghanaians actually speak.
-Match the user's language mix. Prefer clear short spoken answers (2–5 sentences).
+export function detectReplyLanguage(
+  _text: string,
+  preferred?: LanguageCode,
+): "tw" | "en" {
+  return resolveReplyLanguage(preferred);
+}
 
-What you do well:
-- Maternal health, symptoms, wellbeing — general guidance only, never as a doctor
-- Market / shopping intent in natural conversation
-- Everyday questions with cultural awareness (family, clinic, community health worker pathways)
+const SYSTEM_TWI = `Wo yɛ Ghana Health AI — voice companion ma Ghana.
+Ka **Twi** a ɛte sɛ kasa a nnipa ka. Light English mix nko sɛ ɛhia (din, aduro din).
 
-Hard rules:
-1. Answer ONLY what the user actually said. Do not invent a different topic.
-2. If the user message looks like ASR noise, garbage, or unrelated filler (nonsense loops, random "mmea" boilerplate, empty meaning), reply briefly that you did not catch them and ask them to repeat once — do NOT give a long lecture on an unrelated subject.
-3. NOT a medical professional. Never invent drug dosages or definitive diagnoses.
-4. Danger signs (heavy bleeding/mogya, unconscious, can't breathe, seizures, no fetal movement, suicidal thoughts): lead with URGENT action + hotline ${HOTLINE}.
-5. No canned closers or catchphrases. Never end with stock lines like:
-   "Sɛ wopɛ nsɛm pii a, me ho yɛ hɔ", "Me ho yɛ hɔ", "Feel free to ask", "I'm here if you need me".
-   Stop when the answer is complete.
-6. Prefer concrete next steps (rest, hydrate, see a clinic or community health worker, price/cart) over vague encouragement.
-7. Never use unexplained acronyms. Write "community health worker" not "CHW", "antenatal care" not bare "ANC" unless you expand it once.
+Wobenya:
+- asɛm a user no kae (ASR betumi ayɛ noise)
+- nkyerɛkyerɛmu a wɔtwee fii Twi knowledge (sɛ ɛwɔ hɔ a)
 
-Respond with ONLY a JSON object (no markdown fences):
-{
-  "reply": "spoken answer to the user",
-  "intent": "HEALTH" | "ECOMMERCE" | "GENERAL",
-  "severity": "LOW" | "MEDIUM" | "HIGH" | "EMERGENCY",
-  "escalate": boolean
-}`;
+Rules:
+1. Gye user asɛm no so. Sɛ ɛyɛ noise / menteee a, bisa wɔn nka bio prɛko.
+2. Fa Twi knowledge no di dwuma sɛ ɛfa asɛm no ho — nnyɛ copy-paste.
+3. Nnyɛ oduruyɛfoɔ. Mma drug dosage. Mma definitive diagnosis.
+4. Danger (mogya a ɛsen, home yɛ den, seizure, ba a ɔnte yafunu mu, suicide): di kan ka hospital / frɛ ${HOTLINE}.
+5. No canned closers ("Me ho yɛ hɔ", "Feel free to ask").
+6. "community health worker", "antenatal care" — no bare CHW/ANC.
+7. 2–5 nkyerɛaseɛ a wɔbɛtumi aka.
 
-const CANNED_CLOSER_PATTERNS: RegExp[] = [
+JSON only:
+{"reply":"...","intent":"HEALTH|ECOMMERCE|GENERAL","severity":"LOW|MEDIUM|HIGH|EMERGENCY","escalate":boolean}`;
+
+const SYSTEM_EN = `You are Ghana Health AI. The user prefers **English** — reply in clear simple English only.
+
+Use the transcript and any retrieved knowledge. Not a doctor. No dosages/diagnoses.
+Emergencies: lead with hospital / ${HOTLINE}.
+No canned closers. 2–5 short spoken sentences.
+
+JSON only:
+{"reply":"...","intent":"HEALTH|ECOMMERCE|GENERAL","severity":"LOW|MEDIUM|HIGH|EMERGENCY","escalate":boolean}`;
+
+const CANNED: RegExp[] = [
   /\s*Sɛ wopɛ nsɛm pii a,?\s*me ho yɛ hɔ!?\s*$/iu,
-  /\s*Sɛ wopɛ (nsɛm|biribi) (pii|bio).*?(hɔ|ho)!?\s*$/iu,
   /\s*Me ho yɛ hɔ!?\s*$/iu,
   /\s*I'm here if you (need|want).*$/iu,
   /\s*Feel free to (ask|reach).*$/iu,
-  /\s*If you (need|want|have) (any )?(more )?(questions|info|information|help).*$/iu,
-  /\s*Let me know if you (need|want).*$/iu,
-  /\s*Don't hesitate to (ask|reach).*$/iu,
+  /\s*If you (need|want|have) (any )?(more )?(questions|help).*$/iu,
 ];
 
 export function stripCannedClosers(text: string): string {
@@ -63,16 +84,9 @@ export function stripCannedClosers(text: string): string {
   let prev = "";
   while (out !== prev) {
     prev = out;
-    for (const re of CANNED_CLOSER_PATTERNS) {
-      out = out.replace(re, "").trim();
-    }
+    for (const re of CANNED) out = out.replace(re, "").trim();
   }
-  return expandHealthJargon(out);
-}
-
-/** Expand acronyms models leak into replies (never leave bare CHW). */
-function expandHealthJargon(text: string): string {
-  return text
+  return out
     .replace(/\bCHWs\b/g, "community health workers")
     .replace(/\bCHW\b/g, "community health worker")
     .replace(/\bANC\b/g, "antenatal care");
@@ -89,13 +103,14 @@ function dangerHeuristic(text: string): boolean {
     "seizure",
     "convulsion",
     "suicide",
-    "kill myself",
     "no fetal",
     "water broke",
+    "home yɛ den",
+    "nte home",
   ].some((k) => t.includes(k));
 }
 
-function parseJsonReply(raw: string): Partial<UnderstandResult> | null {
+function parseJson(raw: string): Partial<UnderstandResult> | null {
   try {
     const start = raw.indexOf("{");
     const end = raw.lastIndexOf("}");
@@ -106,80 +121,136 @@ function parseJsonReply(raw: string): Partial<UnderstandResult> | null {
   }
 }
 
+function guessIntent(
+  text: string,
+  hasProducts: boolean,
+  hasHealth: boolean,
+): UnderstandResult["intent"] {
+  const t = text.toLowerCase();
+  const shop = ["tɔ", "boɔ", "cart", "price", "buy", "market", "ɛmo", "paracetamol", "sapo"];
+  if (hasProducts && shop.some((k) => t.includes(k))) return "ECOMMERCE";
+  if (hasHealth || dangerHeuristic(text)) return "HEALTH";
+  if (shop.some((k) => t.includes(k))) return "ECOMMERCE";
+  return "GENERAL";
+}
+
 export async function understandUtterance(input: {
   text: string;
   language?: LanguageCode;
   history?: { role: "user" | "assistant"; content: string }[];
 }): Promise<UnderstandResult> {
   const language = input.language ?? "tw";
+  const replyLang = resolveReplyLanguage(language);
   const urgent = dangerHeuristic(input.text);
 
+  // Research path: ABENA (or fallback) retrieval on Twi content
+  const ctx = await retrieveTwiContext(input.text);
+  const retrieveMeta = {
+    engine: ctx.engine,
+    model: ctx.model,
+    articles: ctx.articles.map((a) => ({ slug: a.slug, score: Number(a.score.toFixed(4)) })),
+    products: ctx.products.map((p) => ({ id: p.id, score: Number(p.score.toFixed(4)) })),
+  };
+
+  const intentGuess = guessIntent(
+    input.text,
+    ctx.products.length > 0,
+    ctx.articles.length > 0,
+  );
+
+  // Build Twi-primary context block for the generator
+  const twiKb = ctx.articles
+    .map((a, i) => `[${i + 1}] ${a.titleTw}\n${a.bodyTw}`)
+    .join("\n\n");
+  const productBlock = ctx.products
+    .map((p) => `• ${p.nameTw} / ${p.nameEn} — GH₵ ${p.priceGhs.toFixed(2)}`)
+    .join("\n");
+
   if (!isLlmConfigured()) {
-    const reply =
-      language === "tw"
+    const seed =
+      replyLang === "tw"
         ? urgent
-          ? `⚠️ EYI BETUMI AYƐ ƆHAW. Kɔ hospital anaa frɛ ${HOTLINE} ntɛm. (LLM key missing.)`
-          : "LLM key nni hɔ. Fa GROQ_API_KEY anaa OPENAI_API_KEY hyɛ configuration mu."
+          ? `⚠️ EYI BETUMI AYƐ ƆHAW. Kɔ hospital anaa frɛ ${HOTLINE} ntɛm.`
+          : ctx.articles[0]?.bodyTw ||
+            "LLM key nni hɔ. Fa GROQ_API_KEY anaa OPENAI_API_KEY hyɛ mu."
         : urgent
-          ? `⚠️ This may be urgent. Go to a hospital or call ${HOTLINE} now. (LLM key missing.)`
-          : "No LLM API key configured. Set GROQ_API_KEY or OPENAI_API_KEY.";
+          ? `⚠️ This may be urgent. Go to hospital or call ${HOTLINE}.`
+          : "No LLM key configured.";
     return {
-      reply,
-      intent: urgent ? "HEALTH" : "GENERAL",
+      reply: stripCannedClosers(seed),
+      intent: urgent ? "HEALTH" : intentGuess,
       severity: urgent ? "EMERGENCY" : "LOW",
       escalate: urgent,
       engine: "fallback",
+      replyLanguage: replyLang,
+      retrieve: retrieveMeta,
     };
   }
 
-  const history = (input.history ?? []).slice(-8).map((m) => ({
+  const history = (input.history ?? []).slice(-6).map((m) => ({
     role: m.role === "user" ? ("user" as const) : ("assistant" as const),
     content: m.content,
   }));
 
+  const userPayload = {
+    asr_transcript: input.text,
+    speak_language: replyLang === "en" ? "english" : "twi",
+    english_allowed: replyLang === "en",
+    retrieve_engine: ctx.engine,
+    twi_knowledge: twiKb || null,
+    market_hits: productBlock || null,
+  };
+
   const raw = await chatComplete(
     [
-      { role: "system", content: SYSTEM },
+      { role: "system", content: replyLang === "en" ? SYSTEM_EN : SYSTEM_TWI },
       ...history,
-      {
-        role: "user",
-        content: `Preferred language code: ${language}\nTranscript (what the user said — reply to THIS only):\n"""${input.text}"""`,
-      },
+      { role: "user", content: JSON.stringify(userPayload) },
     ],
-    { temperature: 0.25, maxTokens: 420 },
+    { temperature: 0.25, maxTokens: 400 },
   );
 
   if (!raw) {
     return {
       reply:
-        language === "tw"
+        replyLang === "tw"
           ? "Menteee wo yie. Ka bio kakra, anaa twerɛ asɛm no."
-          : "I couldn't form a reply. Please say that again or type it.",
+          : "I could not form a reply. Please say that again.",
       intent: "UNKNOWN",
       severity: urgent ? "EMERGENCY" : "LOW",
       escalate: urgent,
-      engine: "fallback",
+      engine: ctx.engine === "abena" ? "abena+llm" : "llm",
+      model: ctx.model,
+      replyLanguage: replyLang,
+      retrieve: retrieveMeta,
     };
   }
 
-  const parsed = parseJsonReply(raw);
-  if (parsed?.reply) {
-    const severity =
-      (parsed.severity as UnderstandResult["severity"]) || (urgent ? "EMERGENCY" : "LOW");
-    return {
-      reply: stripCannedClosers(String(parsed.reply)),
-      intent: (parsed.intent as UnderstandResult["intent"]) || "GENERAL",
-      severity,
-      escalate: Boolean(parsed.escalate) || severity === "EMERGENCY" || urgent,
-      engine: "llm",
-    };
+  const parsed = parseJson(raw);
+  let reply = parsed?.reply ? String(parsed.reply) : raw.trim();
+
+  // Attach market lines if ecommerce and we have priced hits
+  if (
+    (parsed?.intent === "ECOMMERCE" || intentGuess === "ECOMMERCE") &&
+    productBlock &&
+    !reply.includes("GH₵")
+  ) {
+    reply = `${stripCannedClosers(reply)}\n\n${productBlock}`;
+  } else {
+    reply = stripCannedClosers(reply);
   }
+
+  const severity =
+    (parsed?.severity as UnderstandResult["severity"]) || (urgent ? "EMERGENCY" : "LOW");
 
   return {
-    reply: stripCannedClosers(raw.trim()),
-    intent: urgent ? "HEALTH" : "GENERAL",
-    severity: urgent ? "EMERGENCY" : "LOW",
-    escalate: urgent,
-    engine: "llm",
+    reply,
+    intent: (parsed?.intent as UnderstandResult["intent"]) || intentGuess,
+    severity,
+    escalate: Boolean(parsed?.escalate) || severity === "EMERGENCY" || severity === "HIGH" || urgent,
+    engine: ctx.engine === "abena" || ctx.engine === "openai" ? "abena+llm" : "llm",
+    model: ctx.model,
+    replyLanguage: replyLang,
+    retrieve: retrieveMeta,
   };
 }

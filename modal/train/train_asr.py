@@ -75,6 +75,8 @@ hf_cache = modal.Volume.from_name("akan-speech-hf-cache", create_if_missing=True
 ckpt_vol = modal.Volume.from_name("akan-speech-checkpoints", create_if_missing=True)
 results_vol = modal.Volume.from_name("akan-speech-eval-results", create_if_missing=True)
 
+_TRAIN_DIR = os.path.dirname(os.path.abspath(__file__))
+
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("ffmpeg", "libsndfile1", "git")
@@ -93,6 +95,11 @@ image = (
         "numpy<2.3",
         "tqdm",
         "pandas",
+    )
+    # Shared model-card helper — every hub push must ship a real README
+    .add_local_file(
+        local_path=os.path.join(_TRAIN_DIR, "model_card.py"),
+        remote_path="/root/gha_train/model_card.py",
     )
 )
 
@@ -734,17 +741,6 @@ def train(
     model.config.save_pretrained(out_dir)
     ckpt_vol.commit()
 
-    hub_status = None
-    if push_repo and not smoke and token:
-        try:
-            model.push_to_hub(push_repo, token=token, private=False)
-            processor.push_to_hub(push_repo, token=token, private=False)
-            hub_status = f"pushed:{push_repo}"
-            print(f"[train] hub push ok → {push_repo}")
-        except Exception as exc:  # noqa: BLE001
-            hub_status = f"push_failed:{exc}"
-            print(f"[train] hub push failed: {exc}")
-
     val_wer = float(eval_metrics.get("eval_wer", 1.0))
     val_cer = float(eval_metrics.get("eval_cer", 1.0))
 
@@ -779,6 +775,63 @@ def train(
         and full_test.get("beam5")
         and full_test["beam5"]["wer"] < BEAM5_WER
     )
+
+    hub_status = None
+    if push_repo and not smoke and token:
+        try:
+            model.push_to_hub(push_repo, token=token, private=False)
+            processor.push_to_hub(push_repo, token=token, private=False)
+            # Proper model card — never leave a bare weight dump on the org
+            import sys
+
+            sys.path.insert(0, "/root/gha_train")
+            from model_card import write_and_push_model_card  # type: ignore
+
+            card_metrics: dict[str, Any] = {
+                "val_wer": val_wer,
+                "val_cer": val_cer,
+            }
+            if full_test:
+                card_metrics["wer"] = full_test.get("wer")
+                card_metrics["cer"] = full_test.get("cer")
+                if full_test.get("beam5"):
+                    card_metrics["wer_beam5"] = full_test["beam5"].get("wer")
+                    card_metrics["cer_beam5"] = full_test["beam5"].get("cer")
+
+            write_and_push_model_card(
+                push_repo,
+                task="automatic-speech-recognition",
+                language=["tw", "ak"],
+                base_model=base_model,
+                metrics=card_metrics,
+                datasets=[s for s in (sources_used or []) if s]
+                or ["google/WaxalNLP", "fsicoli/common_voice_22_0"],
+                summary=(
+                    f"Twi/Akan Whisper ASR for Ghana Health AI (`{run_name}`). "
+                    f"Recipe v6 mix; promote={beats_greedy}."
+                ),
+                extra_markdown=f"""
+## Recipe
+
+- Run: `{run_name}`
+- Freeze encoder: `{freeze_encoder}`
+- LR / steps / batch: `{learning_rate}` / `{max_steps}` / `{batch_size}x{grad_accum}`
+- Baseline to beat (Waxal full test greedy): `{BASELINE_WER}`
+- Beats Round 2 greedy: **{beats_greedy}** · beam5 bar: **{beats_beam}**
+
+## Serving
+
+Production decode uses `num_beams=5` in `modal/asr_service.py`.
+""",
+                tags=["whisper", "asr", "speech-recognition"],
+                pipeline_tag="automatic-speech-recognition",
+                token=token,
+            )
+            hub_status = f"pushed:{push_repo}+card"
+            print(f"[train] hub push ok → {push_repo}")
+        except Exception as exc:  # noqa: BLE001
+            hub_status = f"push_failed:{exc}"
+            print(f"[train] hub push failed: {exc}")
 
     summary = {
         "status": "ok",

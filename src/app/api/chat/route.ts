@@ -118,6 +118,8 @@ export async function POST(req: Request) {
       severity: understanding.severity,
       escalate: understanding.escalate,
       engine: understanding.engine,
+      replyLanguage: understanding.replyLanguage,
+      retrieve: understanding.retrieve ?? null,
     };
 
     const assistant = await prisma.message.create({
@@ -136,7 +138,8 @@ export async function POST(req: Request) {
     let tts: { audioBase64: string; sampleRate?: number; model?: string } | null = null;
     if (body.speak && isModalTtsConfigured()) {
       try {
-        const spoken = await modalSpeak(reply, language === "en" ? "en" : "tw");
+        const ttsLang = understanding.replyLanguage === "en" ? "en" : "tw";
+        const spoken = await modalSpeak(reply, ttsLang);
         if (spoken.audio_base64) {
           tts = {
             audioBase64: spoken.audio_base64,

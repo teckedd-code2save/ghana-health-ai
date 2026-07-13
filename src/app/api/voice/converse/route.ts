@@ -124,7 +124,9 @@ export async function POST(req: Request) {
           severity: understanding.severity,
           escalate: understanding.escalate,
           engine: understanding.engine,
+          replyLanguage: understanding.replyLanguage,
           asr_model: asr.model,
+          retrieve: understanding.retrieve ?? null,
         },
       },
     });
@@ -140,7 +142,8 @@ export async function POST(req: Request) {
 
     if (speak && isModalTtsConfigured()) {
       try {
-        const ttsLang = language === "en" ? "en" : "tw";
+        // TTS language follows user preference only — default Akan/Twi path
+        const ttsLang = understanding.replyLanguage === "en" ? "en" : "tw";
         tts = await modalSpeak(understanding.reply, ttsLang);
       } catch (e) {
         console.error("[tts]", e);

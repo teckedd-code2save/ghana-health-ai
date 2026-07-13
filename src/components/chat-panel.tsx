@@ -11,7 +11,6 @@ type ChatMessage = {
   id: string;
   role: "USER" | "ASSISTANT" | "SYSTEM" | "local-user" | "local-assistant";
   content: string;
-  intent?: string;
   phase?: "heard" | "status" | "error";
 };
 
@@ -82,7 +81,7 @@ export function ChatPanel() {
           {
             id: crypto.randomUUID(),
             role: "local-assistant",
-            content: "Offline — message queued.",
+            content: "You’re offline — we’ll send this when you’re back.",
             phase: "status",
           },
         ]);
@@ -94,7 +93,7 @@ export function ChatPanel() {
         body: JSON.stringify({ ...payload, speak: true }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Chat failed");
+      if (!res.ok) throw new Error(data.error || "Couldn’t send");
       setConversationId(data.conversationId);
       setMessages((m) => [
         ...m,
@@ -102,7 +101,6 @@ export function ChatPanel() {
           id: data.message.id,
           role: "ASSISTANT",
           content: data.message.content,
-          intent: data.message.intent,
         },
       ]);
       if (data.tts?.audioBase64) playTts(data.tts.audioBase64);
@@ -140,9 +138,9 @@ export function ChatPanel() {
       setLevel(0);
 
       if (blob.size < 400 || peakLevel < 0.01) {
-        throw new Error("Too quiet — move closer to the mic");
+        throw new Error("A bit quiet — try again closer");
       }
-      if (durationMs < 400) throw new Error("Too short — try again");
+      if (durationMs < 400) throw new Error("That was too short — try again");
 
       setLoading(true);
       const form = new FormData();
@@ -152,14 +150,7 @@ export function ChatPanel() {
       const res = await fetch("/api/voice/transcribe", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok) {
-        const err = data.error || "Transcription failed";
-        throw new Error(
-          err === "audio_too_quiet_or_silent"
-            ? "Too quiet — try again"
-            : err === "asr_hallucination_or_noise"
-              ? "Couldn’t catch that — try once more"
-              : String(err),
-        );
+        throw new Error("Couldn’t catch that — try once more");
       }
 
       const text = (data.transcript?.text as string | undefined)?.trim();
@@ -195,50 +186,43 @@ export function ChatPanel() {
   }
 
   return (
-    <div className="glass flex h-[min(78vh,760px)] flex-col overflow-hidden rounded-[calc(var(--radius)+4px)]">
-      {/* Presence header */}
-      <div className="flex flex-col items-center gap-2 border-b border-white/5 px-4 py-5">
+    <div className="fade-up surface flex h-[min(78vh,720px)] flex-col overflow-hidden rounded-[calc(var(--radius)+6px)]">
+      <div className="flex flex-col items-center gap-3 border-b border-white/[0.05] px-4 py-6">
         <VoiceOrb
           mode={orbMode}
           level={level}
-          size="lg"
+          size="md"
           disabled={loading && !recording}
           onClick={() => {
             if (!recording && !loading && !speaking) void startMic();
           }}
           label={modeLabel(orbMode, vadState)}
         />
-        <div className="flex items-center gap-2">
-          <span
-            className={
-              recording
-                ? "status-chip status-chip--live"
-                : speaking
-                  ? "status-chip status-chip--speak"
-                  : "status-chip"
-            }
-          >
-            {recording
-              ? "Listening"
+        <span
+          className={
+            recording
+              ? "status-dot status-dot--live"
               : speaking
-                ? "Speaking"
-                : loading
-                  ? "Thinking"
-                  : online
-                    ? "Ready"
-                    : "Offline"}
-          </span>
-          <span className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)]">
-            {lang}
-          </span>
-        </div>
+                ? "status-dot status-dot--speak"
+                : "status-dot status-dot--ok"
+          }
+        >
+          {recording
+            ? "Listening"
+            : speaking
+              ? "Speaking"
+              : loading
+                ? "Thinking"
+                : online
+                  ? "Ready"
+                  : "Offline"}
+        </span>
       </div>
 
-      {/* Thread */}
-      <div className="chat-scroll flex-1 space-y-3 overflow-y-auto px-4 py-4">
+      <div className="chat-scroll flex-1 space-y-3 overflow-y-auto px-4 py-5">
         {messages.length === 0 && (
-          <p className="mx-auto max-w-sm text-center text-sm text-[var(--fg-muted)]">
-            Tap the mic, speak, pause when done. We show what we heard — then answer.
+          <p className="mx-auto max-w-xs pt-8 text-center text-sm leading-relaxed text-[var(--fg-muted)]">
+            Tap the mic and speak, or type below. We’ll show what we heard before answering.
           </p>
         )}
         {messages.map((m) => {
@@ -250,27 +234,22 @@ export function ChatPanel() {
               className={`flex ${isUser || isHeard ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                className={`max-w-[88%] rounded-[1.15rem] px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
                   isUser
                     ? "bg-[var(--teal)] text-[#062419]"
                     : isHeard
-                      ? "border border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--fg)]"
+                      ? "border border-[var(--accent)]/30 bg-[var(--accent)]/10"
                       : m.phase === "error"
-                        ? "border border-[var(--coral)]/30 bg-[var(--coral)]/10 text-[var(--fg)]"
-                        : "border border-white/5 bg-white/5 text-[var(--fg)]"
+                        ? "border border-[var(--coral)]/25 bg-[var(--coral)]/10"
+                        : "border border-white/[0.05] bg-white/[0.04]"
                 }`}
               >
                 {isHeard && (
-                  <p className="mb-1 text-[10px] uppercase tracking-wider text-[var(--accent-soft)]">
-                    I heard
+                  <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-[var(--accent-soft)]">
+                    You said
                   </p>
                 )}
                 {m.content}
-                {m.intent && !isUser && !isHeard && (
-                  <p className="mt-2 text-[10px] uppercase tracking-wide text-[var(--accent-soft)]">
-                    {m.intent}
-                  </p>
-                )}
               </div>
             </div>
           );
@@ -278,18 +257,16 @@ export function ChatPanel() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Transcript confirm — icons only */}
       {pendingTranscript && (
-        <div className="flex items-center justify-between gap-3 border-t border-white/5 bg-black/25 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 border-t border-white/[0.05] bg-black/20 px-4 py-3">
           <p className="min-w-0 flex-1 truncate text-sm text-[var(--fg-muted)]">
-            <span className="text-[var(--accent-soft)]">Heard</span> · {pendingTranscript}
+            {pendingTranscript}
           </p>
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               className="icon-action"
-              title="Discard"
-              aria-label="Discard transcript"
+              aria-label="Discard"
               onClick={() => {
                 setPendingTranscript(null);
                 setInput("");
@@ -301,8 +278,7 @@ export function ChatPanel() {
             <button
               type="button"
               className="icon-action"
-              title="Re-record"
-              aria-label="Re-record"
+              aria-label="Speak again"
               disabled={loading || recording}
               onClick={() => void startMic()}
             >
@@ -311,8 +287,7 @@ export function ChatPanel() {
             <button
               type="button"
               className="icon-action icon-action--accent"
-              title="Send"
-              aria-label="Confirm and send"
+              aria-label="Send"
               disabled={loading}
               onClick={() => void send(input || pendingTranscript)}
             >
@@ -322,9 +297,8 @@ export function ChatPanel() {
         </div>
       )}
 
-      {/* Composer — minimal */}
       <form
-        className="border-t border-white/5 p-3"
+        className="border-t border-white/[0.05] p-3"
         onSubmit={(e) => {
           e.preventDefault();
           void send(input);
@@ -334,15 +308,15 @@ export function ChatPanel() {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={pendingTranscript ? "Edit what I heard…" : "Or type…"}
-            className="min-h-11 flex-1 rounded-full border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none placeholder:text-[var(--fg-muted)] focus:ring-1 focus:ring-[var(--accent)]"
+            placeholder={pendingTranscript ? "Edit what you said…" : "Type a message…"}
+            className="field min-h-11 flex-1"
             disabled={recording}
           />
           <button
             type="submit"
             disabled={loading || recording || !input.trim()}
             className="icon-action icon-action--accent"
-            aria-label="Send message"
+            aria-label="Send"
           >
             <Send className="h-4 w-4" />
           </button>

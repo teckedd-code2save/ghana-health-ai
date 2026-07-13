@@ -43,11 +43,11 @@ async function main() {
       titleTw: "Nyinsen mu nsɛnkyerɛnne a ɛyɛ hu",
       titleEn: "Danger signs in pregnancy",
       bodyTw:
-        "Sɛ wo hu mogya a ɛsen, ti yare a ɛmu yɛ den, ahonhon, anaa wo nte wo ba a ɔwɔ yafunu mu a, kɔ hospital ntɛm. Gye ANC nhyiamu so.",
+        "Sɛ wo hu mogya a ɛsen, ti yare a ɛmu yɛ den, ahonhon wɔ anim anaa nsa, anaa wo nte wo ba a ɔwɔ yafunu mu a, kɔ hospital ntɛm. Mfa nna ho. Kɔ antenatal care nhyiamu a wɔahyɛ no nyinaa so.",
       bodyEn:
-        "If you notice heavy bleeding, severe headache, swelling of face/hands, or reduced fetal movement, go to a hospital immediately. Keep all ANC appointments.",
+        "If you notice heavy bleeding, severe headache, swelling of face/hands, or reduced fetal movement, go to a hospital immediately. Do not wait overnight. Keep all antenatal care appointments.",
       category: "maternal",
-      tags: ["pregnancy", "anc", "danger", "nyinsen", "bleeding"],
+      tags: ["pregnancy", "anc", "danger", "nyinsen", "bleeding", "mogya", "ti"],
       source: "GHS / WHO maternal guidelines (summarized)",
     },
     {
@@ -55,11 +55,11 @@ async function main() {
       titleTw: "Aduane a ɛho hia wɔ nyinsen mu",
       titleEn: "Nutrition in pregnancy",
       bodyTw:
-        "Di aduane a ɛwɔ nneɛma pii: nnuaba, nkyene nsuo nnuane, protein (ɛmo, nam, beans), iron tablets sɛ oduruyɛfoɔ de ma wo. Nom nsuo pii.",
+        "Di aduane a ɛwɔ nneɛma pii: nnuaba, nkyene nsuo nnuane, protein (ɛmo, nam, beans), iron tablets sɛ oduruyɛfoɔ de ma wo. Nom nsuo pii. Mma nsa nni.",
       bodyEn:
-        "Eat diverse foods: fruits, vegetables, proteins (eggs, fish, beans), and take iron/folate as prescribed. Stay hydrated.",
+        "Eat diverse foods: fruits, vegetables, proteins (eggs, fish, beans), and take iron/folate as prescribed. Stay hydrated. Avoid alcohol.",
       category: "maternal",
-      tags: ["nutrition", "pregnancy", "aduane", "iron"],
+      tags: ["nutrition", "pregnancy", "aduane", "iron", "nyinsen"],
       source: "GAIN maternal health Q&A (summarized)",
     },
     {
@@ -67,11 +67,11 @@ async function main() {
       titleTw: "Afe ho akwankyerɛ",
       titleEn: "Basic fever guidance",
       bodyTw:
-        "Nom nsuo, hom, na sɛ afe no kɔ soro anaa ɛkɔ so nna pii a, kɔ clinic. Mma wo mfa aduro a wonnim.",
+        "Nom nsuo, hom, na sɛ afe no kɔ soro anaa ɛkɔ so nna pii a, kɔ clinic. Mma wo mfa aduro a wonnim. Wɔ Ghana, afe betumi ayɛ malaria — ma wɔhwɛ wo ntɛm sɛ ɛyɛ den.",
       bodyEn:
-        "Rest, hydrate, and seek clinic care if fever is high or lasts several days. Do not take unknown medicines.",
+        "Rest, hydrate, and seek clinic care if fever is high or lasts several days. Do not take unknown medicines. In Ghana, fever can be malaria — get checked promptly if it is severe.",
       category: "general",
-      tags: ["fever", "afe", "malaria"],
+      tags: ["fever", "afe", "malaria", "yare"],
       source: "General community health guidance",
     },
     {
@@ -79,12 +79,72 @@ async function main() {
       titleTw: "Awo akyi nsɛnkyerɛnne",
       titleEn: "Postpartum warning signs",
       bodyTw:
-        "Sɛ mogya sen dodo, ɔyare, anaa wo nte yie a, kɔ oduruyɛfoɔ hɔ. Fa wo ba kɔ weighing / immunization.",
+        "Sɛ mogya sen dodo, afe, anaa wo nte yie a, kɔ oduruyɛfoɔ hɔ. Fa wo ba kɔ weighing ne immunization. Community health worker betumi aboa wo wɔ fie.",
       bodyEn:
-        "Heavy bleeding, fever, or feeling very unwell after birth needs urgent care. Take the baby for weighing and immunizations.",
+        "Heavy bleeding, fever, or feeling very unwell after birth needs urgent care. Take the baby for weighing and immunizations. A community health worker can support you at home.",
       category: "maternal",
-      tags: ["postpartum", "awo", "bleeding"],
+      tags: ["postpartum", "awo", "bleeding", "mogya", "baby"],
       source: "GHS postpartum care (summarized)",
+    },
+    {
+      slug: "malaria-pregnancy",
+      titleTw: "Malaria ne nyinsen",
+      titleEn: "Malaria in pregnancy",
+      bodyTw:
+        "Sɛ wo wɔ nyinsen mu na wo wɔ afe, ahometew, anaa wo yafunu yɛ wo ya a, kɔ clinic ntɛm. Ma wɔyɛ malaria test. Fa mosquito net da. Mma wo mfa aduro a oduruyɛfoɔ amma wo.",
+      bodyEn:
+        "If you are pregnant and have fever, chills, or abdominal pain, go to a clinic promptly for a malaria test. Sleep under a mosquito net. Do not take unprescribed medicines.",
+      category: "maternal",
+      tags: ["malaria", "pregnancy", "nyinsen", "afe", "fever", "net"],
+      source: "GHS malaria in pregnancy (summarized)",
+    },
+    {
+      slug: "breastfeeding-start",
+      titleTw: "Nufu a wɔde ma akokoaa",
+      titleEn: "Starting breastfeeding",
+      bodyTw:
+        "Fa nufu ma wo ba ntɛm sɛ ɛbɛtumi. Nufu nkoaa yɛ ade pa mfe a edi kan. Sɛ wo yɛ den anaa mogya kɔ so a, kɔ clinic. Bisa community health worker sɛ ɛhia boa.",
+      bodyEn:
+        "Start breastfeeding as soon as possible after birth. Exclusive breastfeeding is recommended for the first months. If you feel very unwell or bleeding continues, go to a clinic. Ask a community health worker for support.",
+      category: "maternal",
+      tags: ["breastfeeding", "nufu", "baby", "awo", "postpartum"],
+      source: "WHO / GHS infant feeding (summarized)",
+    },
+    {
+      slug: "dehydration-ors",
+      titleTw: "Nsukyenee ne ORS",
+      titleEn: "Dehydration and ORS",
+      bodyTw:
+        "Sɛ wo yare a ɛma wo tutu anaa wo fe a, nom nsuo ne ORS sɛ wonya. Sɛ ɛyɛ den, wo yɛ mmerɛw, anaa wo nte yie a, kɔ clinic — titiriw sɛ wo wɔ nyinsen mu.",
+      bodyEn:
+        "If you have diarrhoea or vomiting, drink fluids and ORS if available. If symptoms are severe, you are weak, or you feel very unwell — especially in pregnancy — go to a clinic.",
+      category: "general",
+      tags: ["dehydration", "ors", "diarrhea", "vomiting", "nsu"],
+      source: "Community ORS guidance (summarized)",
+    },
+    {
+      slug: "headache-pregnancy",
+      titleTw: "Ti yaw wɔ nyinsen mu",
+      titleEn: "Headache in pregnancy",
+      bodyTw:
+        "Ti yaw ketewa betumi aba. Nanso sɛ ti yaw no yɛ den, ɛne ahonhon, anaa wo nte yie a, ɛyɛ danger sign — kɔ hospital ntɛm. Mma wo mfa aduro pii a wonnim.",
+      bodyEn:
+        "Mild headaches can occur. But severe headache with swelling or feeling very unwell can be a danger sign — go to hospital promptly. Do not take many unknown medicines.",
+      category: "maternal",
+      tags: ["headache", "ti", "pregnancy", "nyinsen", "danger"],
+      source: "GHS maternal danger signs (summarized)",
+    },
+    {
+      slug: "when-to-clinic",
+      titleTw: "Bere a ɛsɛ sɛ wokɔ clinic",
+      titleEn: "When to go to the clinic",
+      bodyTw:
+        "Kɔ clinic sɛ: afe kɔ so, ɛyɛ den, wo nte yie, wo wɔ nyinsen mu na biribi yɛ wo ya, anaa wo ho yɛ wo anika. Sɛ ɛyɛ emergency a, frɛ 112 anaa kɔ hospital.",
+      bodyEn:
+        "Go to a clinic if fever persists, pain is severe, you feel very unwell, you are pregnant and something hurts, or something feels wrong. For emergencies call 112 or go to hospital.",
+      category: "general",
+      tags: ["clinic", "hospital", "112", "emergency", "kɔ"],
+      source: "Community care pathways (summarized)",
     },
   ];
 

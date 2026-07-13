@@ -16,20 +16,20 @@ const body = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Ghana Health AI — Voice-first health companion",
+  title: "Ghana Health — Voice health companion",
   description:
-    "Twi-first maternal health guidance, voice chat, and market ecommerce for Ghana. Not a substitute for professional care.",
-  applicationName: "Ghana Health AI",
+    "Talk health in Twi. Maternal guidance, everyday questions, and market shopping for Ghana. Not a substitute for professional care.",
+  applicationName: "Ghana Health",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Ghana Health AI",
+    title: "Ghana Health",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0c1a14",
+  themeColor: "#071510",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
