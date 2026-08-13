@@ -1,12 +1,26 @@
 import { prisma } from "@/db/prisma";
 import { getSessionUser } from "@/lib/auth";
 import { isModalAsrConfigured, modalTranscribe } from "@/lib/modal-asr";
-import { isModalTtsConfigured, modalSpeak } from "@/lib/modal-tts";
-import { understandUtterance } from "@/lib/understand";
 import { jsonError, jsonOk } from "@/lib/api";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
-import { writeAudit } from "@/lib/audit";
 import type { LanguageCode } from "@prisma/client";
+import { runConversationTurn } from "@/lib/conversation-turn";
+
+function languageFromAsr(
+  asr: Awaited<ReturnType<typeof modalTranscribe>>,
+  fallback: LanguageCode,
+): LanguageCode {
+  const confidence = asr.language_probability;
+  if (typeof confidence === "number" && confidence > 0 && confidence < 0.55) {
+    return fallback;
+  }
+
+  const language = asr.language?.trim().toLowerCase().split(/[-_]/)[0] ?? "";
+  if (["en", "eng", "english"].includes(language)) return "en";
+  if (["tw", "twi", "ak", "aka", "akan"].includes(language)) return "tw";
+  if (["ga", "gaa"].includes(language)) return "ga";
+  return fallback;
+}
 
 /**
  * Real voice loop:
@@ -29,19 +43,27 @@ export async function POST(req: Request) {
     let language: LanguageCode = user?.preferredLang ?? "tw";
     let conversationId: string | undefined;
     let speak = true;
+    let focus: "health" | "commerce" | undefined;
+    let instruction: string | undefined;
 
     if (contentType.includes("multipart/form-data")) {
       const form = await req.formData();
       const file = form.get("audio");
       if (file instanceof Blob) audio = await file.arrayBuffer();
       const lang = form.get("language");
-      if (typeof lang === "string" && ["tw", "en", "ga", "ee", "dag"].includes(lang)) {
+      if (typeof lang === "string" && ["tw", "en", "ga"].includes(lang)) {
         language = lang as LanguageCode;
       }
       const cid = form.get("conversationId");
       if (typeof cid === "string" && cid) conversationId = cid;
       const sp = form.get("speak");
       if (sp === "false" || sp === "0") speak = false;
+      const focusValue = form.get("focus");
+      if (focusValue === "health" || focusValue === "commerce") focus = focusValue;
+      const instructionValue = form.get("instruction");
+      if (typeof instructionValue === "string" && instructionValue.trim()) {
+        instruction = instructionValue.slice(0, 240);
+      }
     } else {
       audio = await req.arrayBuffer();
     }
@@ -58,99 +80,35 @@ export async function POST(req: Request) {
     if (asr.error || !asr.text?.trim()) {
       return jsonError(asr.error || "Empty transcription", 422, { asr });
     }
+    const replyLanguage = languageFromAsr(asr, language);
 
-    // 2) Conversation history for understanding
-    let conversation = conversationId
-      ? await prisma.conversation.findUnique({ where: { id: conversationId } })
-      : null;
-
-    if (!conversation) {
-      conversation = await prisma.conversation.create({
-        data: {
-          userId: user?.id,
-          language,
-          channel: "VOICE",
-          title: asr.text.slice(0, 60),
-          intent: "UNKNOWN",
-        },
-      });
-    }
-
-    const prior = await prisma.message.findMany({
-      where: { conversationId: conversation.id },
-      orderBy: { createdAt: "asc" },
-      take: 12,
-    });
-
-    const history = prior.map((m) => ({
-      role: (m.role === "USER" ? "user" : "assistant") as "user" | "assistant",
-      content: m.content,
-    }));
-
-    await prisma.message.create({
-      data: {
-        conversationId: conversation.id,
-        role: "USER",
-        content: asr.text,
-        language,
-        speakerLabel: asr.speaker,
-        latencyMs: asr.latency_ms,
-        metadata: { model: asr.model, mode: "asr" },
-      },
-    });
-
-    // 3) Understand
-    const understanding = await understandUtterance({
+    const turn = await runConversationTurn({
+      user,
+      ip,
       text: asr.text,
-      language,
-      history,
-    });
-
-    await prisma.conversation.update({
-      where: { id: conversation.id },
-      data: { intent: understanding.intent, language },
-    });
-
-    const assistant = await prisma.message.create({
-      data: {
-        conversationId: conversation.id,
-        role: "ASSISTANT",
-        content: understanding.reply,
-        language,
-        intent: understanding.intent,
-        disclaimer: understanding.intent === "HEALTH",
-        latencyMs: Date.now() - started,
-        metadata: {
-          severity: understanding.severity,
-          escalate: understanding.escalate,
-          engine: understanding.engine,
-          asr_model: asr.model,
-        },
+      language: replyLanguage,
+      focus,
+      instruction,
+      conversationId,
+      channel: "VOICE",
+      speak,
+      transcript: {
+        mode: "asr",
+        model: asr.model,
+        latencyMs: asr.latency_ms,
+        speaker: asr.speaker,
+        language: asr.language,
+        languageProbability: asr.language_probability,
+        route: asr.route?.name,
+        duration: asr.duration,
+        rms: asr.rms,
       },
     });
-
-    // 4) TTS (optional)
-    let tts: {
-      audio_base64?: string;
-      sample_rate?: number;
-      format?: string;
-      model?: string;
-      latency_ms?: number;
-    } | null = null;
-
-    if (speak && isModalTtsConfigured()) {
-      try {
-        const ttsLang = language === "en" ? "en" : "tw";
-        tts = await modalSpeak(understanding.reply, ttsLang);
-      } catch (e) {
-        console.error("[tts]", e);
-      }
-    }
 
     await prisma.transcriptSession.create({
       data: {
         userId: user?.id,
-        language,
+        language: replyLanguage,
         rawText: asr.text,
         punctuated: asr.text,
         speakers: [{ label: asr.speaker, model: asr.model }],
@@ -160,52 +118,49 @@ export async function POST(req: Request) {
       },
     });
 
-    await writeAudit({
-      action: "voice.converse",
-      actorId: user?.id,
-      entityType: "conversation",
-      entityId: conversation.id,
-      ip,
-      meta: {
-        asr_model: asr.model,
-        understand: understanding.engine,
-        severity: understanding.severity,
-        tts: Boolean(tts && "audio_base64" in tts && tts.audio_base64),
-      },
-    });
-
     return jsonOk({
-      conversationId: conversation.id,
+      conversationId: turn.conversationId,
       asr: {
         text: asr.text,
         model: asr.model,
         latencyMs: asr.latency_ms,
         language: asr.language,
+        languageProbability: asr.language_probability,
+        route: asr.route?.name,
+        duration: asr.duration,
+        rms: asr.rms,
       },
       understanding: {
-        reply: understanding.reply,
-        intent: understanding.intent,
-        severity: understanding.severity,
-        escalate: understanding.escalate,
-        engine: understanding.engine,
+        reply: turn.reply,
+        intent: turn.understanding.intent,
+        severity: turn.understanding.severity,
+        escalate: turn.understanding.escalate,
+        engine: turn.understanding.engine,
+        health: turn.understanding.health ?? null,
+        commerce: turn.understanding.commerce ?? null,
+        commerceExecution: turn.commerceExecution ?? null,
+        review: turn.understanding.review ?? null,
+      },
+      userMessage: {
+        id: turn.userMessageId,
+        content: asr.text,
       },
       message: {
-        id: assistant.id,
-        content: understanding.reply,
+        id: turn.assistantId,
+        content: turn.reply,
       },
-      tts: tts?.audio_base64
-        ? {
-            audioBase64: tts.audio_base64,
-            sampleRate: tts.sample_rate,
-            format: tts.format || "wav",
-            model: tts.model,
-            latencyMs: tts.latency_ms,
-          }
-        : null,
+      tts: turn.tts,
+      stage: turn.stage,
       totalLatencyMs: Date.now() - started,
     });
   } catch (e) {
     console.error("[voice/converse]", e);
+    if (
+      e instanceof Error &&
+      (e.message.includes("ECONNREFUSED") || e.message.includes("Can't reach database"))
+    ) {
+      return jsonError("Service is starting — database is not reachable yet", 503);
+    }
     return jsonError(e instanceof Error ? e.message : "Converse failed", 500);
   }
 }

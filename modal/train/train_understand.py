@@ -1,29 +1,32 @@
 """
-Fine-tune / SFT the understanding model for Twi–English health chat.
+Twi understand SFT — research path.
 
-  1. Build JSONL: {"messages":[{"role":"system","content":...},{"role":"user"...},{"role":"assistant"...}]}
-  2. Push as HF dataset or mount on Modal volume
-  3. Run LoRA SFT on Llama-3.1-8B or Qwen2.5-7B
+Data sources (priority):
+  1. --dataset HF chat JSONL (messages column)
+  2. --use-ghananlp-parallel → Ghana-NLP/TWI_ENGLISH_PARALLEL_TEXT
+     converted to Twi-first health-style chat turns
 
-  modal run modal/train/train_understand.py --smoke
-  modal run modal/train/train_understand.py \\
-    --dataset teckedd/gha-health-sft-v1 \\
-    --base-model meta-llama/Meta-Llama-3.1-8B-Instruct \\
-    --max-steps 500 \\
+  modal run modal/train/train_understand.py --use-ghananlp-parallel --smoke
+  modal run --detach modal/train/train_understand.py \\
+    --use-ghananlp-parallel --max-steps 500 \\
     --push-repo teckedd/gha-understand-twi-v1
 
-Until a dataset exists, this prints the data contract and exits cleanly.
+Language policy: assistant replies in Twi by default.
+English assistant rows only for explicit English preference training (~15%).
 """
 
 from __future__ import annotations
 
 import os
+import random
 from typing import Any, Optional
 
 import modal
 
 app = modal.App("ghana-health-understand-train")
 vol = modal.Volume.from_name("ghana-health-understand-train", create_if_missing=True)
+
+_TRAIN_DIR = os.path.dirname(os.path.abspath(__file__))
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -37,6 +40,10 @@ image = (
         "bitsandbytes==0.44.1",
         "huggingface_hub==0.26.2",
     )
+    .add_local_file(
+        local_path=os.path.join(_TRAIN_DIR, "model_card.py"),
+        remote_path="/root/gha_train/model_card.py",
+    )
 )
 
 try:
@@ -45,31 +52,67 @@ except Exception:  # noqa: BLE001
     SECRETS = []
 
 
-DATA_CONTRACT = {
-    "format": "chat messages JSONL or HF dataset with `messages` column",
-    "example": {
+SYSTEM_TWI = (
+    "Wo yɛ Ghana Health AI. Ka Twi. English only if user prefers English. "
+    "Nnyɛ oduruyɛfoɔ. No bare CHW/ANC."
+)
+SYSTEM_EN = (
+    "You are Ghana Health AI. User prefers English. "
+    "Not a doctor. Expand acronyms. Short spoken answers."
+)
+
+
+def _parallel_to_messages(row: dict[str, Any], rng: random.Random) -> dict[str, Any] | None:
+    """Map GhanaNLP parallel row → chat messages. Prefer Twi as assistant language."""
+    # Common column names across Ghana-NLP parallel releases
+    tw = None
+    en = None
+    for k, v in row.items():
+        kl = k.lower()
+        if v is None:
+            continue
+        s = str(v).strip()
+        if not s:
+            continue
+        if kl in ("twi", "tw", "aka", "asante", "akuapem", "target", "translation") or "twi" in kl:
+            tw = s
+        if kl in ("english", "en", "source", "eng") or kl.startswith("en"):
+            en = s
+    # fallback: first two string columns
+    if not tw or not en:
+        strs = [str(v).strip() for v in row.values() if isinstance(v, str) and str(v).strip()]
+        if len(strs) >= 2:
+            en, tw = strs[0], strs[1]
+
+    if not tw:
+        return None
+
+    # ~85% Twi path: user may speak EN or Twi, assistant answers Twi
+    prefer_en = rng.random() < 0.15 and bool(en)
+    if prefer_en:
+        user = en or tw
+        assistant = en
+        system = SYSTEM_EN
+        lang = "en"
+    else:
+        # User utters Twi (or English question); assistant Twi
+        if en and rng.random() < 0.35:
+            user = en  # code-mix / EN user still gets Twi answer
+        else:
+            user = tw
+        assistant = tw
+        system = SYSTEM_TWI
+        lang = "tw"
+
+    return {
         "messages": [
-            {
-                "role": "system",
-                "content": "You are Ghana Health AI. Reply in the user's language. Never use bare CHW.",
-            },
-            {"role": "user", "content": "Me ti yɛ me ya na me wɔ nyinsen"},
-            {
-                "role": "assistant",
-                "content": (
-                    "Mede asɛm no ate. Ti yaw wɔ nyinsen mu betumi ayɛ den — "
-                    "sɛ ɛyɛ den anaa wowɔ fever a, kɔ clinic anaa community health worker hɔ ntɛm."
-                ),
-            },
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+            {"role": "assistant", "content": assistant},
         ],
-        "intent": "HEALTH",
-        "language": "tw",
-        "severity": "MEDIUM",
-    },
-    "min_rows_for_lora": 500,
-    "target_rows": 2000,
-    "eval": "100 fixed scenarios: danger, market, nonsense ASR, mixed Twi-EN",
-}
+        "language": lang,
+        "source": "ghananlp_parallel",
+    }
 
 
 @app.function(
@@ -80,52 +123,108 @@ DATA_CONTRACT = {
     secrets=SECRETS,
 )
 def train(
-    base_model: str = "meta-llama/Meta-Llama-3.1-8B-Instruct",
+    base_model: str = "Qwen/Qwen2.5-1.5B-Instruct",
     dataset_name: str = "",
+    use_ghananlp_parallel: bool = False,
     max_steps: int = 500,
     learning_rate: float = 2e-4,
     push_repo: Optional[str] = None,
     smoke: bool = False,
 ) -> dict[str, Any]:
-    if not dataset_name:
-        return {
-            "status": "awaiting_data",
-            "message": "Build SFT dataset first (GAIN cleaned + clinician filter).",
-            "data_contract": DATA_CONTRACT,
-            "base_model": base_model,
-        }
-
-    # Full TRL SFTTrainer loop — enabled when dataset is present
-    from datasets import load_dataset
-    from peft import LoraConfig
-    from transformers import AutoModelForCausalLM, AutoTokenizer
-    from trl import SFTTrainer, SFTConfig
-
     token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
     cache = "/data/hf"
     out_dir = f"/data/sft/{base_model.replace('/', '_')}"
     os.makedirs(out_dir, exist_ok=True)
 
     if smoke:
-        max_steps = min(max_steps, 10)
+        max_steps = min(max_steps, 15)
 
-    ds = load_dataset(dataset_name, token=token, cache_dir=cache)
-    split = "train" if "train" in ds else list(ds.keys())[0]
-    train_ds = ds[split]
+    from datasets import Dataset, load_dataset
+
+    rows: list[dict[str, Any]] = []
+    source = dataset_name or "none"
+
+    if use_ghananlp_parallel or not dataset_name:
+        # Research default: Ghana-NLP Twi↔EN parallel
+        pname = "Ghana-NLP/TWI_ENGLISH_PARALLEL_TEXT"
+        try:
+            raw = load_dataset(pname, token=token, cache_dir=cache)
+            split = "train" if "train" in raw else list(raw.keys())[0]
+            rng = random.Random(42)
+            for row in raw[split]:
+                m = _parallel_to_messages(dict(row), rng)
+                if m:
+                    rows.append(m)
+            source = pname
+        except Exception as exc:  # noqa: BLE001
+            if not dataset_name:
+                return {
+                    "status": "error",
+                    "message": f"Failed to load GhanaNLP parallel: {exc}",
+                    "hint": "Pass --dataset with messages JSONL or fix HF token",
+                }
+
+    if dataset_name:
+        ds = load_dataset(dataset_name, token=token, cache_dir=cache)
+        split = "train" if "train" in ds else list(ds.keys())[0]
+        for row in ds[split]:
+            if "messages" in row:
+                rows.append({"messages": row["messages"]})
+            else:
+                rng = random.Random(hash(str(row)) % 10_000)
+                m = _parallel_to_messages(dict(row), rng)
+                if m:
+                    rows.append(m)
+        source = f"{source}+{dataset_name}" if source != "none" else dataset_name
+
+    if len(rows) < 8:
+        return {
+            "status": "awaiting_data",
+            "message": "Need chat messages or GhanaNLP parallel rows",
+            "n": len(rows),
+            "research": "docs/research-stack.md",
+        }
+
     if smoke:
-        train_ds = train_ds.select(range(min(8, len(train_ds))))
+        rows = rows[:24]
 
-    tokenizer = AutoTokenizer.from_pretrained(base_model, token=token, cache_dir=cache)
+    train_ds = Dataset.from_list(rows)
+
+    from peft import LoraConfig
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from trl import SFTConfig, SFTTrainer
+
+    # Public models often fail with a restricted/expired HF token on Xet CDN (403).
+    # Prefer anonymous download for open bases; only pass token when needed.
+    def _load_kwargs():
+        kw: dict[str, Any] = {"cache_dir": cache}
+        if token:
+            kw["token"] = token
+        return kw
+
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(base_model, **_load_kwargs())
+    except Exception:
+        tokenizer = AutoTokenizer.from_pretrained(base_model, cache_dir=cache, token=None)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    model = AutoModelForCausalLM.from_pretrained(
-        base_model,
-        token=token,
-        cache_dir=cache,
-        torch_dtype="auto",
-        device_map="auto",
-    )
+    try:
+        model = AutoModelForCausalLM.from_pretrained(
+            base_model,
+            torch_dtype="auto",
+            device_map="auto",
+            **_load_kwargs(),
+        )
+    except Exception as first_exc:  # noqa: BLE001
+        print(f"[understand-train] load with token failed: {first_exc}; retry anonymous")
+        model = AutoModelForCausalLM.from_pretrained(
+            base_model,
+            cache_dir=cache,
+            torch_dtype="auto",
+            device_map="auto",
+            token=None,
+        )
 
     peft_config = LoraConfig(
         r=16,
@@ -162,20 +261,51 @@ def train(
     tokenizer.save_pretrained(out_dir)
     vol.commit()
 
+    hub_status = None
+    if push_repo and not smoke and token:
+        try:
+            import sys
+
+            sys.path.insert(0, "/root/gha_train")
+            from model_card import write_and_push_model_card  # type: ignore
+
+            write_and_push_model_card(
+                push_repo,
+                task="text-generation",
+                language=["tw", "ak", "en"],
+                base_model=base_model,
+                datasets=[source],
+                metrics={"n_train": len(train_ds), "max_steps": max_steps},
+                summary=(
+                    "Twi-first health/dialogue LoRA for Ghana Health AI. "
+                    "Trained from Ghana-NLP parallel (+ optional SFT). "
+                    "English assistant only on preference rows."
+                ),
+                tags=["lora", "sft", "twi", "ghana-nlp"],
+                pipeline_tag="text-generation",
+                token=token,
+            )
+            hub_status = f"pushed:{push_repo}+card"
+        except Exception as exc:  # noqa: BLE001
+            hub_status = f"push_failed:{exc}"
+
     return {
         "status": "ok",
-        "output_dir": out_dir,
-        "base_model": base_model,
+        "source": source,
         "n_train": len(train_ds),
+        "base_model": base_model,
+        "output_dir": out_dir,
         "push_repo": push_repo,
-        "max_steps": max_steps,
+        "hub": hub_status,
+        "research": "docs/research-stack.md",
     }
 
 
 @app.local_entrypoint()
 def main(
     dataset: str = "",
-    base_model: str = "meta-llama/Meta-Llama-3.1-8B-Instruct",
+    use_ghananlp_parallel: bool = True,
+    base_model: str = "Qwen/Qwen2.5-1.5B-Instruct",
     smoke: bool = False,
     push_repo: str = "",
     max_steps: int = 500,
@@ -183,6 +313,7 @@ def main(
     print(
         train.remote(
             dataset_name=dataset,
+            use_ghananlp_parallel=use_ghananlp_parallel,
             base_model=base_model,
             smoke=smoke,
             push_repo=push_repo or None,

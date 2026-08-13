@@ -24,6 +24,8 @@ import modal
 app = modal.App("ghana-health-tts-train")
 vol = modal.Volume.from_name("ghana-health-tts-train", create_if_missing=True)
 
+_TRAIN_DIR = os.path.dirname(os.path.abspath(__file__))
+
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("libsndfile1", "ffmpeg")
@@ -36,6 +38,10 @@ image = (
         "librosa==0.10.2.post1",
         "huggingface_hub==0.26.2",
         "numpy<2.3",
+    )
+    .add_local_file(
+        local_path=os.path.join(_TRAIN_DIR, "model_card.py"),
+        remote_path="/root/gha_train/model_card.py",
     )
 )
 
@@ -110,6 +116,41 @@ def train(
     tokenizer.save_pretrained(out_dir)
     vol.commit()
 
+    hub_status = None
+    if push_repo and not smoke and token:
+        try:
+            import sys
+
+            model.push_to_hub(push_repo, token=token, private=False)
+            tokenizer.push_to_hub(push_repo, token=token, private=False)
+            sys.path.insert(0, "/root/gha_train")
+            from model_card import write_and_push_model_card  # type: ignore
+
+            write_and_push_model_card(
+                push_repo,
+                task="text-to-speech",
+                language=["tw", "ak"],
+                base_model=base_model,
+                datasets=[dataset_name] if dataset_name else [],
+                metrics={"n_train": len(train_ds)},
+                summary=(
+                    "Twi/Akan MMS-VITS TTS checkpoint for Ghana Health AI. "
+                    "Promote only after blind A/B vs facebook/mms-tts-aka."
+                ),
+                extra_markdown="""
+## Serving
+
+Point `TTS_MODEL_ID` in `modal/tts_service.py` at this repo after A/B wins.
+""",
+                tags=["tts", "vits", "mms"],
+                pipeline_tag="text-to-speech",
+                token=token,
+            )
+            hub_status = f"pushed:{push_repo}+card"
+        except Exception as exc:  # noqa: BLE001
+            hub_status = f"push_failed:{exc}"
+            print(f"[tts-train] hub push failed: {exc}")
+
     return {
         "status": "data_validated_checkpoint_copied",
         "message": (
@@ -121,6 +162,7 @@ def train(
         "output_dir": out_dir,
         "base_model": base_model,
         "push_repo": push_repo,
+        "hub": hub_status,
         "max_steps_requested": max_steps,
         "learning_rate": learning_rate,
     }

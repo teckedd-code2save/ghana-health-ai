@@ -1,48 +1,52 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HeartPulse, MessageCircle, ShoppingBag, Mic, Home, LogIn } from "lucide-react";
+import { HeartPulse, History, Languages, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLang, type AppLang } from "@/components/lang-provider";
 
-const nav = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/chat", label: "Chat", icon: MessageCircle },
-  { href: "/voice", label: "Voice", icon: Mic },
-  { href: "/market", label: "Market", icon: ShoppingBag },
-  { href: "/login", label: "Account", icon: LogIn },
+const menu = [
+  { href: "/chat", label: "Sessions", icon: History },
+  { href: "/login", label: "Account", icon: User },
 ];
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { lang, setLang, labels } = useLang();
+  const [open, setOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="relative flex min-h-screen flex-col overflow-hidden">
       <div className="kente-bar" />
-      <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0c1a14]/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link href="/" className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--teal)] text-[#062419] shadow-lg shadow-emerald-900/40">
-              <HeartPulse className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="font-[family-name:var(--font-display)] text-lg leading-none tracking-tight">
-                Ghana Health AI
-              </p>
-              <p className="text-xs text-[var(--fg-muted)]">Voice-first · {labels[lang]}</p>
-            </div>
-          </Link>
-          <div className="flex items-center gap-2">
-            <label className="sr-only" htmlFor="lang">
-              Language
-            </label>
+
+      <Link href="/" className="app-mark" aria-label="Ghana Health home">
+        <HeartPulse className="h-4 w-4" />
+      </Link>
+
+      <div className={cn("app-menu", open && "app-menu--open")}>
+        <button
+          type="button"
+          className="app-menu__button"
+          aria-label="Open settings and sessions"
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
+        >
+          <span className="app-menu__glyph" aria-hidden>
+            <span />
+            <span />
+            <span />
+          </span>
+        </button>
+
+        <div className="app-menu__panel">
+          <div className="app-menu__language">
+            <Languages className="h-4 w-4 shrink-0" />
             <select
-              id="lang"
               value={lang}
               onChange={(e) => setLang(e.target.value as AppLang)}
-              className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1.5 text-xs text-[var(--fg-muted)] outline-none focus:ring-1 focus:ring-[var(--accent)]"
+              aria-label="Language"
             >
               {(Object.keys(labels) as AppLang[]).map((code) => (
                 <option key={code} value={code}>
@@ -50,54 +54,31 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 </option>
               ))}
             </select>
-            <nav className="hidden items-center gap-1 md:flex">
-              {nav.map((item) => {
-                const active = pathname === item.href;
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      "inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm transition",
-                      active
-                        ? "bg-[var(--accent)] text-[#1a1400] font-medium"
-                        : "text-[var(--fg-muted)] hover:bg-white/5 hover:text-white",
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
           </div>
-        </div>
-      </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-24 md:pb-8">{children}</main>
-
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/5 bg-[#0c1a14]/95 backdrop-blur-md md:hidden">
-        <div className="mx-auto grid max-w-lg grid-cols-5 gap-1 px-2 py-2">
-          {nav.map((item) => {
-            const active = pathname === item.href;
+          {menu.map((item) => {
             const Icon = item.icon;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px]",
-                  active ? "text-[var(--accent)]" : "text-[var(--fg-muted)]",
+                  "app-menu__item",
+                  pathname === item.href && "app-menu__item--active",
                 )}
+                onClick={() => setOpen(false)}
               >
-                <Icon className="h-5 w-5" />
-                {item.label}
+                <Icon className="h-4 w-4 shrink-0" />
+                <span>{item.label}</span>
               </Link>
             );
           })}
         </div>
-      </nav>
+      </div>
+
+      <main className="relative z-10 flex min-h-[calc(100vh-3px)] w-full flex-1 px-4 py-5 pb-[calc(1.25rem+var(--safe-bottom))] md:px-8 md:py-8">
+        {children}
+      </main>
     </div>
   );
 }

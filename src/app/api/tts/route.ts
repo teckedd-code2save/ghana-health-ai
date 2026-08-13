@@ -5,7 +5,7 @@ import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 const schema = z.object({
   text: z.string().min(1).max(2000),
-  language: z.enum(["tw", "en", "ga", "ee", "dag"]).optional(),
+  language: z.enum(["tw", "en", "ga"]).optional(),
 });
 
 export async function POST(req: Request) {

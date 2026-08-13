@@ -1,4 +1,4 @@
-"""Push complete Whisper checkpoint (model + processor) to HF hub."""
+"""Push complete Whisper checkpoint (model + processor) + model card to HF hub."""
 
 from __future__ import annotations
 
@@ -10,6 +10,8 @@ app = modal.App("gha-repair-v3")
 hf_cache = modal.Volume.from_name("akan-speech-hf-cache")
 ckpt_vol = modal.Volume.from_name("akan-speech-checkpoints")
 
+_TRAIN_DIR = os.path.dirname(os.path.abspath(__file__))
+
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .pip_install(
@@ -18,6 +20,10 @@ image = (
         "huggingface_hub==0.26.2",
         "safetensors",
         "numpy<2.3",
+    )
+    .add_local_file(
+        local_path=os.path.join(_TRAIN_DIR, "model_card.py"),
+        remote_path="/root/gha_train/model_card.py",
     )
 )
 
@@ -38,7 +44,11 @@ def repair(
     local_dir: str = "/checkpoints/gha-asr/teckedd_whisper-small-waxal-round2-specaug-v1_steps1500",
     base_processor: str = "teckedd/whisper-small-waxal-round2-specaug-v1",
     repo: str = "teckedd/gha-whisper-small-twi-v3",
+    base_model: str = "openai/whisper-small",
+    summary: str = "Twi Whisper checkpoint repaired for Ghana Health AI (weights + processor).",
 ):
+    import sys
+
     from transformers import WhisperForConditionalGeneration, WhisperProcessor
 
     token = (
@@ -61,7 +71,22 @@ def repair(
 
     model.push_to_hub(repo, token=token)
     processor.push_to_hub(repo, token=token)
-    return {"status": "ok", "repo": repo, "local_dir": local_dir}
+
+    sys.path.insert(0, "/root/gha_train")
+    from model_card import write_and_push_model_card  # type: ignore
+
+    write_and_push_model_card(
+        repo,
+        task="automatic-speech-recognition",
+        language=["tw", "ak"],
+        base_model=base_model,
+        datasets=["google/WaxalNLP"],
+        summary=summary,
+        tags=["whisper", "asr", "speech-recognition"],
+        pipeline_tag="automatic-speech-recognition",
+        token=token,
+    )
+    return {"status": "ok", "repo": repo, "local_dir": local_dir, "card": True}
 
 
 @app.local_entrypoint()

@@ -122,11 +122,15 @@ jobs:
         run: |
           set -e
           for i in 1 2 3 4 5; do
-            if curl -sf -o /dev/null -w "%{http_code}" "https://ghanahealth.serendepify.com/" | grep -q "200"; then
+            HOME_STATUS="$(curl -sf -o /dev/null -w "%{http_code}" "https://ghanahealth.serendepify.com/" || true)"
+            READY_JSON="$(curl -sf "https://ghanahealth.serendepify.com/api/readiness" || true)"
+            if [ "$HOME_STATUS" = "200" ] && echo "$READY_JSON" | grep -q '"ok":true'; then
               echo "Smoke test passed"
               exit 0
             fi
             echo "Attempt $i failed, retrying in 5s..."
+            echo "home status: ${HOME_STATUS:-none}"
+            echo "readiness: ${READY_JSON:-none}"
             sleep 5
           done
           echo "Smoke test failed after 5 attempts"

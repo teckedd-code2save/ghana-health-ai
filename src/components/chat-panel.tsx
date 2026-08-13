@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, RotateCcw, Send, X } from "lucide-react";
+import { Send } from "lucide-react";
 import { useLang } from "@/components/lang-provider";
 import { enqueueOffline } from "@/lib/offline-queue";
 import { recordUntilSilence } from "@/lib/browser-audio";
@@ -11,9 +11,99 @@ type ChatMessage = {
   id: string;
   role: "USER" | "ASSISTANT" | "SYSTEM" | "local-user" | "local-assistant";
   content: string;
-  intent?: string;
   phase?: "heard" | "status" | "error";
+  meta?: {
+    intent?: string;
+    engine?: string;
+    retrieve?: string;
+    reviewed?: boolean;
+    latencyMs?: number;
+  };
 };
+
+type StreamEvent = {
+  event: string;
+  data: unknown;
+};
+
+type ChatTurnData = {
+  conversationId?: string;
+  message?: {
+    id?: string;
+    content?: string;
+  };
+  understanding?: {
+    reply?: string;
+    intent?: string;
+    engine?: string;
+  };
+  tts?: {
+    audioBase64?: string;
+  } | null;
+  stage?: {
+    retrieveEngine?: string;
+    review?: boolean;
+    totalLatencyMs?: number;
+  };
+  error?: string;
+};
+
+function pipelineLabel(name?: string, detail?: string) {
+  if (name === "accepted") return "Accepted";
+  if (name === "conversation") return "Conversation";
+  if (name === "user_message") return "Saved";
+  if (name === "understanding") {
+    if (detail && detail !== "started") return `Retrieved with ${detail}`;
+    return "Retrieving";
+  }
+  if (name === "assistant_message") return "Reviewed by model";
+  if (name === "tts") return detail === "started" ? "Voice output" : "Speech ready";
+  if (name === "audit") return "Answered";
+  return name || "Working";
+}
+
+async function readChatStream(
+  res: Response,
+  onStage: (stage: { name?: string; detail?: string }) => void,
+  onReplyDelta: (chunk: string) => void,
+): Promise<ChatTurnData> {
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error("No response stream");
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finalData: ChatTurnData | null = null;
+
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop() ?? "";
+    for (const part of parts) {
+      const eventLine = part.split("\n").find((line) => line.startsWith("event:"));
+      const dataLine = part.split("\n").find((line) => line.startsWith("data:"));
+      if (!eventLine || !dataLine) continue;
+      const parsed: StreamEvent = {
+        event: eventLine.slice("event:".length).trim(),
+        data: JSON.parse(dataLine.slice("data:".length).trim()),
+      };
+      if (parsed.event === "stage") {
+        onStage(parsed.data as { name?: string; detail?: string });
+      } else if (parsed.event === "reply_delta") {
+        const delta = parsed.data as { chunk?: string };
+        if (delta.chunk) onReplyDelta(delta.chunk);
+      } else if (parsed.event === "error") {
+        const err = parsed.data as { error?: string };
+        throw new Error(err.error || "Chat failed");
+      } else if (parsed.event === "final") {
+        finalData = parsed.data as ChatTurnData;
+      }
+    }
+  }
+
+  if (!finalData) throw new Error("No model response");
+  return finalData;
+}
 
 export function ChatPanel() {
   const { lang } = useLang();
@@ -25,8 +115,8 @@ export function ChatPanel() {
   const [speaking, setSpeaking] = useState(false);
   const [level, setLevel] = useState(0);
   const [vadState, setVadState] = useState<string | null>(null);
+  const [pipeline, setPipeline] = useState<string[]>([]);
   const [online, setOnline] = useState(true);
-  const [pendingTranscript, setPendingTranscript] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -40,7 +130,7 @@ export function ChatPanel() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading, pendingTranscript, speaking]);
+  }, [messages, loading, speaking]);
 
   useEffect(() => {
     const sync = () => setOnline(navigator.onLine);
@@ -67,12 +157,12 @@ export function ChatPanel() {
     const trimmed = text.trim();
     if (!trimmed || loading || recording) return;
     setInput("");
-    setPendingTranscript(null);
     setMessages((m) => [
-      ...m.filter((x) => x.phase !== "heard" && x.phase !== "status"),
+      ...m.filter((x) => x.phase !== "status"),
       { id: crypto.randomUUID(), role: "local-user", content: trimmed },
     ]);
     setLoading(true);
+    setPipeline(["Sending", "Retrieving", "Reviewing"]);
     const payload = { message: trimmed, conversationId, language: lang };
     try {
       if (!navigator.onLine) {
@@ -82,30 +172,71 @@ export function ChatPanel() {
           {
             id: crypto.randomUUID(),
             role: "local-assistant",
-            content: "Offline — message queued.",
+            content: "You’re offline — we’ll send this when you’re back.",
             phase: "status",
           },
         ]);
         return;
       }
-      const res = await fetch("/api/chat", {
+      const res = await fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...payload, speak: true }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Chat failed");
+      if (!res.ok) throw new Error("Couldn’t start live turn");
+      const assistantDraftId = crypto.randomUUID();
+      const data = await readChatStream(res, (stage) => {
+          setPipeline((steps) => {
+            const next = pipelineLabel(stage.name, stage.detail);
+            return steps[steps.length - 1] === next ? steps : [...steps.slice(-4), next];
+          });
+      }, (chunk) => {
+        setMessages((m) => {
+          const existing = m.find((msg) => msg.id === assistantDraftId);
+          if (existing) {
+            return m.map((msg) =>
+              msg.id === assistantDraftId
+                ? { ...msg, content: `${msg.content}${chunk}` }
+                : msg,
+            );
+          }
+          return [
+            ...m,
+            {
+              id: assistantDraftId,
+              role: "ASSISTANT",
+              content: chunk,
+            },
+          ];
+        });
+      });
+      const messageId = data.message?.id ?? crypto.randomUUID();
+      const messageContent = data.message?.content ?? data.understanding?.reply ?? "";
+      if (!messageContent.trim()) throw new Error("No model response");
       setConversationId(data.conversationId);
-      setMessages((m) => [
-        ...m,
-        {
-          id: data.message.id,
+      setMessages((m) => {
+        const finalMessage: ChatMessage = {
+          id: messageId,
           role: "ASSISTANT",
-          content: data.message.content,
-          intent: data.message.intent,
-        },
-      ]);
+          content: messageContent,
+          meta: {
+            intent: data.understanding?.intent,
+            engine: data.understanding?.engine,
+            retrieve: data.stage?.retrieveEngine,
+            reviewed: data.stage?.review,
+            latencyMs: data.stage?.totalLatencyMs,
+          },
+        };
+        return m.some((msg) => msg.id === assistantDraftId)
+          ? m.map((msg) => (msg.id === assistantDraftId ? finalMessage : msg))
+          : [...m, finalMessage];
+      });
       if (data.tts?.audioBase64) playTts(data.tts.audioBase64);
+      setPipeline([
+        `Retrieved with ${data.stage?.retrieveEngine || "model context"}`,
+        data.stage?.review ? "Reviewed by model" : "Model review",
+        data.tts?.audioBase64 ? "Speaking" : "Answered",
+      ]);
     } catch (e) {
       enqueueOffline("chat", payload);
       setMessages((m) => [
@@ -117,6 +248,7 @@ export function ChatPanel() {
           phase: "error",
         },
       ]);
+      setPipeline([]);
     } finally {
       setLoading(false);
     }
@@ -124,9 +256,9 @@ export function ChatPanel() {
 
   async function startMic() {
     if (loading || speaking) return;
-    setPendingTranscript(null);
     setRecording(true);
     setVadState("listening");
+    setPipeline(["Listening"]);
     try {
       const { blob, durationMs, peakLevel } = await recordUntilSilence({
         silenceMs: 1100,
@@ -138,44 +270,59 @@ export function ChatPanel() {
       setRecording(false);
       setVadState(null);
       setLevel(0);
+      setPipeline(["Heard speech", "Transcribing"]);
 
       if (blob.size < 400 || peakLevel < 0.01) {
-        throw new Error("Too quiet — move closer to the mic");
+        throw new Error("A bit quiet — try again closer");
       }
-      if (durationMs < 400) throw new Error("Too short — try again");
+      if (durationMs < 400) throw new Error("That was too short — try again");
 
       setLoading(true);
       const form = new FormData();
       form.append("audio", blob, "chat-utterance.webm");
       form.append("language", lang);
 
-      const res = await fetch("/api/voice/transcribe", { method: "POST", body: form });
+      if (conversationId) form.append("conversationId", conversationId);
+      form.append("speak", "true");
+
+      const res = await fetch("/api/voice/converse", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok) {
-        const err = data.error || "Transcription failed";
-        throw new Error(
-          err === "audio_too_quiet_or_silent"
-            ? "Too quiet — try again"
-            : err === "asr_hallucination_or_noise"
-              ? "Couldn’t catch that — try once more"
-              : String(err),
-        );
+        throw new Error(data.error || "Voice turn failed");
       }
 
-      const text = (data.transcript?.text as string | undefined)?.trim();
+      const text = (data.asr?.text as string | undefined)?.trim();
       if (!text) throw new Error("No speech heard — try again");
 
-      setPendingTranscript(text);
-      setInput(text);
+      setConversationId(data.conversationId);
+      setInput("");
+      setPipeline([
+        "Transcribed",
+        `Retrieved with ${data.stage?.retrieveEngine || "model context"}`,
+        data.stage?.review ? "Reviewed by model" : "Model review",
+        data.tts?.audioBase64 ? "Speaking" : "Answered",
+      ]);
       setMessages((m) => [
-        ...m.filter((x) => x.phase !== "heard"),
+        ...m,
         {
           id: crypto.randomUUID(),
-          role: "local-assistant",
+          role: "local-user",
           content: text,
-          phase: "heard",
+        },
+        {
+          id: data.message?.id ?? crypto.randomUUID(),
+          role: "ASSISTANT",
+          content: data.message?.content ?? data.understanding?.reply ?? "",
+          meta: {
+            intent: data.understanding?.intent,
+            engine: data.understanding?.engine,
+            retrieve: data.stage?.retrieveEngine,
+            reviewed: data.stage?.review,
+            latencyMs: data.stage?.totalLatencyMs ?? data.totalLatencyMs,
+          },
         },
       ]);
+      if (data.tts?.audioBase64) playTts(data.tts.audioBase64);
     } catch (e) {
       setMessages((m) => [
         ...m,
@@ -186,6 +333,7 @@ export function ChatPanel() {
           phase: "error",
         },
       ]);
+      setPipeline([]);
     } finally {
       setLoading(false);
       setRecording(false);
@@ -195,81 +343,82 @@ export function ChatPanel() {
   }
 
   return (
-    <div className="glass flex h-[min(78vh,760px)] flex-col overflow-hidden rounded-[calc(var(--radius)+4px)]">
-      {/* Presence header */}
-      <div className="flex flex-col items-center gap-2 border-b border-white/5 px-4 py-5">
+    <div className="fade-up surface flex h-[min(78vh,720px)] flex-col overflow-hidden rounded-[calc(var(--radius)+6px)]">
+      <div className="flex flex-col items-center gap-3 border-b border-white/[0.05] px-4 py-6">
         <VoiceOrb
           mode={orbMode}
           level={level}
-          size="lg"
+          size="md"
           disabled={loading && !recording}
           onClick={() => {
             if (!recording && !loading && !speaking) void startMic();
           }}
           label={modeLabel(orbMode, vadState)}
         />
-        <div className="flex items-center gap-2">
-          <span
-            className={
-              recording
-                ? "status-chip status-chip--live"
-                : speaking
-                  ? "status-chip status-chip--speak"
-                  : "status-chip"
-            }
-          >
-            {recording
-              ? "Listening"
+        <span
+          className={
+            recording
+              ? "status-dot status-dot--live"
               : speaking
-                ? "Speaking"
-                : loading
-                  ? "Thinking"
-                  : online
-                    ? "Ready"
-                    : "Offline"}
-          </span>
-          <span className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)]">
-            {lang}
-          </span>
-        </div>
+                ? "status-dot status-dot--speak"
+                : "status-dot status-dot--ok"
+          }
+        >
+          {recording
+            ? "Listening"
+            : speaking
+              ? "Speaking"
+              : loading
+                ? "Thinking"
+                : online
+                  ? "Ready"
+                  : "Offline"}
+        </span>
       </div>
 
-      {/* Thread */}
-      <div className="chat-scroll flex-1 space-y-3 overflow-y-auto px-4 py-4">
-        {messages.length === 0 && (
-          <p className="mx-auto max-w-sm text-center text-sm text-[var(--fg-muted)]">
-            Tap the mic, speak, pause when done. We show what we heard — then answer.
-          </p>
-        )}
+      {pipeline.length > 0 && (
+        <div className="border-b border-white/[0.05] px-4 py-2">
+          <div className="flex flex-wrap justify-center gap-1.5 text-[10px] uppercase tracking-wide text-[var(--fg-subtle)]">
+            {pipeline.map((step, index) => (
+              <span
+                key={`${step}-${index}`}
+                className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-1"
+              >
+                {step}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="chat-scroll flex-1 space-y-3 overflow-y-auto px-4 py-5">
         {messages.map((m) => {
           const isUser = m.role === "USER" || m.role === "local-user";
-          const isHeard = m.phase === "heard";
           return (
             <div
               key={m.id}
-              className={`flex ${isUser || isHeard ? "justify-end" : "justify-start"}`}
+              className={`flex ${isUser ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                className={`max-w-[88%] rounded-[1.15rem] px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
                   isUser
                     ? "bg-[var(--teal)] text-[#062419]"
-                    : isHeard
-                      ? "border border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--fg)]"
-                      : m.phase === "error"
-                        ? "border border-[var(--coral)]/30 bg-[var(--coral)]/10 text-[var(--fg)]"
-                        : "border border-white/5 bg-white/5 text-[var(--fg)]"
+                    : m.phase === "error"
+                        ? "border border-[var(--coral)]/25 bg-[var(--coral)]/10"
+                        : "border border-white/[0.05] bg-white/[0.04]"
                 }`}
               >
-                {isHeard && (
-                  <p className="mb-1 text-[10px] uppercase tracking-wider text-[var(--accent-soft)]">
-                    I heard
-                  </p>
-                )}
                 {m.content}
-                {m.intent && !isUser && !isHeard && (
-                  <p className="mt-2 text-[10px] uppercase tracking-wide text-[var(--accent-soft)]">
-                    {m.intent}
-                  </p>
+                {m.meta && (
+                  <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] uppercase tracking-wide text-[var(--fg-subtle)]">
+                    {m.meta.intent && <span>{m.meta.intent}</span>}
+                    {m.meta.engine && <span>{m.meta.engine}</span>}
+                    {m.meta.retrieve && <span>{m.meta.retrieve}</span>}
+                    {m.meta.reviewed && <span>reviewed</span>}
+                    {typeof m.meta.latencyMs === "number" && (
+                      <span>{Math.round(m.meta.latencyMs)}ms</span>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -278,53 +427,8 @@ export function ChatPanel() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Transcript confirm — icons only */}
-      {pendingTranscript && (
-        <div className="flex items-center justify-between gap-3 border-t border-white/5 bg-black/25 px-4 py-3">
-          <p className="min-w-0 flex-1 truncate text-sm text-[var(--fg-muted)]">
-            <span className="text-[var(--accent-soft)]">Heard</span> · {pendingTranscript}
-          </p>
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              className="icon-action"
-              title="Discard"
-              aria-label="Discard transcript"
-              onClick={() => {
-                setPendingTranscript(null);
-                setInput("");
-                setMessages((m) => m.filter((x) => x.phase !== "heard"));
-              }}
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className="icon-action"
-              title="Re-record"
-              aria-label="Re-record"
-              disabled={loading || recording}
-              onClick={() => void startMic()}
-            >
-              <RotateCcw className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className="icon-action icon-action--accent"
-              title="Send"
-              aria-label="Confirm and send"
-              disabled={loading}
-              onClick={() => void send(input || pendingTranscript)}
-            >
-              <Check className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Composer — minimal */}
       <form
-        className="border-t border-white/5 p-3"
+        className="border-t border-white/[0.05] p-3"
         onSubmit={(e) => {
           e.preventDefault();
           void send(input);
@@ -334,15 +438,15 @@ export function ChatPanel() {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={pendingTranscript ? "Edit what I heard…" : "Or type…"}
-            className="min-h-11 flex-1 rounded-full border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none placeholder:text-[var(--fg-muted)] focus:ring-1 focus:ring-[var(--accent)]"
+            placeholder="Type a message…"
+            className="field min-h-11 flex-1"
             disabled={recording}
           />
           <button
             type="submit"
             disabled={loading || recording || !input.trim()}
             className="icon-action icon-action--accent"
-            aria-label="Send message"
+            aria-label="Send"
           >
             <Send className="h-4 w-4" />
           </button>

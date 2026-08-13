@@ -18,6 +18,10 @@ export type VadRecorderOptions = {
   minSpeechMs?: number;
   onLevel?: (level: number) => void;
   onState?: (state: "listening" | "speech" | "silence" | "done") => void;
+  signal?: AbortSignal;
+  previewEveryMs?: number;
+  previewMinMs?: number;
+  onPreviewBlob?: (blob: Blob, elapsedMs: number) => void;
 };
 
 const MIC_CONSTRAINTS: MediaStreamConstraints = {
@@ -86,6 +90,8 @@ export async function recordUntilSilence(
   const silenceMs = opts.silenceMs ?? 1100;
   const maxMs = opts.maxMs ?? 20_000;
   const minSpeechMs = opts.minSpeechMs ?? 400;
+  const previewEveryMs = opts.previewEveryMs ?? 3500;
+  const previewMinMs = opts.previewMinMs ?? 2500;
 
   const stream = await navigator.mediaDevices.getUserMedia(MIC_CONSTRAINTS);
   const mimeType = pickMimeType();
@@ -109,6 +115,7 @@ export async function recordUntilSilence(
   const startedAt = performance.now();
   let speechStartedAt: number | null = null;
   let lastLoudAt = startedAt;
+  let lastPreviewAt = startedAt;
   let peakLevel = 0;
   let finished = false;
 
@@ -130,6 +137,7 @@ export async function recordUntilSilence(
       if (finished) return;
       finished = true;
       window.clearInterval(tick);
+      opts.signal?.removeEventListener("abort", finish);
       opts.onState?.("done");
       const stopRec = () => {
         stream.getTracks().forEach((t) => t.stop());
@@ -153,10 +161,13 @@ export async function recordUntilSilence(
       if (finished) return;
       finished = true;
       window.clearInterval(tick);
+      opts.signal?.removeEventListener("abort", finish);
       stream.getTracks().forEach((t) => t.stop());
       void audioCtx.close();
       reject(new Error("Recording failed"));
     };
+
+    opts.signal?.addEventListener("abort", finish, { once: true });
 
     const tick = window.setInterval(() => {
       const level = rms();
@@ -178,6 +189,20 @@ export async function recordUntilSilence(
           finish();
           return;
         }
+      }
+
+      if (
+        opts.onPreviewBlob &&
+        speechStartedAt != null &&
+        now - startedAt >= previewMinMs &&
+        now - lastPreviewAt >= previewEveryMs &&
+        chunks.length > 0
+      ) {
+        lastPreviewAt = now;
+        opts.onPreviewBlob(
+          new Blob([...chunks], { type: mimeType || "audio/webm" }),
+          now - startedAt,
+        );
       }
 
       if (now - startedAt >= maxMs) finish();

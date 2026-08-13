@@ -1,4 +1,3 @@
-import "./load-env";
 import { z } from "zod";
 
 const envSchema = z.object({
@@ -9,8 +8,13 @@ const envSchema = z.object({
   VOICE_MODE: z.enum(["stub", "modal"]).default("modal"),
   MODAL_ASR_URL: z.string().optional().or(z.literal("")),
   MODAL_ASR_TOKEN: z.string().optional(),
+  MODAL_ASR_EN_URL: z.string().optional().or(z.literal("")),
+  MODAL_ASR_EN_TOKEN: z.string().optional(),
   MODAL_TTS_URL: z.string().optional().or(z.literal("")),
   MODAL_TTS_TOKEN: z.string().optional(),
+  MODAL_EMBED_URL: z.string().optional().or(z.literal("")),
+  MODAL_EMBED_TOKEN: z.string().optional(),
+  EMBED_MODEL: z.string().optional(),
   GROQ_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_BASE_URL: z.string().optional(),

@@ -14,7 +14,7 @@ const schema = z.object({
   /** Base64 little-endian float32 mono PCM (preferred — from Web Audio). */
   pcmB64: z.string().min(100),
   sampleRate: z.number().int().positive().default(16000),
-  language: z.enum(["tw", "en", "ga", "ee", "dag"]).default("tw"),
+  language: z.enum(["tw", "en", "ga"]).default("tw"),
   sampleDurationS: z.number().positive().optional(),
   phraseHint: z.string().max(80).optional(),
 });

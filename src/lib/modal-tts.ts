@@ -15,15 +15,18 @@ export type ModalTtsResult = {
  * - full speak endpoint: https://...--ghana-health-tts-speak.modal.run
  * - base with /speak path (legacy ASGI)
  */
+export const DEFAULT_MODAL_TTS_URL =
+  "https://createdliving1000--ghana-health-tts-speak.modal.run";
+
 function ttsSpeakUrl(): string | null {
-  const raw = process.env.MODAL_TTS_URL?.replace(/\/$/, "");
+  const raw = (process.env.MODAL_TTS_URL || DEFAULT_MODAL_TTS_URL).replace(/\/$/, "");
   if (!raw) return null;
   if (raw.endsWith("/speak") || raw.includes("-speak")) return raw;
   return `${raw}/speak`;
 }
 
 export function isModalTtsConfigured(): boolean {
-  return Boolean(process.env.MODAL_TTS_URL);
+  return Boolean(ttsSpeakUrl());
 }
 
 /** Expand jargon + strip symbols so speech models don't say "C H W". */

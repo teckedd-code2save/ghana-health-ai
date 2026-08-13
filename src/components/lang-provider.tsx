@@ -8,14 +8,12 @@ import {
   useSyncExternalStore,
 } from "react";
 
-export type AppLang = "tw" | "en" | "ga" | "ee" | "dag";
+export type AppLang = "tw" | "en" | "ga";
 
 const labels: Record<AppLang, string> = {
   tw: "Twi",
   en: "English",
   ga: "Ga",
-  ee: "Ewe",
-  dag: "Dagbani",
 };
 
 const LANG_KEY = "gha_lang";

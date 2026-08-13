@@ -54,7 +54,6 @@ export function MarketPanel() {
     }
   }, []);
 
-  // Defer so setState is not synchronous in the effect body (react-hooks/set-state-in-effect)
   useEffect(() => {
     const t = setTimeout(() => {
       void load();
@@ -82,10 +81,10 @@ export function MarketPanel() {
         body: JSON.stringify({ productId, quantity: 1 }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || "Couldn’t add");
       setCart(data.cart);
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "Failed");
+      setMessage(e instanceof Error ? e.message : "Couldn’t add");
     } finally {
       setBusy(false);
     }
@@ -118,15 +117,13 @@ export function MarketPanel() {
         body: JSON.stringify({ paymentMethod: method, phone: phone || undefined }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || "Checkout failed");
       if (data.payment?.authorizationUrl) {
-        setMessage("Redirecting to Paystack MoMo / card…");
+        setMessage("Opening payment…");
         window.location.href = data.payment.authorizationUrl as string;
         return;
       }
-      setMessage(
-        `Order ${data.order.status} · ${data.order.id.slice(0, 8)} · ${formatGhs(data.order.totalGhs)}`,
-      );
+      setMessage(`Order placed · ${formatGhs(data.order.totalGhs)}`);
       await load(q);
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Checkout failed");
@@ -136,7 +133,7 @@ export function MarketPanel() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+    <div className="fade-up grid gap-6 lg:grid-cols-[1.45fr_1fr]">
       <section className="space-y-4">
         <form
           className="flex gap-2"
@@ -148,41 +145,42 @@ export function MarketPanel() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search rice, paracetamol, soap…"
-            className="flex-1 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+            placeholder="Search rice, soap, medicine…"
+            className="field flex-1"
           />
-          <button
-            type="submit"
-            className="rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-medium text-[#1a1400]"
-          >
+          <button type="submit" className="btn btn-primary shrink-0">
             Search
           </button>
         </form>
 
         {loading ? (
-          <div className="flex items-center gap-2 text-[var(--fg-muted)]">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading market…
+          <div className="flex items-center gap-2 py-12 text-[var(--fg-muted)]">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading…
           </div>
+        ) : products.length === 0 ? (
+          <p className="py-10 text-center text-sm text-[var(--fg-muted)]">No items found.</p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {products.map((p) => (
-              <article key={p.id} className="glass rounded-[var(--radius)] p-4">
-                <p className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)]">
-                  {p.category} · {p.sku}
+              <article key={p.id} className="surface rounded-[var(--radius)] p-4">
+                <p className="text-[11px] uppercase tracking-wider text-[var(--fg-subtle)]">
+                  {p.category}
                 </p>
-                <h3 className="mt-1 font-[family-name:var(--font-display)] text-lg">{p.nameEn}</h3>
-                <p className="text-sm text-[var(--fg-muted)]">{p.nameTw}</p>
-                <div className="mt-3 flex items-center justify-between">
+                <h3 className="display mt-1 text-lg">{p.nameTw}</h3>
+                <p className="text-sm text-[var(--fg-muted)]">{p.nameEn}</p>
+                <div className="mt-4 flex items-end justify-between gap-2">
                   <div>
-                    <p className="text-lg font-semibold text-[var(--accent)]">{formatGhs(p.priceGhs)}</p>
-                    <p className="text-xs text-[var(--fg-muted)]">
-                      {p.stock} {p.unit} in stock
+                    <p className="text-lg font-semibold text-[var(--accent)]">
+                      {formatGhs(p.priceGhs)}
+                    </p>
+                    <p className="text-xs text-[var(--fg-subtle)]">
+                      {p.stock > 0 ? "In stock" : "Out of stock"}
                     </p>
                   </div>
                   <button
                     disabled={busy || p.stock < 1}
                     onClick={() => void addToCart(p.id)}
-                    className="rounded-full bg-[var(--teal)] px-3 py-2 text-sm font-medium text-[#062419] disabled:opacity-40"
+                    className="btn btn-teal px-4 py-2 text-sm"
                   >
                     Add
                   </button>
@@ -193,34 +191,36 @@ export function MarketPanel() {
         )}
       </section>
 
-      <aside className="glass h-fit rounded-[var(--radius)] p-4">
-        <div className="mb-3 flex items-center gap-2">
+      <aside className="surface h-fit rounded-[var(--radius)] p-5">
+        <div className="mb-4 flex items-center gap-2">
           <ShoppingCart className="h-4 w-4 text-[var(--accent)]" />
           <h2 className="font-medium">Cart</h2>
         </div>
         {!cart || cart.items.length === 0 ? (
-          <p className="text-sm text-[var(--fg-muted)]">Empty — add staples or OTC items.</p>
+          <p className="text-sm text-[var(--fg-muted)]">Your cart is empty.</p>
         ) : (
           <ul className="space-y-3">
             {cart.items.map((item) => (
               <li key={item.id} className="flex items-center justify-between gap-2 text-sm">
-                <div>
-                  <p>{item.product.nameEn}</p>
-                  <p className="text-xs text-[var(--fg-muted)]">{formatGhs(item.lineTotal)}</p>
+                <div className="min-w-0">
+                  <p className="truncate">{item.product.nameTw}</p>
+                  <p className="text-xs text-[var(--fg-subtle)]">{formatGhs(item.lineTotal)}</p>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
-                    className="rounded-full bg-white/5 p-1"
+                    className="icon-action h-8 w-8"
                     onClick={() => void updateQty(item.id, item.quantity - 1)}
                     disabled={busy}
+                    aria-label="Less"
                   >
                     <Minus className="h-3.5 w-3.5" />
                   </button>
-                  <span className="w-6 text-center">{item.quantity}</span>
+                  <span className="w-6 text-center tabular-nums">{item.quantity}</span>
                   <button
-                    className="rounded-full bg-white/5 p-1"
+                    className="icon-action h-8 w-8"
                     onClick={() => void updateQty(item.id, item.quantity + 1)}
                     disabled={busy}
+                    aria-label="More"
                   >
                     <Plus className="h-3.5 w-3.5" />
                   </button>
@@ -229,38 +229,34 @@ export function MarketPanel() {
             ))}
           </ul>
         )}
-        <div className="mt-4 border-t border-white/5 pt-4">
-          <div className="mb-3 flex justify-between text-sm">
+        <div className="mt-5 border-t border-white/[0.06] pt-4">
+          <div className="mb-4 flex justify-between text-sm">
             <span className="text-[var(--fg-muted)]">Total</span>
-            <span className="font-semibold">{formatGhs(cart?.totalGhs ?? 0)}</span>
+            <span className="font-semibold tabular-nums">{formatGhs(cart?.totalGhs ?? 0)}</span>
           </div>
           <input
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="MoMo phone e.g. 024…"
-            className="mb-2 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-[var(--accent)]"
+            placeholder="Mobile money number"
+            className="field mb-2 rounded-[var(--radius-sm)]"
           />
           <select
             value={payMethod}
             onChange={(e) => setPayMethod(e.target.value as "MOMO" | "MOCK" | "CASH")}
-            className="mb-3 w-full rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm"
+            className="field mb-3 rounded-[var(--radius-sm)]"
           >
-            <option value="MOMO">
-              {paystackEnabled
-                ? "Mobile Money (Paystack)"
-                : "Mobile Money (needs PAYSTACK_SECRET_KEY)"}
-            </option>
-            <option value="MOCK">Instant settle (dev)</option>
-            <option value="CASH">Cash on pickup</option>
+            <option value="MOMO">Mobile Money</option>
+            <option value="CASH">Pay on pickup</option>
+            {!paystackEnabled && <option value="MOCK">Pay later (demo)</option>}
           </select>
           <button
             disabled={busy || !cart?.items.length}
             onClick={() => void checkout()}
-            className="w-full rounded-2xl bg-[var(--accent)] py-3 text-sm font-semibold text-[#1a1400] disabled:opacity-40"
+            className="btn btn-primary w-full"
           >
             {busy ? "Working…" : "Checkout"}
           </button>
-          {message && <p className="mt-3 text-xs text-[var(--accent-soft)]">{message}</p>}
+          {message && <p className="mt-3 text-sm text-[var(--fg-muted)]">{message}</p>}
         </div>
       </aside>
     </div>
