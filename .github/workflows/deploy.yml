@@ -99,7 +99,7 @@ jobs:
           # Run migrations through Compose so Prisma sees the same
           # DATABASE_URL/environment as the web container.
           echo "[deploy] running prisma migrate deploy"
-          docker compose run --rm --no-deps web \\
+          docker compose run -T --rm --no-deps web \\
             node node_modules/prisma/build/index.js migrate deploy
 
           # Roll the web container

@@ -8,7 +8,12 @@ import { isAbenaConfigured, isEmbedConfigured } from "@/lib/embed";
 /** Public runtime flags (no secrets). */
 export async function GET(request: Request) {
   const englishRoute = resolveModalAsrRoute("en");
-  const requestOrigin = new URL(request.url).origin;
+  const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL;
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
+  const requestOrigin = forwardedHost
+    ? `${forwardedProto}://${forwardedHost}`
+    : new URL(request.url).origin;
   return jsonOk({
     voiceMode: process.env.VOICE_MODE || "modal",
     modalAsr: isModalAsrConfigured(),
@@ -34,6 +39,6 @@ export async function GET(request: Request) {
     },
     languages: ["tw", "en", "ga"],
     hotline: process.env.HEALTH_ESCALATION_HOTLINE || "112 / community health worker",
-    appUrl: requestOrigin || process.env.NEXT_PUBLIC_APP_URL,
+    appUrl: configuredOrigin || requestOrigin,
   });
 }
