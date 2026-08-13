@@ -5,6 +5,7 @@
 **Training roadmap:** [`docs/model-training-roadmap.md`](./model-training-roadmap.md)
 **ASR decision:** [`docs/asr-model-decision.md`](./asr-model-decision.md)
 **Model credit plan:** [`docs/model-credit-plan.md`](./model-credit-plan.md)
+**Pilot runbook:** [`docs/PILOT.md`](./PILOT.md)
 
 ---
 
