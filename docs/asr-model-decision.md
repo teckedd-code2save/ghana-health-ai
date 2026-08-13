@@ -36,14 +36,19 @@ Verified health:
 | --- | ---: | ---: | ---: | --- |
 | `teckedd/whisper-small-waxal-round2-specaug-v1` | full Waxal test, beam 5 | 31.52% | 11.27% | Hold and validate |
 | `teckedd/gha-whisper-small-twi-v6` | Waxal, beam 5 | 30.44% | 10.62% | Hold-and-validate only; not competitive enough |
+| `teckedd/gha-whisper-small-twi-v6` | 300-sample Waxal, beam 5 | 28.76% | 9.45% | Close, but still above promotion gate and not product-speech evidence |
+| `teckedd/gha-whisper-small-twi-v6` | 300-sample Waxal, greedy | 30.16% | 10.93% | Hold-and-validate only; still above promotion gate |
 | `teckedd/gha-whisper-small-twi-v6` | 100-sample Waxal, beam 5 | 32.16% | 10.74% | No clear promotion over prior |
 | `teckedd/gha-whisper-small-twi-v6` | 100-sample Waxal, greedy | 32.87% | 11.20% | No clear promotion |
 | `openai/whisper-small` | 100-sample Common Voice English, beam 5 | 11.82% | 6.00% | English baseline route |
 | `teckedd/gha-whisper-small-twi-v6` | 100-sample Common Voice English, beam 5 | 42.34% | 32.74% | English regression confirmed |
+| `openai/whisper-small` | 300-sample Common Voice English, beam 5 | 11.64% | 6.31% | English baseline route confirmed |
+| `teckedd/gha-whisper-small-twi-v6` | 300-sample Common Voice English, beam 5 | 47.07% | 34.70% | English regression confirmed again |
 | `teckedd/gha-whisper-small-twi-en-balanced-v7-lite` | 100-sample Common Voice English, beam 5 | 15.10% | 8.10% | English retained better than v6 |
 | `teckedd/gha-whisper-small-twi-en-balanced-v7-lite` | 100-sample Waxal, beam 5 | 40.86% | 14.10% | Twi regressed; do not promote |
 | `teckedd/gha-whisper-small-twi-en-balanced-v7-lite-frozen` | 150-sample validation during train | 53.83% | 22.18% | Twi regressed badly; do not promote |
 | `KhayaAI/w2v-bert-ada_ewe_fat_fra_gaa_nzi_twi_en` | 100-sample Waxal zero-shot | 71.91% | 26.69% | Not serving-ready |
+| `KhayaAI/w2v-bert-ada_ewe_fat_fra_gaa_nzi_twi_en` | 300-sample Waxal zero-shot | 70.64% | 26.44% | Not serving-ready |
 | DONDO smoke fine-tune | Waxal smoke, 24 train / 8 eval, 8 steps | 53.82% | 17.81% | Wiring only; not quality evidence |
 | DONDO real fine-tune checkpoint | Waxal eval subset at step 200/800 | 41.04% | 13.99% | Improved from zero-shot/smoke, still not promotable |
 | `teckedd/gha-dondo-w2v-bert-twi-v1` | DONDO Waxal fine-tune final eval | 35.77% | 12.19% | Pushed to HF with model card; do not promote |
@@ -152,6 +157,28 @@ pnpm eval:asr-results:pull
 pnpm eval:asr-results
 pnpm eval:asr-promotion
 ```
+
+Latest detached public-set benchmark launch, 2026-08-13:
+
+| Job | Modal app | Function call | Purpose |
+| --- | --- | --- | --- |
+| `whisper-v6-greedy` | `ap-cP32knWsa6XA9S76QgbKQy` | `fc-01KZXQGV8GBQZ59PBS4JWFD1G4` | v6 Twi Waxal greedy, n=300 |
+| `whisper-v6-beam5` | `ap-VBXKzI9tfySJucUnrH6VXa` | `fc-01KZXQH8X1Q34047WTHMEFTQYB` | v6 Twi Waxal beam5, n=300 |
+| `whisper-small-base` | `ap-c5G2NmnIg8XZikFxOGQu2y` | `fc-01KZXQHPFXXCTKWF8MXCTV29AC` | base Whisper on Twi Waxal, n=300 |
+| `dondo-w2v-bert` | `ap-w1bdO4D96JGEDjgZla4Go1` | `fc-01KZXQJ4YEGDZYWR3H6Z7KSX9S` | Khaya/DONDO base on Twi Waxal, n=300 |
+| `english-retention-v6-beam5` | `ap-nt86eRrdvMbCldwJxrYvUv` | `fc-01KZXQJJHDV1W785KP62NZRG2E` | v6 English retention, n=300 |
+| `english-baseline-whisper-small-beam5` | `ap-qw6Qz5jqgiEVSEftYIUy5f` | `fc-01KZXQK05ZYXD3H81DM1MH3FRM` | English Whisper baseline, n=300 |
+
+Landed results so far: v6 Twi beam5 n=300 WER **28.76%**, v6 Twi greedy n=300 WER **30.16%**, base Whisper Twi n=300 WER **113.26%**, Khaya/DONDO base n=300 WER **70.64%**, English baseline n=300 WER **11.64%**, v6 English n=300 WER **47.07%**. These are evidence-refresh evals, not promotion. Use them while the product audio collection pack is being recorded.
+
+For pilot corrections and product eval manifests, run the model-quality report before spending more credits:
+
+```bash
+pnpm eval:asr-feedback:export
+ASR_PRODUCT_EVAL_MANIFEST=tmp/asr-feedback-export.jsonl pnpm eval:asr-quality
+```
+
+If the report says buckets or audio are not ready, spend credits on data/transcription first. If enough scored rows are ready and a bucket is weak against the current baseline, use the error list to design a targeted continuation run instead of another broad full fine-tune.
 
 ## DONDO trial commands
 
