@@ -96,14 +96,10 @@ jobs:
           echo "[deploy] pulling \${WEB_IMAGE}"
           docker pull "\${WEB_IMAGE}"
 
-          # Run migrations using the new image (one-shot container).
-          # Invoke prisma via node directly — runner image ships
-          # node_modules/prisma/ but the .bin/ shims aren't on PATH.
+          # Run migrations through Compose so Prisma sees the same
+          # DATABASE_URL/environment as the web container.
           echo "[deploy] running prisma migrate deploy"
-          docker run --rm \\
-            --network ghana-health-ai \\
-            --env-file /opt/ghana-health-ai/.env \\
-            "\${WEB_IMAGE}" \\
+          docker compose run --rm --no-deps web \\
             node node_modules/prisma/build/index.js migrate deploy
 
           # Roll the web container
