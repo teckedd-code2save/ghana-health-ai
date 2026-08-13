@@ -597,6 +597,22 @@ select {
   color: #ffffff;
 }
 
+.chat-mic-action {
+  background: rgba(255, 255, 255, 0.84);
+  color: #516158;
+}
+
+.chat-mic-action:hover:not(:disabled) {
+  background: rgba(23, 35, 29, 0.07);
+  color: #17231d;
+}
+
+.chat-mic-action--live {
+  border-color: rgba(239, 111, 97, 0.28);
+  background: rgba(239, 111, 97, 0.1);
+  color: #b83f34;
+}
+
 
 .live-heard-wrap {
   align-self: flex-end;
@@ -1205,8 +1221,8 @@ select {
   box-shadow: 0 0 0 3px rgba(232, 93, 76, 0.2);
 }
 .status-dot--speak::before {
-  background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(232, 184, 74, 0.18);
+  background: #7384ff;
+  box-shadow: 0 0 0 3px rgba(115, 132, 255, 0.16);
 }
 .status-dot--ok::before {
   background: var(--teal);
