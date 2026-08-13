@@ -100,7 +100,7 @@ jobs:
           # DATABASE_URL/environment as the web container.
           echo "[deploy] running prisma migrate deploy"
           docker compose run -T --rm --no-deps web \\
-            node node_modules/prisma/build/index.js migrate deploy
+            node node_modules/prisma/build/index.js migrate deploy < /dev/null
 
           # Roll the web container
           echo "[deploy] rolling web container"
