@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Pencil, ShoppingCart, Volume2, X } from "lucide-react";
 import { useLang } from "@/components/lang-provider";
 import { recordUntilSilence } from "@/lib/browser-audio";
-import { VoiceOrb, modeLabel, type OrbMode } from "@/components/voice-orb";
+import { VoiceOrb, localizedModeLabel, type OrbMode } from "@/components/voice-orb";
 
 type VoiceFocus = "health" | "commerce";
 
@@ -144,6 +144,16 @@ function stageLabel(stage: string | null) {
     default:
       return null;
   }
+}
+
+function localizedStageLabel(stage: string | null, lang: string) {
+  const label = stageLabel(stage);
+  if (!label || lang !== "tw") return label;
+  if (label === "Transcribing") return "Meretwerɛ nea wotee";
+  if (label === "Thinking") return "Meredwene";
+  if (label === "Responding") return "Merebua";
+  if (label === "Speaking") return "Merekan mmuaeɛ";
+  return label;
 }
 
 function CommerceAction({
@@ -371,6 +381,7 @@ export function VoicePanel() {
       const res = await fetch("/api/voice/converse/stream", { method: "POST", body: form });
       if (!res.ok) throw new Error("Couldn’t start voice turn");
 
+      let streamedReply = "";
       const data = await readVoiceStream(
         res,
         (text) => {
@@ -379,7 +390,8 @@ export function VoicePanel() {
         },
         (chunk) => {
           setPipelineStage("assistant_message");
-          setReply((current) => `${current ?? ""}${chunk}`);
+          streamedReply += chunk;
+          setReply(streamedReply);
         },
         (stage) => setPipelineStage(stage.name),
       );
@@ -391,7 +403,8 @@ export function VoicePanel() {
       setUserMessageId(data.userMessage?.id);
       setHeard(text);
       setCorrectionText(text);
-      setReply(data.message?.content ?? data.understanding?.reply ?? "");
+      const finalReply = data.message?.content ?? data.understanding?.reply ?? streamedReply;
+      setReply(finalReply);
       setCommerceExecution(data.understanding?.commerceExecution ?? null);
       if (data.tts?.audioBase64) {
         setTtsB64(data.tts.audioBase64);
@@ -451,9 +464,10 @@ export function VoicePanel() {
   const showThinking = busy && Boolean(heard) && !reply && !status;
   const showConversation =
     showListening || showTranscribing || showThinking || heard || reply || status;
+  const statusLabel = status || localizedStageLabel(pipelineStage, lang) || localizedModeLabel(orbMode, lang, vadState);
 
   return (
-    <section className="live-shell fade-up">
+    <section className={`live-shell fade-up ${showConversation ? "live-shell--active" : ""}`}>
       <div className="live-tabs" role="tablist" aria-label="Conversation focus">
         {(["health", "commerce"] as const).map((item) => (
           <button
@@ -488,7 +502,7 @@ export function VoicePanel() {
         <VoiceOrb
           mode={orbMode}
           level={level}
-          size="lg"
+          size={showConversation ? "md" : "lg"}
           onClick={() => {
             if (recording) {
               stopRecording();
@@ -501,7 +515,7 @@ export function VoicePanel() {
             }
             if (!busy) void listenAndRespond();
           }}
-          label={status || stageLabel(pipelineStage) || modeLabel(orbMode, vadState)}
+          label={statusLabel}
         />
       </div>
 
@@ -562,8 +576,8 @@ export function VoicePanel() {
             </div>
           )}
           {showListening && <ThinkingDots label="Listening" />}
-          {showTranscribing && <ThinkingDots label={stageLabel(pipelineStage) || "Transcribing"} />}
-          {showThinking && <ThinkingDots label={stageLabel(pipelineStage) || "Thinking"} />}
+          {showTranscribing && <ThinkingDots label={localizedStageLabel(pipelineStage, lang) || (lang === "tw" ? "Meretwerɛ nea wotee" : "Transcribing")} />}
+          {showThinking && <ThinkingDots label={localizedStageLabel(pipelineStage, lang) || (lang === "tw" ? "Meredwene" : "Thinking")} />}
           {reply && (
             <>
               <div className="live-reply-wrap">

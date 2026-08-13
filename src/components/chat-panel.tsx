@@ -343,8 +343,8 @@ export function ChatPanel() {
   }
 
   return (
-    <div className="fade-up surface flex h-[min(78vh,720px)] flex-col overflow-hidden rounded-[calc(var(--radius)+6px)]">
-      <div className="flex flex-col items-center gap-3 border-b border-white/[0.05] px-4 py-6">
+    <div className="chat-panel fade-up">
+      <div className="flex flex-col items-center gap-3 border-b border-[var(--line)] px-4 py-6">
         <VoiceOrb
           mode={orbMode}
           level={level}
@@ -376,20 +376,7 @@ export function ChatPanel() {
         </span>
       </div>
 
-      {pipeline.length > 0 && (
-        <div className="border-b border-white/[0.05] px-4 py-2">
-          <div className="flex flex-wrap justify-center gap-1.5 text-[10px] uppercase tracking-wide text-[var(--fg-subtle)]">
-            {pipeline.map((step, index) => (
-              <span
-                key={`${step}-${index}`}
-                className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-1"
-              >
-                {step}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      {pipeline.length > 0 && <div className="chat-activity">{pipeline[pipeline.length - 1]}</div>}
 
       <div className="chat-scroll flex-1 space-y-3 overflow-y-auto px-4 py-5">
         {messages.map((m) => {
@@ -400,26 +387,15 @@ export function ChatPanel() {
               className={`flex ${isUser ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[88%] rounded-[1.15rem] px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                className={`chat-bubble ${
                   isUser
-                    ? "bg-[var(--teal)] text-[#062419]"
+                    ? "chat-bubble--user"
                     : m.phase === "error"
-                        ? "border border-[var(--coral)]/25 bg-[var(--coral)]/10"
-                        : "border border-white/[0.05] bg-white/[0.04]"
+                        ? "chat-bubble--error"
+                        : "chat-bubble--assistant"
                 }`}
               >
                 {m.content}
-                {m.meta && (
-                  <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] uppercase tracking-wide text-[var(--fg-subtle)]">
-                    {m.meta.intent && <span>{m.meta.intent}</span>}
-                    {m.meta.engine && <span>{m.meta.engine}</span>}
-                    {m.meta.retrieve && <span>{m.meta.retrieve}</span>}
-                    {m.meta.reviewed && <span>reviewed</span>}
-                    {typeof m.meta.latencyMs === "number" && (
-                      <span>{Math.round(m.meta.latencyMs)}ms</span>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           );
@@ -428,7 +404,7 @@ export function ChatPanel() {
       </div>
 
       <form
-        className="border-t border-white/[0.05] p-3"
+        className="border-t border-[var(--line)] p-3"
         onSubmit={(e) => {
           e.preventDefault();
           void send(input);
@@ -445,7 +421,7 @@ export function ChatPanel() {
           <button
             type="submit"
             disabled={loading || recording || !input.trim()}
-            className="icon-action icon-action--accent"
+            className="icon-action chat-send-action"
             aria-label="Send"
           >
             <Send className="h-4 w-4" />
