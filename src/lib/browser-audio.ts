@@ -85,7 +85,7 @@ export async function startLiveRecorder(): Promise<LiveRecorder> {
  */
 export async function recordUntilSilence(
   opts: VadRecorderOptions = {},
-): Promise<{ blob: Blob; durationMs: number; peakLevel: number }> {
+): Promise<{ blob: Blob; durationMs: number; peakLevel: number; speechDetected: boolean }> {
   const silenceThreshold = opts.silenceThreshold ?? 0.018;
   const silenceMs = opts.silenceMs ?? 1100;
   const maxMs = opts.maxMs ?? 20_000;
@@ -147,6 +147,7 @@ export async function recordUntilSilence(
           blob,
           durationMs: performance.now() - startedAt,
           peakLevel,
+          speechDetected: speechStartedAt != null,
         });
       };
       if (recorder.state === "recording") {
