@@ -30,6 +30,7 @@ jobs:
       - name: Fetch secrets from Infisical
         env:
           INFISICAL_API_URL: https://secrets.serendepify.com/api
+          INFISICAL_PROJECT_ID: 4499072b-2a0e-44b3-a067-c27020409c48
           INFISICAL_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
           INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
         run: |
@@ -43,6 +44,7 @@ jobs:
           # Render full prod env to a file (only this job sees it)
           infisical export \
             --env=prod \
+            --projectId="${INFISICAL_PROJECT_ID}" \
             --format=dotenv \
             --domain="${INFISICAL_API_URL%/api}" \
             > /tmp/infisical-prod.env
