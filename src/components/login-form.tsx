@@ -2,8 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Mail } from "lucide-react";
 
-export function LoginForm() {
+type LoginFormProps = {
+  initialError?: string | null;
+};
+
+const oauthErrors: Record<string, string> = {
+  google_not_configured: "Google sign-in is not configured yet.",
+  google_state: "Google sign-in expired. Try again.",
+  google_email: "Google did not return a verified email.",
+};
+
+export function LoginForm({ initialError }: LoginFormProps) {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -11,8 +22,11 @@ export function LoginForm() {
   const [displayName, setDisplayName] = useState("");
   const [consentHealth, setConsentHealth] = useState(true);
   const [consentVoice, setConsentVoice] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    initialError ? (oauthErrors[initialError] ?? "Google sign-in could not continue.") : null,
+  );
   const [busy, setBusy] = useState(false);
+  const [socialBusy, setSocialBusy] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,7 +45,7 @@ export function LoginForm() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Couldn’t continue");
-      router.push("/voice");
+      router.push("/");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn’t continue");
@@ -46,18 +60,36 @@ export function LoginForm() {
   }
 
   return (
-    <div className="fade-up surface mx-auto max-w-md rounded-[var(--radius)] p-6 md:p-8">
-      <div className="mb-6 flex gap-1 rounded-full bg-black/25 p-1">
+    <div className="auth-card fade-up">
+      <div className="auth-social">
+        <button
+          type="button"
+          className="auth-social__button"
+          disabled={socialBusy}
+          onClick={() => {
+            setError(null);
+            setSocialBusy(true);
+            window.location.href = "/api/auth/google";
+          }}
+        >
+          <span className="auth-social__google" aria-hidden>
+            G
+          </span>
+          Continue with Google
+        </button>
+      </div>
+
+      <div className="auth-divider">
+        <span>Email</span>
+      </div>
+
+      <div className="auth-mode-toggle">
         {(["login", "register"] as const).map((m) => (
           <button
             key={m}
             type="button"
             onClick={() => setMode(m)}
-            className={`flex-1 rounded-full px-4 py-2 text-sm capitalize transition ${
-              mode === m
-                ? "bg-[var(--accent)] font-medium text-[#1a1400]"
-                : "text-[var(--fg-muted)]"
-            }`}
+            className={mode === m ? "auth-mode-toggle__item auth-mode-toggle__item--active" : "auth-mode-toggle__item"}
           >
             {m === "login" ? "Sign in" : "Register"}
           </button>
@@ -114,7 +146,8 @@ export function LoginForm() {
           </div>
         )}
         {error && <p className="text-sm text-[var(--coral)]">{error}</p>}
-        <button type="submit" disabled={busy} className="btn btn-teal w-full py-3">
+        <button type="submit" disabled={busy} className="auth-submit">
+          <Mail className="h-4 w-4" />
           {busy ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
         </button>
       </form>

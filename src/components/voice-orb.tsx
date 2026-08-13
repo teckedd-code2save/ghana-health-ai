@@ -76,3 +76,15 @@ export function modeLabel(mode: OrbMode, vad?: string | null): string {
   if (mode === "speaking") return "Speaking… tap to interrupt";
   return "Tap to speak";
 }
+
+export function localizedModeLabel(mode: OrbMode, lang: string, vad?: string | null): string {
+  if (lang !== "tw") return modeLabel(mode, vad);
+  if (mode === "listening") {
+    if (vad === "speech") return "Mereyɛ wo tie...";
+    if (vad === "silence") return "Ɛreyɛ awie...";
+    return "Tie no rekɔ so...";
+  }
+  if (mode === "thinking") return "Meredwene...";
+  if (mode === "speaking") return "Merebua... tap sɛ wopɛ sɛ wotwa mu";
+  return "Tap na kasa";
+}

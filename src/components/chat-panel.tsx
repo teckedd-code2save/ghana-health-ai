@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Send } from "lucide-react";
+import { Mic, Send } from "lucide-react";
 import { useLang } from "@/components/lang-provider";
 import { enqueueOffline } from "@/lib/offline-queue";
 import { recordUntilSilence } from "@/lib/browser-audio";
@@ -57,7 +57,7 @@ function pipelineLabel(name?: string, detail?: string) {
     return "Retrieving";
   }
   if (name === "assistant_message") return "Reviewed by model";
-  if (name === "tts") return detail === "started" ? "Voice output" : "Speech ready";
+  if (name === "tts") return detail === "started" ? "Preparing voice" : "Speech ready";
   if (name === "audit") return "Answered";
   return name || "Working";
 }
@@ -111,6 +111,7 @@ export function ChatPanel() {
   const [input, setInput] = useState("");
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
+  const [voicePending, setVoicePending] = useState(false);
   const [recording, setRecording] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [level, setLevel] = useState(0);
@@ -122,11 +123,22 @@ export function ChatPanel() {
 
   const orbMode: OrbMode = recording
     ? "listening"
-    : speaking
+    : speaking || voicePending
       ? "speaking"
       : loading
         ? "thinking"
         : "idle";
+  const statusLabel = recording
+    ? "Listening"
+    : voicePending
+      ? "Preparing voice"
+      : speaking
+        ? "Speaking"
+        : loading
+          ? "Thinking"
+          : online
+            ? "Ready"
+            : "Offline";
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -162,6 +174,7 @@ export function ChatPanel() {
       { id: crypto.randomUUID(), role: "local-user", content: trimmed },
     ]);
     setLoading(true);
+    setVoicePending(false);
     setPipeline(["Sending", "Retrieving", "Reviewing"]);
     const payload = { message: trimmed, conversationId, language: lang };
     try {
@@ -186,6 +199,10 @@ export function ChatPanel() {
       if (!res.ok) throw new Error("Couldn’t start live turn");
       const assistantDraftId = crypto.randomUUID();
       const data = await readChatStream(res, (stage) => {
+          if (stage.name === "tts" && stage.detail === "started") {
+            setLoading(false);
+            setVoicePending(true);
+          }
           setPipeline((steps) => {
             const next = pipelineLabel(stage.name, stage.detail);
             return steps[steps.length - 1] === next ? steps : [...steps.slice(-4), next];
@@ -232,6 +249,7 @@ export function ChatPanel() {
           : [...m, finalMessage];
       });
       if (data.tts?.audioBase64) playTts(data.tts.audioBase64);
+      setVoicePending(false);
       setPipeline([
         `Retrieved with ${data.stage?.retrieveEngine || "model context"}`,
         data.stage?.review ? "Reviewed by model" : "Model review",
@@ -251,12 +269,14 @@ export function ChatPanel() {
       setPipeline([]);
     } finally {
       setLoading(false);
+      setVoicePending(false);
     }
   }
 
   async function startMic() {
-    if (loading || speaking) return;
+    if (loading || voicePending || speaking) return;
     setRecording(true);
+    setVoicePending(false);
     setVadState("listening");
     setPipeline(["Listening"]);
     try {
@@ -336,6 +356,7 @@ export function ChatPanel() {
       setPipeline([]);
     } finally {
       setLoading(false);
+      setVoicePending(false);
       setRecording(false);
       setVadState(null);
       setLevel(0);
@@ -343,53 +364,32 @@ export function ChatPanel() {
   }
 
   return (
-    <div className="fade-up surface flex h-[min(78vh,720px)] flex-col overflow-hidden rounded-[calc(var(--radius)+6px)]">
-      <div className="flex flex-col items-center gap-3 border-b border-white/[0.05] px-4 py-6">
+    <div className="chat-panel fade-up">
+      <div className="flex flex-col items-center gap-3 border-b border-[var(--line)] px-4 py-6">
         <VoiceOrb
           mode={orbMode}
           level={level}
           size="md"
-          disabled={loading && !recording}
+          disabled={(loading || voicePending) && !recording}
           onClick={() => {
-            if (!recording && !loading && !speaking) void startMic();
+            if (!recording && !loading && !voicePending && !speaking) void startMic();
           }}
-          label={modeLabel(orbMode, vadState)}
+          label={voicePending ? "Preparing voice..." : modeLabel(orbMode, vadState)}
         />
         <span
           className={
             recording
               ? "status-dot status-dot--live"
-              : speaking
+              : speaking || voicePending
                 ? "status-dot status-dot--speak"
                 : "status-dot status-dot--ok"
           }
         >
-          {recording
-            ? "Listening"
-            : speaking
-              ? "Speaking"
-              : loading
-                ? "Thinking"
-                : online
-                  ? "Ready"
-                  : "Offline"}
+          {statusLabel}
         </span>
       </div>
 
-      {pipeline.length > 0 && (
-        <div className="border-b border-white/[0.05] px-4 py-2">
-          <div className="flex flex-wrap justify-center gap-1.5 text-[10px] uppercase tracking-wide text-[var(--fg-subtle)]">
-            {pipeline.map((step, index) => (
-              <span
-                key={`${step}-${index}`}
-                className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-1"
-              >
-                {step}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      {pipeline.length > 0 && <div className="chat-activity">{pipeline[pipeline.length - 1]}</div>}
 
       <div className="chat-scroll flex-1 space-y-3 overflow-y-auto px-4 py-5">
         {messages.map((m) => {
@@ -400,26 +400,15 @@ export function ChatPanel() {
               className={`flex ${isUser ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[88%] rounded-[1.15rem] px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                className={`chat-bubble ${
                   isUser
-                    ? "bg-[var(--teal)] text-[#062419]"
+                    ? "chat-bubble--user"
                     : m.phase === "error"
-                        ? "border border-[var(--coral)]/25 bg-[var(--coral)]/10"
-                        : "border border-white/[0.05] bg-white/[0.04]"
+                        ? "chat-bubble--error"
+                        : "chat-bubble--assistant"
                 }`}
               >
                 {m.content}
-                {m.meta && (
-                  <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] uppercase tracking-wide text-[var(--fg-subtle)]">
-                    {m.meta.intent && <span>{m.meta.intent}</span>}
-                    {m.meta.engine && <span>{m.meta.engine}</span>}
-                    {m.meta.retrieve && <span>{m.meta.retrieve}</span>}
-                    {m.meta.reviewed && <span>reviewed</span>}
-                    {typeof m.meta.latencyMs === "number" && (
-                      <span>{Math.round(m.meta.latencyMs)}ms</span>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           );
@@ -428,7 +417,7 @@ export function ChatPanel() {
       </div>
 
       <form
-        className="border-t border-white/[0.05] p-3"
+        className="border-t border-[var(--line)] p-3"
         onSubmit={(e) => {
           e.preventDefault();
           void send(input);
@@ -443,9 +432,18 @@ export function ChatPanel() {
             disabled={recording}
           />
           <button
+            type="button"
+            disabled={loading || voicePending || recording || speaking}
+            className={recording ? "icon-action chat-mic-action chat-mic-action--live" : "icon-action chat-mic-action"}
+            aria-label="Record voice"
+            onClick={() => void startMic()}
+          >
+            <Mic className="h-4 w-4" />
+          </button>
+          <button
             type="submit"
             disabled={loading || recording || !input.trim()}
-            className="icon-action icon-action--accent"
+            className="icon-action chat-send-action"
             aria-label="Send"
           >
             <Send className="h-4 w-4" />
