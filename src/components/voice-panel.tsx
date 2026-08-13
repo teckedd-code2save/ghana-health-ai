@@ -350,7 +350,7 @@ export function VoicePanel() {
     recordAbortRef.current = aborter;
 
     try {
-      const { blob, durationMs, peakLevel } = await recordUntilSilence({
+      const { blob, durationMs, peakLevel, speechDetected } = await recordUntilSilence({
         silenceMs: 1100,
         maxMs: 20_000,
         minSpeechMs: 450,
@@ -364,6 +364,7 @@ export function VoicePanel() {
       setVadState(null);
       setLevel(0);
 
+      if (!speechDetected) return;
       if (blob.size < 400 || peakLevel < 0.01) throw new Error("Move closer and try again");
       if (durationMs < 400) throw new Error("Say a little more");
 

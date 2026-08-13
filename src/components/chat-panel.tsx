@@ -120,6 +120,7 @@ export function ChatPanel() {
   const [online, setOnline] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const recordAbortRef = useRef<AbortController | null>(null);
 
   const orbMode: OrbMode = recording
     ? "listening"
@@ -279,19 +280,27 @@ export function ChatPanel() {
     setVoicePending(false);
     setVadState("listening");
     setPipeline(["Listening"]);
+    const aborter = new AbortController();
+    recordAbortRef.current = aborter;
     try {
-      const { blob, durationMs, peakLevel } = await recordUntilSilence({
+      const { blob, durationMs, peakLevel, speechDetected } = await recordUntilSilence({
         silenceMs: 1100,
         maxMs: 20_000,
         minSpeechMs: 450,
         onLevel: setLevel,
         onState: setVadState,
+        signal: aborter.signal,
       });
+      recordAbortRef.current = null;
       setRecording(false);
       setVadState(null);
       setLevel(0);
       setPipeline(["Heard speech", "Transcribing"]);
 
+      if (!speechDetected) {
+        setPipeline([]);
+        return;
+      }
       if (blob.size < 400 || peakLevel < 0.01) {
         throw new Error("A bit quiet — try again closer");
       }
@@ -355,6 +364,7 @@ export function ChatPanel() {
       ]);
       setPipeline([]);
     } finally {
+      recordAbortRef.current = null;
       setLoading(false);
       setVoicePending(false);
       setRecording(false);
@@ -372,7 +382,11 @@ export function ChatPanel() {
           size="md"
           disabled={(loading || voicePending) && !recording}
           onClick={() => {
-            if (!recording && !loading && !voicePending && !speaking) void startMic();
+            if (recording) {
+              recordAbortRef.current?.abort();
+              return;
+            }
+            if (!loading && !voicePending && !speaking) void startMic();
           }}
           label={voicePending ? "Preparing voice..." : modeLabel(orbMode, vadState)}
         />
@@ -433,10 +447,16 @@ export function ChatPanel() {
           />
           <button
             type="button"
-            disabled={loading || voicePending || recording || speaking}
+            disabled={loading || voicePending || speaking}
             className={recording ? "icon-action chat-mic-action chat-mic-action--live" : "icon-action chat-mic-action"}
             aria-label="Record voice"
-            onClick={() => void startMic()}
+            onClick={() => {
+              if (recording) {
+                recordAbortRef.current?.abort();
+                return;
+              }
+              void startMic();
+            }}
           >
             <Mic className="h-4 w-4" />
           </button>
