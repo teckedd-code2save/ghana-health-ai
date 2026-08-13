@@ -8,7 +8,7 @@ const schema = z.object({
   phone: z.string().min(9).optional(),
   password: z.string().min(8),
   displayName: z.string().min(1).max(80).optional(),
-  preferredLang: z.enum(["tw", "en", "ga", "ee", "dag"]).optional(),
+  preferredLang: z.enum(["tw", "en", "ga"]).optional(),
   consentVoice: z.boolean().optional(),
   consentHealth: z.boolean().optional(),
 });

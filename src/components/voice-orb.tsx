@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Mic, Volume2 } from "lucide-react";
+import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
 export type OrbMode = "idle" | "listening" | "thinking" | "speaking";
@@ -24,21 +24,14 @@ export function VoiceOrb({
   className,
   size = "md",
 }: Props) {
-  const bars = [0.35, 0.55, 0.9, 0.6, 0.4].map((base, i) => {
-    if (mode === "listening") {
-      return Math.max(4, Math.min(16, base * 12 + level * 120 * (0.7 + i * 0.08)));
-    }
-    if (mode === "speaking") return 8 + (i % 3) * 3;
-    return 5;
-  });
-
-  const Icon = mode === "thinking" ? Loader2 : mode === "speaking" ? Volume2 : Mic;
+  const energy = Math.max(0.08, Math.min(1, level * 18));
+  const speed = `${Math.max(4, 12 - energy * 7).toFixed(2)}s`;
 
   return (
     <div className={cn("flex flex-col items-center gap-4", className)}>
       <button
         type="button"
-        disabled={disabled || mode === "thinking" || mode === "speaking"}
+        disabled={disabled || mode === "thinking"}
         onClick={onClick}
         aria-label={label || "Speak"}
         className={cn(
@@ -49,30 +42,22 @@ export function VoiceOrb({
           mode === "speaking" && "voice-orb--speaking",
           size === "lg" && "voice-orb--lg",
         )}
+        style={
+          {
+            "--orb-energy": energy,
+            "--orb-speed": speed,
+          } as CSSProperties
+        }
       >
-        <span className="voice-orb__ring" aria-hidden />
-        <span className="voice-orb__ring" aria-hidden />
-        <Icon
-          className={cn(
-            size === "lg" ? "h-11 w-11" : "h-8 w-8",
-            mode === "thinking" && "animate-spin",
-          )}
-          strokeWidth={1.75}
-        />
-        {(mode === "listening" || mode === "speaking") && (
-          <span className="voice-orb__bars" aria-hidden>
-            {bars.map((h, i) => (
-              <span
-                key={i}
-                className="voice-orb__bar"
-                style={{
-                  height: mode === "listening" ? h : undefined,
-                  minHeight: 4,
-                }}
-              />
-            ))}
-          </span>
-        )}
+        <span className="voice-orb__glow" aria-hidden />
+        <span className="voice-orb__ball" aria-hidden>
+          <span className="voice-orb__blob voice-orb__blob--one" />
+          <span className="voice-orb__blob voice-orb__blob--two" />
+          <span className="voice-orb__blob voice-orb__blob--three" />
+          <span className="voice-orb__blob voice-orb__blob--four" />
+          <span className="voice-orb__metal" />
+          <span className="voice-orb__highlight" />
+        </span>
       </button>
       {label && (
         <p className="max-w-[16rem] text-center text-sm text-[var(--fg-muted)]">{label}</p>
@@ -84,10 +69,10 @@ export function VoiceOrb({
 export function modeLabel(mode: OrbMode, vad?: string | null): string {
   if (mode === "listening") {
     if (vad === "speech") return "Hearing you…";
-    if (vad === "silence") return "Almost done…";
+    if (vad === "silence") return "Almost done… tap to send";
     return "Listening…";
   }
   if (mode === "thinking") return "One moment…";
-  if (mode === "speaking") return "Speaking…";
+  if (mode === "speaking") return "Speaking… tap to interrupt";
   return "Tap to speak";
 }

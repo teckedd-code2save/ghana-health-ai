@@ -60,6 +60,12 @@ enum SeverityFlag {
   EMERGENCY
 }
 
+enum MemoryScope {
+  HEALTH
+  COMMERCE
+  PROFILE
+}
+
 model User {
   id               String    @id @default(uuid()) @db.Uuid
   phone            String?   @unique
@@ -77,12 +83,35 @@ model User {
 
   voiceEnrollments VoiceEnrollment[]
   conversations    Conversation[]
+  memories         AgentMemory[]
+  asrFeedback      AsrFeedback[]
   symptomChecks    SymptomCheck[]
   carts            Cart[]
   orders           Order[]
   consentRecords   ConsentRecord[]
 
   @@map("users")
+}
+
+model AgentMemory {
+  id             String      @id @default(uuid()) @db.Uuid
+  userId         String?     @map("user_id") @db.Uuid
+  sessionId      String?     @map("session_id")
+  scope          MemoryScope
+  key            String
+  value          Json
+  confidence     Float       @default(0.7)
+  source         String      @default("conversation")
+  lastObservedAt DateTime    @default(now()) @map("last_observed_at")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sessionId, scope, key])
+  @@index([userId, scope])
+  @@index([sessionId, scope])
+  @@map("agent_memories")
 }
 
 model VoiceEnrollment {
@@ -117,6 +146,7 @@ model Conversation {
 
   user     User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   messages Message[]
+  asrFeedback AsrFeedback[]
 
   @@index([userId])
   @@index([createdAt])
@@ -138,9 +168,37 @@ model Message {
   createdAt      DateTime    @default(now()) @map("created_at")
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  asrFeedback  AsrFeedback[]
 
   @@index([conversationId, createdAt])
   @@map("messages")
+}
+
+model AsrFeedback {
+  id                  String        @id @default(uuid()) @db.Uuid
+  userId              String?       @map("user_id") @db.Uuid
+  conversationId      String        @map("conversation_id") @db.Uuid
+  messageId           String?       @map("message_id") @db.Uuid
+  language            LanguageCode  @default(tw)
+  focus               String?
+  originalTranscript  String        @map("original_transcript") @db.Text
+  correctedTranscript String?       @map("corrected_transcript") @db.Text
+  rating              Int?
+  notes               String?       @db.Text
+  asrModel            String?       @map("asr_model")
+  asrRoute            String?       @map("asr_route")
+  metadata            Json?
+  createdAt           DateTime      @default(now()) @map("created_at")
+
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  message      Message?     @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([conversationId])
+  @@index([messageId])
+  @@index([language, createdAt])
+  @@map("asr_feedback")
 }
 
 model SymptomCheck {
@@ -173,6 +231,11 @@ model KnowledgeArticle {
   source      String?
   sourceUrl   String?      @map("source_url")
   isActive    Boolean      @default(true) @map("is_active")
+  /// Cached ABENA (or fallback) passage vector — base64 Float32
+  embeddingB64 String?     @map("embedding_b64") @db.Text
+  embedModel   String?     @map("embed_model")
+  embedEngine  String?     @map("embed_engine")
+  embeddedAt   DateTime?   @map("embedded_at")
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
@@ -194,6 +257,11 @@ model Product {
   imageUrl    String?  @map("image_url")
   isActive    Boolean  @default(true) @map("is_active")
   tags        String[]
+  /// Cached ABENA (or fallback) passage vector — base64 Float32
+  embeddingB64 String? @map("embedding_b64") @db.Text
+  embedModel   String? @map("embed_model")
+  embedEngine  String? @map("embed_engine")
+  embeddedAt   DateTime? @map("embedded_at")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

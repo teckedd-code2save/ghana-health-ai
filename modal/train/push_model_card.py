@@ -87,6 +87,9 @@ def main(
     repo: str = "teckedd/gha-whisper-small-twi-v6",
     task: str = "automatic-speech-recognition",
     base_model: str = "openai/whisper-small",
+    languages: str = "tw,ak",
+    datasets: str = "google/WaxalNLP,fsicoli/common_voice_22_0",
+    summary: str = "",
     wer: float = 0.3044,
     cer: float = 0.1062,
 ):
@@ -95,11 +98,14 @@ def main(
             repo=repo,
             task=task,
             base_model=base_model,
+            languages=languages,
+            datasets=datasets,
             wer=wer,
             cer=cer,
             summary=(
-                "Production Twi Whisper small (v6) for Ghana Health AI. "
-                "30.44% WER beam=5 on full Waxal test — beats Round 2."
+                summary
+                or "Production Twi Whisper small (v6) for Ghana Health AI. "
+                "30.44% WER beam=5 on full Waxal test."
             ),
         )
     )

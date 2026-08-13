@@ -57,7 +57,17 @@ EXTRA_DATASETS = [
         "split": "train",
         "weight": 0.25,
         "validated_only": True,
+        "max_n": 5000,
         "note": "Common Voice 22 Twi CC0 — validated votes filter",
+    },
+    {
+        "name": "fsicoli/common_voice_22_0",
+        "config": "en",
+        "split": "train",
+        "weight": 0.20,
+        "validated_only": True,
+        "max_n": 5000,
+        "note": "Common Voice 22 English CC0 — retention mix to reduce English regression",
     },
     {
         "name": "ghananlpcommunity/twi-speech-text-multispeaker-16k",
@@ -170,6 +180,8 @@ def train(
     smoke: bool = False,
     run_name: str = "v6-small",
     full_test_after: bool = True,
+    train_limit: int = 0,
+    eval_limit: int = 0,
 ) -> dict[str, Any]:
     """
     Retrain from openai/whisper-* on Waxal + Common Voice Twi (+ optional extras).
@@ -195,6 +207,8 @@ def train(
         max_steps = min(max_steps, 20)
         batch_size = min(batch_size, 2)
         full_test_after = False
+        train_limit = train_limit or 64
+        eval_limit = eval_limit or 16
 
     # Medium needs smaller micro-batch
     if "medium" in base_model.lower() and batch_size > 4 and not smoke:
@@ -215,34 +229,205 @@ def train(
         f"bs={batch_size}x{grad_accum} extra={use_extra_data} waxal_w={waxal_weight}"
     )
 
+    def _bounded_split(split_name: str, limit: int) -> str:
+        if limit and int(limit) > 0:
+            return f"{split_name}[:{int(limit)}]"
+        return split_name
+
+    def _materialize_streaming_waxal(split_name: str, limit: int, source: str) -> Dataset:
+        """
+        HF split slicing still resolves every Waxal shard. For credit-safe proof runs,
+        stream and materialize only the first usable examples into an in-memory Dataset.
+        """
+        target = int(limit or 0)
+        if target <= 0:
+            raise ValueError("streaming materialization requires a positive limit")
+
+        print(f"[train] streaming {source} split={split_name} target={target}", flush=True)
+        ds_stream = load_dataset(
+            dataset_name,
+            dataset_config,
+            split=split_name,
+            token=token,
+            cache_dir=cache,
+            streaming=True,
+        )
+        column_names = list(getattr(ds_stream, "column_names", []) or [])
+        stream_audio_col = "audio" if "audio" in column_names else _find_audio_col(column_names)
+        stream_text_col = _find_text_col(column_names)
+        if stream_text_col is None:
+            raise RuntimeError(f"No text column in streamed {source}: {column_names}")
+        ds_stream = ds_stream.cast_column(stream_audio_col, Audio(sampling_rate=16000))
+
+        rows: list[dict[str, Any]] = []
+        skipped = 0
+        for row in ds_stream:
+            text = str(row.get(stream_text_col) or "")
+            if len(_normalize_text(text)) < 2:
+                skipped += 1
+                continue
+            audio = row.get(stream_audio_col)
+            if not isinstance(audio, dict) or audio.get("array") is None:
+                skipped += 1
+                continue
+            arr = np.asarray(audio["array"], dtype=np.float32)
+            sr = int(audio.get("sampling_rate") or 16000)
+            if arr.size < int(0.25 * sr):
+                skipped += 1
+                continue
+            rows.append(
+                {
+                    "audio": {"array": arr, "sampling_rate": sr},
+                    "text": text,
+                }
+            )
+            if len(rows) >= target:
+                break
+
+        if len(rows) < max(16, min(64, target // 4)):
+            raise RuntimeError(
+                f"Only materialized {len(rows)} {source} rows from {split_name}; skipped={skipped}"
+            )
+        print(f"[train] {source} materialized n={len(rows)} skipped={skipped}", flush=True)
+        return Dataset.from_list(rows)
+
+    def _materialize_streaming_extra(cfg: dict, source: str) -> Optional[Dataset]:
+        """
+        Materialize capped auxiliary speech data without asking HF to fetch every shard.
+        This is critical for Common Voice English, where split slicing still resolves
+        the full multi-tar train split before we see a single sample.
+        """
+        target = int(cfg.get("max_n") or 0)
+        if target <= 0:
+            return None
+
+        name = cfg["name"]
+        config = cfg.get("config")
+        split = cfg.get("split") or "train"
+        validated_only = bool(cfg.get("validated_only"))
+
+        print(
+            f"[train] streaming extra {source} dataset={name}/{config or 'default'} "
+            f"split={split} target={target}",
+            flush=True,
+        )
+        load_kwargs: dict[str, Any] = {
+            "split": split,
+            "token": token,
+            "cache_dir": cache,
+            "streaming": True,
+        }
+        if "common_voice" in name:
+            load_kwargs["trust_remote_code"] = True
+        if config:
+            ds_stream = load_dataset(name, config, **load_kwargs)
+        else:
+            ds_stream = load_dataset(name, **load_kwargs)
+
+        column_names = list(getattr(ds_stream, "column_names", []) or [])
+        stream_audio_col = "audio" if "audio" in column_names else _find_audio_col(column_names)
+        stream_text_col = _find_text_col(column_names)
+        if stream_text_col is None:
+            raise RuntimeError(f"No text column in streamed {source}: {column_names}")
+        ds_stream = ds_stream.cast_column(stream_audio_col, Audio(sampling_rate=16000))
+
+        rows: list[dict[str, Any]] = []
+        skipped = 0
+        for row in ds_stream:
+            if validated_only and "up_votes" in row and "down_votes" in row:
+                try:
+                    if int(row.get("up_votes") or 0) < 2 or int(row.get("down_votes") or 0) != 0:
+                        skipped += 1
+                        continue
+                except Exception:  # noqa: BLE001
+                    pass
+
+            text = str(row.get(stream_text_col) or "")
+            if len(_normalize_text(text)) < 2:
+                skipped += 1
+                continue
+            audio = row.get(stream_audio_col)
+            if not isinstance(audio, dict) or audio.get("array") is None:
+                skipped += 1
+                continue
+            arr = np.asarray(audio["array"], dtype=np.float32)
+            sr = int(audio.get("sampling_rate") or 16000)
+            dur = arr.size / max(1, sr)
+            if dur < 0.5 or dur > 28.0:
+                skipped += 1
+                continue
+
+            rows.append(
+                {
+                    "audio": {"array": arr, "sampling_rate": sr},
+                    "sentence": text,
+                    "up_votes": int(row.get("up_votes") or 0) if "up_votes" in row else 0,
+                    "down_votes": int(row.get("down_votes") or 0) if "down_votes" in row else 0,
+                }
+            )
+            if len(rows) >= target:
+                break
+
+        if len(rows) < 30:
+            print(f"[train] streamed extra {source} too small n={len(rows)} skipped={skipped}")
+            return None
+        print(f"[train] streamed extra {source} materialized n={len(rows)} skipped={skipped}")
+        return Dataset.from_list(rows)
+
     # ── Waxal foundation ────────────────────────────────────────────
-    raw = load_dataset(dataset_name, dataset_config, token=token, cache_dir=cache)
-    print("[train] waxal splits", list(raw.keys()))
-    assert "test" in raw, "Waxal must have immutable test split"
-    split_train = "train" if "train" in raw else list(raw.keys())[0]
-    if "validation" in raw:
-        split_eval = "validation"
-    elif "dev" in raw:
-        split_eval = "dev"
+    if train_limit or eval_limit:
+        waxal_train = _materialize_streaming_waxal(
+            "train",
+            int(train_limit or 3000),
+            "waxal-train",
+        )
+        try:
+            eval_ds = _materialize_streaming_waxal(
+                "validation",
+                int(eval_limit or max(100, min(300, len(waxal_train) // 10))),
+                "waxal-val",
+            )
+        except Exception as exc:  # noqa: BLE001
+            print(f"[train] validation streaming failed ({exc}); holding out train subset")
+            n = len(waxal_train)
+            idx = list(range(n))
+            random.Random(42).shuffle(idx)
+            cut = min(max(16, int(eval_limit or max(32, n * 0.08))), max(1, n // 4))
+            eval_ds = waxal_train.select(idx[:cut])
+            waxal_train = waxal_train.select(idx[cut:])
+        raw_test_len: int | str = "unused-streaming-proof"
+        audio_col = "audio"
+        text_col = "text"
     else:
-        split_eval = None
+        raw = load_dataset(dataset_name, dataset_config, token=token, cache_dir=cache)
+        print("[train] waxal splits", list(raw.keys()))
+        assert "test" in raw, "Waxal must have immutable test split"
+        split_train = "train" if "train" in raw else list(raw.keys())[0]
+        if "validation" in raw:
+            split_eval = "validation"
+        elif "dev" in raw:
+            split_eval = "dev"
+        else:
+            split_eval = None
 
-    waxal_train = raw[split_train]
-    if split_eval:
-        eval_ds = raw[split_eval]
-    else:
-        n = len(waxal_train)
-        idx = list(range(n))
-        random.Random(42).shuffle(idx)
-        cut = max(1, int(0.05 * n))
-        eval_ds = waxal_train.select(idx[:cut])
-        waxal_train = waxal_train.select(idx[cut:])
-        print(f"[train] no dev — held out {cut} from waxal train")
+        waxal_train = raw[split_train]
+        if split_eval:
+            eval_ds = raw[split_eval]
+        else:
+            n = len(waxal_train)
+            idx = list(range(n))
+            random.Random(42).shuffle(idx)
+            cut = max(1, int(0.05 * n))
+            eval_ds = waxal_train.select(idx[:cut])
+            waxal_train = waxal_train.select(idx[cut:])
+            print(f"[train] no dev — held out {cut} from waxal train")
 
-    print(f"[train] waxal train={len(waxal_train)} eval={len(eval_ds)} test={len(raw['test'])} (unused)")
+        raw_test_len = len(raw["test"])
+        audio_col = _find_audio_col(waxal_train.column_names)
+        text_col = _find_text_col(waxal_train.column_names)
 
-    audio_col = _find_audio_col(waxal_train.column_names)
-    text_col = _find_text_col(waxal_train.column_names)
+    print(f"[train] waxal train={len(waxal_train)} eval={len(eval_ds)} test={raw_test_len} (unused)")
+
     if text_col is None:
         raise RuntimeError(f"No text column in waxal: {waxal_train.column_names}")
 
@@ -313,17 +498,28 @@ def train(
         print(f"[train] {source} ready n={len(ds)}")
         return ds
 
-    def _load_common_voice_tw(cfg: dict) -> Optional[Dataset]:
-        """Load CV Twi train (+ optional validated.tsv paths). Prefer HF script; fallback tar+tsv."""
+    def _split_expr(cfg: dict) -> str:
+        split = cfg.get("split") or "train"
+        max_n = cfg.get("max_n")
+        if max_n:
+            return f"{split}[:{int(max_n)}]"
+        return split
+
+    def _load_common_voice(cfg: dict) -> Optional[Dataset]:
+        """Load Common Voice. Twi keeps a manual tar+tsv fallback; other configs use HF only."""
         name = cfg["name"]
         config = cfg.get("config") or "tw"
+        if cfg.get("max_n"):
+            streamed = _materialize_streaming_extra(cfg, f"common_voice_{config}")
+            if streamed is not None:
+                return streamed
         try:
             print(f"[train] loading Common Voice {name} config={config} …")
             # Prefer train split (speaker-disjoint from test by CorporaCreator)
             eds = load_dataset(
                 name,
                 config,
-                split=cfg.get("split") or "train",
+                split=_split_expr(cfg),
                 token=token,
                 cache_dir=cache,
                 trust_remote_code=True,
@@ -332,6 +528,9 @@ def train(
             return eds
         except Exception as exc:  # noqa: BLE001
             print(f"[train] CV load_dataset failed ({exc}); trying manual tsv+tar …")
+
+        if config != "tw":
+            return None
 
         try:
             from huggingface_hub import hf_hub_download
@@ -414,13 +613,25 @@ def train(
 
     train_parts: list[Dataset] = [waxal_std]
     mix_weights: list[float] = [waxal_weight]
-    sources_used = ["waxal"]
+    sources_used = [f"{dataset_name}:{dataset_config}"]
 
     if use_extra_data and not smoke:
         for extra in EXTRA_DATASETS:
+            extra = dict(extra)
+            if train_limit:
+                scaled_max = int(
+                    max(
+                        64,
+                        min(
+                            int(extra.get("max_n") or train_limit),
+                            round(int(train_limit) * float(extra.get("weight") or 0.2) / max(waxal_weight, 0.05)),
+                        ),
+                    )
+                )
+                extra["max_n"] = scaled_max
             try:
                 if "common_voice" in extra["name"]:
-                    eds = _load_common_voice_tw(extra)
+                    eds = _load_common_voice(extra)
                     if eds is None:
                         continue
                 else:
@@ -428,7 +639,7 @@ def train(
                     load_kwargs: dict[str, Any] = {
                         "token": token,
                         "cache_dir": cache,
-                        "split": extra.get("split") or "train",
+                        "split": _split_expr(extra),
                     }
                     if extra.get("config"):
                         eds = load_dataset(extra["name"], extra["config"], **load_kwargs)
@@ -455,7 +666,9 @@ def train(
                     continue
                 train_parts.append(std)
                 mix_weights.append(float(extra.get("weight") or 0.2))
-                sources_used.append(extra["name"])
+                sources_used.append(
+                    f"{extra['name']}:{extra.get('config') or 'default'}"
+                )
             except Exception as exc:  # noqa: BLE001
                 print(f"[train] extra failed {extra['name']}: {exc}")
 
@@ -801,13 +1014,19 @@ def train(
             write_and_push_model_card(
                 push_repo,
                 task="automatic-speech-recognition",
-                language=["tw", "ak"],
+                language=(
+                    ["tw", "ak", "en"]
+                    if any(":en" in s for s in sources_used)
+                    else ["tw", "ak"]
+                ),
                 base_model=base_model,
                 metrics=card_metrics,
                 datasets=[s for s in (sources_used or []) if s]
                 or ["google/WaxalNLP", "fsicoli/common_voice_22_0"],
                 summary=(
-                    f"Twi/Akan Whisper ASR for Ghana Health AI (`{run_name}`). "
+                    f"Twi/Akan"
+                    f"{' + English retention' if any(':en' in s for s in sources_used) else ''} "
+                    f"Whisper ASR for Ghana Health AI (`{run_name}`). "
                     f"Recipe v6 mix; promote={beats_greedy}."
                 ),
                 extra_markdown=f"""
@@ -846,6 +1065,8 @@ Production decode uses `num_beams=5` in `modal/asr_service.py`.
         "max_steps": max_steps,
         "batch_size": batch_size,
         "grad_accum": grad_accum,
+        "train_limit": train_limit,
+        "eval_limit": eval_limit,
         "baseline_wer_to_beat": BASELINE_WER,
         "beam5_bar": BEAM5_WER,
         "val_wer": val_wer,
@@ -936,6 +1157,8 @@ def main(
     use_extra_data: bool = True,
     waxal_weight: float = 0.60,
     full_test_after: bool = True,
+    train_limit: int = 0,
+    eval_limit: int = 0,
     wait: bool = True,
 ):
     """
@@ -955,6 +1178,8 @@ def main(
         use_extra_data=use_extra_data,
         waxal_weight=waxal_weight,
         full_test_after=full_test_after,
+        train_limit=train_limit,
+        eval_limit=eval_limit,
     )
     print(f"[train] spawned {call.object_id} run={run_name} base={base_model}")
     print("[train] follow Modal dashboard; summary → akan-speech-eval-results")

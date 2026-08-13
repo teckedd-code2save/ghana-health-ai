@@ -1,0 +1,68 @@
+[
+  {
+    "id": "tw-health-pregnancy-headache",
+    "language": "tw",
+    "message": "Me nyinsɛn na me ti yɛ me ya. Dɛn na ɛsɛ sɛ meyɛ?",
+    "expectedIntent": "HEALTH"
+  },
+  {
+    "id": "en-health-malaria-child",
+    "language": "en",
+    "message": "My child has fever and chills. Could this be malaria?",
+    "expectedIntent": "HEALTH"
+  },
+  {
+    "id": "tw-market-paracetamol",
+    "language": "tw",
+    "message": "Mepɛ paracetamol boɔ ne sɛ metumi atɔ wɔ market no mu.",
+    "expectedIntent": "ECOMMERCE",
+    "expectedCommerceExecution": {
+      "mode": "local_catalog_search",
+      "status": "ready"
+    }
+  },
+  {
+    "id": "en-market-rice",
+    "language": "en",
+    "message": "Can I buy rice and soap from the market?",
+    "expectedIntent": "ECOMMERCE",
+    "expectedCommerceExecution": {
+      "mode": "none",
+      "status": "needs_clarification"
+    }
+  },
+  {
+    "id": "en-health-urgent-chest-pain",
+    "language": "en",
+    "message": "My father has crushing chest pain and is sweating. What should I do right now?",
+    "expectedIntent": "HEALTH",
+    "expectedEscalate": true,
+    "expectedSeverity": "EMERGENCY",
+    "forbiddenTerms": ["feel free to ask", "i heard you. share more"]
+  },
+  {
+    "id": "tw-health-child-diarrhea-ors",
+    "language": "tw",
+    "message": "Me ba no yam retu no bebree. ORS bɛboa anaa?",
+    "expectedIntent": "HEALTH",
+    "forbiddenTerms": ["community health worker", "feel free to ask"]
+  },
+  {
+    "id": "en-market-health-item",
+    "language": "en",
+    "message": "Do you have oral rehydration salts in the market?",
+    "expectedIntent": "ECOMMERCE",
+    "expectedCommerceExecution": {
+      "mode": "local_catalog_search",
+      "status": "ready"
+    },
+    "forbiddenTerms": ["diagnose", "dosage"]
+  },
+  {
+    "id": "tw-unclear-asr-fragment",
+    "language": "tw",
+    "message": "ɛɛɛ me... mm asɛm no... hmm",
+    "expectedClarifying": true,
+    "forbiddenTerms": ["This is not a substitute", "I heard you. Share more", "Me ho yɛ hɔ"]
+  }
+]

@@ -1,0 +1,128 @@
+[
+  {
+    "id": "tw-health-headache-pregnancy-danger",
+    "focus": "health",
+    "language": "tw",
+    "text": "Me nyinsɛn na me ti yɛ me yaw paa, m'anim nso ahonhon.",
+    "transcript": { "language": "tw", "languageProbability": 0.92, "duration": 4.1, "rms": 0.06 },
+    "expectedIntent": "HEALTH",
+    "expectedEscalate": true,
+    "expectedSeverity": "EMERGENCY",
+    "expectedHealth": {
+      "planStatus": "urgent_referral",
+      "nextAction": "recommend_urgent_care",
+      "urgency": "emergency"
+    }
+  },
+  {
+    "id": "tw-health-weak-asr-clarify",
+    "focus": "health",
+    "language": "tw",
+    "text": "ɛɛ me... yare no... hmm",
+    "transcript": { "language": "tw", "languageProbability": 0.36, "duration": 1.1, "rms": 0.012 },
+    "expectedClarifying": true,
+    "expectedHealth": {
+      "planStatus": "needs_clarification",
+      "nextAction": "ask_clarifying_question",
+      "urgency": "routine"
+    }
+  },
+  {
+    "id": "en-health-child-fever",
+    "focus": "health",
+    "language": "en",
+    "text": "My child has fever and chills since last night.",
+    "transcript": { "language": "en", "languageProbability": 0.9, "duration": 3.6, "rms": 0.05 },
+    "expectedIntent": "HEALTH",
+    "expectedHealth": {}
+  },
+  {
+    "id": "tw-commerce-tomatoes",
+    "focus": "commerce",
+    "language": "tw",
+    "text": "Mepɛ sɛ metɔ tomatoes ma stew.",
+    "transcript": { "language": "tw", "languageProbability": 0.88, "duration": 2.9, "rms": 0.05 },
+    "expectedIntent": "ECOMMERCE",
+    "expectedShoppingIntent": "tomatoes",
+    "expectedCommerce": {
+      "action": "buy",
+      "itemIncludes": "tomatoes",
+      "planStatus": "needs_clarification",
+      "nextAction": "ask_quantity"
+    }
+  },
+  {
+    "id": "tw-commerce-location-memory",
+    "focus": "commerce",
+    "language": "tw",
+    "text": "Hwehwɛ tomatoes a ɛbɛn Madina ma me.",
+    "memory": [
+      {
+        "scope": "COMMERCE",
+        "key": "preferred_shopping_location",
+        "value": { "location": "Madina" },
+        "confidence": 0.8
+      }
+    ],
+    "transcript": { "language": "tw", "languageProbability": 0.91, "duration": 3.2, "rms": 0.05 },
+    "expectedIntent": "ECOMMERCE",
+    "expectedShoppingIntent": "tomatoes",
+    "expectedCommerce": {
+      "action": "find",
+      "itemIncludes": "tomatoes",
+      "locationIncludes": "Madina",
+      "planStatus": "ready_for_search",
+      "nextAction": "search_local_catalog"
+    },
+    "forbiddenTerms": ["GH₵", "in stock", "available at"]
+  },
+  {
+    "id": "tw-commerce-quantity-delivery",
+    "focus": "commerce",
+    "language": "tw",
+    "text": "Mepɛ sɛ metɔ tomato 2 kg, fa brɛ me wɔ Adenta.",
+    "transcript": { "language": "tw", "languageProbability": 0.88, "duration": 3.4, "rms": 0.05 },
+    "expectedIntent": "ECOMMERCE",
+    "expectedCommerce": {
+      "action": "buy",
+      "itemIncludes": "tomato",
+      "quantityIncludes": "2 kg",
+      "locationIncludes": "Adenta",
+      "fulfillment": "delivery",
+      "planStatus": "ready_for_order_draft",
+      "nextAction": "draft_order"
+    },
+    "forbiddenTerms": ["GH₵", "in stock", "available at"]
+  },
+  {
+    "id": "en-commerce-no-invent-price",
+    "focus": "commerce",
+    "language": "en",
+    "text": "Can you order tomatoes for me online?",
+    "transcript": { "language": "en", "languageProbability": 0.9, "duration": 2.7, "rms": 0.05 },
+    "expectedIntent": "ECOMMERCE",
+    "expectedCommerce": {
+      "action": "order",
+      "itemIncludes": "tomatoes",
+      "planStatus": "needs_clarification",
+      "nextAction": "ask_quantity"
+    },
+    "forbiddenTerms": ["GH₵", "$", "available at", "in stock"]
+  },
+  {
+    "id": "en-commerce-price-query",
+    "focus": "commerce",
+    "language": "en",
+    "text": "How much is a bag of rice near East Legon?",
+    "transcript": { "language": "en", "languageProbability": 0.9, "duration": 2.9, "rms": 0.05 },
+    "expectedIntent": "ECOMMERCE",
+    "expectedCommerce": {
+      "action": "price",
+      "itemIncludes": "bag of rice",
+      "locationIncludes": "East Legon",
+      "planStatus": "ready_for_search",
+      "nextAction": "search_local_catalog"
+    },
+    "forbiddenTerms": ["GH₵", "$", "in stock"]
+  }
+]

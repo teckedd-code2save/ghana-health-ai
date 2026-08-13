@@ -282,6 +282,66 @@ async function main() {
       tags: ["ors", "diarrhea", "dehydration", "nsuo"],
       source: "CHW hydration guidance",
     },
+    {
+      slug: "child-fever",
+      titleTw: "Afe wɔ mmɔfra so",
+      titleEn: "Fever in children",
+      bodyTw:
+        "Sɛ abofra wɔ afe a, nom nsuo, hom, na hwɛ ne ho. Sɛ ɛyɛ den, abofra no yɛ mmerɛw, anaa afe no nte a, kɔ clinic ntɛm — titiriw sɛ ɔyɛ ketewa.",
+      bodyEn:
+        "If a child has fever, offer fluids, rest, and watch closely. If fever is high, the child is weak, or it does not improve — go to a clinic promptly, especially for infants.",
+      category: "child",
+      tags: ["child", "fever", "afe", "abofra", "mmɔfra"],
+      source: "Community pediatric triage (summarized)",
+    },
+    {
+      slug: "anc-visits",
+      titleTw: "Antenatal care nhyiamu",
+      titleEn: "Antenatal care visits",
+      bodyTw:
+        "Sɛ wo wɔ nyinsen mu a, kɔ antenatal care nhyiamu a wɔahyɛ no. Wɔbɛhwɛ wo mogya, wo ba a ɔwɔ yafunu mu, ne wo apɔwmuden. Sɛ wo nte yie a, kɔ clinic a ɛnyɛ sɛ ɛsɛ sɛ woda kɔ.",
+      bodyEn:
+        "If you are pregnant, keep all antenatal care visits. Clinics check blood, fetal wellbeing, and your health. If you feel unwell, go sooner — do not wait for the next appointment.",
+      category: "maternal",
+      tags: ["anc", "antenatal", "nyinsen", "pregnancy", "clinic"],
+      source: "GHS ANC pathway (summarized)",
+    },
+    {
+      slug: "family-planning-referral",
+      titleTw: "Awo nhyehyɛeɛ",
+      titleEn: "Family planning referral",
+      bodyTw:
+        "Sɛ wopɛ awo nhyehyɛeɛ (family planning) a, kɔ clinic anaa community health worker hɔ. Wɔbɛkyerɛ wo kwan a ɛfata wo. Yɛnka sɛ yɛbɛma wo aduro foforo wɔ ha.",
+      bodyEn:
+        "For family planning options, visit a clinic or community health worker. They will explain methods that fit you. This app does not prescribe contraceptives.",
+      category: "maternal",
+      tags: ["family planning", "awo", "contraception", "clinic"],
+      source: "Community FP referral (summarized)",
+    },
+    {
+      slug: "hypertension-diabetes-simple",
+      titleTw: "Mogya a ɛkɔ soro ne diabetes",
+      titleEn: "High blood pressure and diabetes basics",
+      bodyTw:
+        "Sɛ wɔaka akyerɛ wo sɛ wo mogya kɔ soro anaa wo wɔ diabetes a, di oduruyɛfoɔ akwankyerɛ so, di aduane a ɛho hia, na kɔ check-up. Sɛ ti yare den, home yɛ den, anaa wo nte yie a, kɔ hospital.",
+      bodyEn:
+        "If you have high blood pressure or diabetes, follow clinic advice, eat carefully, and keep check-ups. Severe headache, breathing trouble, or feeling very unwell needs urgent care.",
+      category: "chronic",
+      tags: ["hypertension", "diabetes", "mogya", "pressure", "chronic"],
+      source: "Community NCD basics (summarized)",
+    },
+    {
+      slug: "immunization-basics",
+      titleTw: "Nnwoma a wɔde bɔ mmɔfra ho ban",
+      titleEn: "Childhood immunization basics",
+      bodyTw:
+        "Fa wo ba kɔ immunization / weighing sɛ ɛsɛ. Nnwoma no bɔ yare bi te sɛ measles ho ban. Sɛ wo werɛ fi da a, kɔ clinic ma wɔnhwɛ schedule no.",
+      bodyEn:
+        "Take children for immunizations and weighing as scheduled. Vaccines protect against serious diseases such as measles. If you miss a date, visit the clinic to catch up.",
+      category: "child",
+      tags: ["immunization", "vaccine", "mmɔfra", "weighing", "measles"],
+      source: "EPI / community immunization (summarized)",
+    },
   ];
   for (const a of moreArticles) {
     await prisma.knowledgeArticle.upsert({
@@ -297,6 +357,7 @@ async function main() {
     role: "admin",
     articles: articles.length + moreArticles.length,
     products: products.length,
+    note: "Run: sec -- pnpm db:index-embeddings  (after MODAL_EMBED_URL is set)",
   });
 }
 

@@ -15,22 +15,57 @@ export type ModalAsrResult = {
   verified?: boolean | null;
   error?: string;
   rejected_text?: string;
+  route?: ModalAsrRoute;
 };
 
-function asrBaseUrl(): string | null {
-  return process.env.MODAL_ASR_URL?.replace(/\/$/, "") || null;
+export type ModalAsrRoute = {
+  name: "twi-default" | "english" | "english-fallback";
+  url: string;
+  requestedLanguage?: string;
+  routedLanguage: "tw" | "en";
+};
+
+export const DEFAULT_MODAL_ASR_EN_URL =
+  "https://createdliving1000--ghana-health-asr-en-api.modal.run";
+
+function cleanUrl(value: string | undefined): string | null {
+  return value?.replace(/\/$/, "") || null;
+}
+
+export function resolveModalAsrRoute(language?: string): ModalAsrRoute | null {
+  const defaultUrl = cleanUrl(process.env.MODAL_ASR_URL);
+  const englishUrl = cleanUrl(process.env.MODAL_ASR_EN_URL || DEFAULT_MODAL_ASR_EN_URL);
+  const wantsEnglish = language === "en";
+
+  if (wantsEnglish && englishUrl) {
+    return {
+      name: "english",
+      url: englishUrl,
+      requestedLanguage: language,
+      routedLanguage: "en",
+    };
+  }
+
+  if (!defaultUrl) return null;
+
+  return {
+    name: wantsEnglish ? "english-fallback" : "twi-default",
+    url: defaultUrl,
+    requestedLanguage: language,
+    routedLanguage: wantsEnglish ? "en" : "tw",
+  };
 }
 
 export function isModalAsrConfigured(): boolean {
-  return Boolean(asrBaseUrl());
+  return Boolean(resolveModalAsrRoute());
 }
 
 export async function modalTranscribe(
   audio: ArrayBuffer | Buffer | Uint8Array,
   opts?: { language?: string; contentType?: string; filename?: string },
 ): Promise<ModalAsrResult> {
-  const base = asrBaseUrl();
-  if (!base) throw new Error("MODAL_ASR_URL is not set");
+  const route = resolveModalAsrRoute(opts?.language);
+  if (!route) throw new Error("MODAL_ASR_URL is not set");
 
   const bytes =
     audio instanceof ArrayBuffer
@@ -47,12 +82,14 @@ export async function modalTranscribe(
   );
 
   const qs = opts?.language ? `?language=${encodeURIComponent(opts.language)}` : "";
-  const res = await fetch(`${base}/transcribe${qs}`, {
+  const token =
+    route.name === "english" && process.env.MODAL_ASR_EN_TOKEN
+      ? process.env.MODAL_ASR_EN_TOKEN
+      : process.env.MODAL_ASR_TOKEN;
+  const res = await fetch(`${route.url}/transcribe${qs}`, {
     method: "POST",
     body: form,
-    headers: process.env.MODAL_ASR_TOKEN
-      ? { Authorization: `Bearer ${process.env.MODAL_ASR_TOKEN}` }
-      : undefined,
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
 
   const data = (await res.json().catch(() => ({}))) as ModalAsrResult & {
@@ -74,7 +111,8 @@ export async function modalTranscribe(
       rejected_text: data.rejected_text,
       duration: data.duration,
       rms: data.rms,
+      route,
     };
   }
-  return data;
+  return { ...data, route };
 }

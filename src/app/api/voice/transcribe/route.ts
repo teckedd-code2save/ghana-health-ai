@@ -61,6 +61,7 @@ export async function POST(req: Request) {
         model: result.model,
         duration: result.duration,
         rms: result.rms,
+        route: result.route?.name,
         rejected_text: result.rejected_text,
       });
     }
@@ -71,7 +72,13 @@ export async function POST(req: Request) {
         language: result.language === "en" ? "en" : "tw",
         rawText: result.text,
         punctuated: result.text,
-        speakers: [{ label: result.speaker ?? "Speaker 1", verified: result.verified ?? null }],
+        speakers: [
+          {
+            label: result.speaker ?? "Speaker 1",
+            verified: result.verified ?? null,
+            asrRoute: result.route?.name,
+          },
+        ],
         audioDeleted: true,
         retained: false,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
@@ -82,7 +89,12 @@ export async function POST(req: Request) {
       action: "voice.transcribe",
       actorId: user?.id,
       ip,
-      meta: { mode: "modal", model: result.model, latencyMs: result.latency_ms },
+      meta: {
+        mode: "modal",
+        model: result.model,
+        route: result.route?.name,
+        latencyMs: result.latency_ms,
+      },
     });
 
     return jsonOk({
@@ -94,6 +106,7 @@ export async function POST(req: Request) {
         latencyMs: result.latency_ms,
         mode: "modal" as const,
         model: result.model,
+        route: result.route?.name,
         segments: result.segments,
       },
     });

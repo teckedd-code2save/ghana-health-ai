@@ -27,7 +27,7 @@ from typing import Any, Optional
 
 import modal
 
-APP_NAME = "ghana-health-asr"
+APP_NAME = os.environ.get("ASR_APP_NAME", "ghana-health-asr")
 DEFAULT_MODEL = os.environ.get(
     "MODEL_ID", "teckedd/gha-whisper-small-twi-v6"
 )
@@ -44,6 +44,7 @@ model_volume = modal.Volume.from_name("ghana-health-asr-models", create_if_missi
 
 gpu_image = (
     modal.Image.debian_slim(python_version="3.11")
+    .env({"MODEL_ID": DEFAULT_MODEL, "ASR_SERVICE_NAME": APP_NAME})
     .apt_install("ffmpeg", "libsndfile1")
     .pip_install(
         "torch==2.5.1",
@@ -59,6 +60,7 @@ gpu_image = (
 
 web_image = (
     modal.Image.debian_slim(python_version="3.11")
+    .env({"MODEL_ID": DEFAULT_MODEL, "ASR_SERVICE_NAME": APP_NAME})
     .pip_install(
         "fastapi[standard]==0.115.12",
         "python-multipart==0.0.20",
@@ -350,7 +352,7 @@ def api():
     async def health():
         return {
             "ok": True,
-            "service": "ghana-health-asr",
+            "service": os.environ.get("ASR_SERVICE_NAME", APP_NAME),
             "model": os.environ.get("MODEL_ID", DEFAULT_MODEL),
             "engine": "transformers-whisper",
             "gpu_scaledown_s": 45,

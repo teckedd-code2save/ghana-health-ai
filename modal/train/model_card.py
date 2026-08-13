@@ -26,6 +26,19 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 
+def _dataset_id(value: str) -> str:
+    """Return a Hub-valid dataset id, stripping local config/split annotations."""
+    return (value or "").split(":", 1)[0].strip()
+
+
+def _dataset_label(value: str) -> str:
+    value = (value or "").strip()
+    if ":" not in value:
+        return value
+    dataset, detail = value.split(":", 1)
+    return f"{dataset} ({detail})"
+
+
 def build_model_card_md(
     *,
     repo_id: str,
@@ -49,7 +62,12 @@ def build_model_card_md(
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     lang_yaml = "\n".join(f"- {l}" for l in language) if language else "- tw"
-    ds_yaml = "\n".join(f"- {d}" for d in datasets) if datasets else ""
+    dataset_ids = []
+    for d in datasets:
+        clean = _dataset_id(d)
+        if clean and clean not in dataset_ids:
+            dataset_ids.append(clean)
+    ds_yaml = "\n".join(f"- {d}" for d in dataset_ids) if dataset_ids else ""
     tag_list = sorted(
         set(
             tags
@@ -72,20 +90,22 @@ def build_model_card_md(
         if isinstance(value, float):
             # WER/CER as percent-friendly raw ratio in model-index
             metric_yaml_lines.append(
-                f"""  - type: {name}
-    value: {value:.6f}
-    name: {name.upper()}"""
+                f"""    - type: {name}
+      value: {value:.6f}
+      name: {name.upper()}"""
             )
         else:
             metric_yaml_lines.append(
-                f"""  - type: {name}
-    value: {value}
-    name: {name}"""
+                f"""    - type: {name}
+      value: {value}
+      name: {name}"""
             )
     metrics_block = "\n".join(metric_yaml_lines)
 
     model_index = ""
     if metrics_block:
+        primary_dataset = dataset_ids[0] if dataset_ids else "custom"
+        primary_dataset_name = _dataset_label(datasets[0]) if datasets else "custom"
         model_index = f"""
 model-index:
 - name: {repo_id.split("/")[-1]}
@@ -93,8 +113,8 @@ model-index:
   - task:
       type: {task}
     dataset:
-      type: {datasets[0] if datasets else "custom"}
-      name: {datasets[0] if datasets else "custom"}
+      type: {primary_dataset}
+      name: {primary_dataset_name}
     metrics:
 {metrics_block}
 """
@@ -130,7 +150,7 @@ tags:
 
     ds_section = ""
     if datasets:
-        bullets = "\n".join(f"- `{d}`" for d in datasets)
+        bullets = "\n".join(f"- `{_dataset_label(d)}`" for d in datasets)
         ds_section = f"""
 ## Training data
 
