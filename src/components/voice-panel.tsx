@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Pencil, ShoppingCart, Volume2, X } from "lucide-react";
+import { Check, Mic, Pencil, ShoppingCart, Volume2, X } from "lucide-react";
 import { useLang } from "@/components/lang-provider";
 import { recordUntilSilence } from "@/lib/browser-audio";
 import { VoiceOrb, localizedModeLabel, type OrbMode } from "@/components/voice-orb";
@@ -46,6 +46,12 @@ type VoiceStreamEvent = VoiceTurnData & {
   detail?: string;
   text?: string;
   chunk?: string;
+};
+
+type StoredMessage = {
+  id: string;
+  role: "USER" | "ASSISTANT" | "SYSTEM";
+  content: string;
 };
 
 function friendlyVoiceError(error: unknown) {
@@ -140,7 +146,7 @@ function stageLabel(stage: string | null) {
     case "assistant_message":
       return "Responding";
     case "tts":
-      return "Speaking";
+      return "Preparing voice";
     default:
       return null;
   }
@@ -152,7 +158,7 @@ function localizedStageLabel(stage: string | null, lang: string) {
   if (label === "Transcribing") return "Meretwerɛ nea wotee";
   if (label === "Thinking") return "Meredwene";
   if (label === "Responding") return "Merebua";
-  if (label === "Speaking") return "Merekan mmuaeɛ";
+  if (label === "Preparing voice") return "Meresiesie nne";
   return label;
 }
 
@@ -238,6 +244,7 @@ export function VoicePanel() {
   const recordingRef = useRef(false);
   const speakingRef = useRef(false);
   const listenRef = useRef<() => void>(() => undefined);
+  const homeSessionKey = `gha:home-voice:${focus}:${lang}`;
 
   const orbMode: OrbMode = recording
     ? "listening"
@@ -258,6 +265,53 @@ export function VoicePanel() {
   useEffect(() => {
     speakingRef.current = speaking;
   }, [speaking]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const hydrate = async () => {
+      const storedConversationId = window.localStorage.getItem(homeSessionKey);
+      await Promise.resolve();
+      if (cancelled) return;
+      setConversationId(storedConversationId ?? undefined);
+      setHeard(null);
+      setReply(null);
+      setStatus(null);
+      setTtsB64(null);
+      setUserMessageId(undefined);
+      setCorrectionOpen(false);
+      setCorrectionText("");
+      setFeedbackStatus(null);
+      setFeedbackSent(false);
+      setCommerceExecution(null);
+      setCommerceStatus(null);
+      setConfirmingCommerce(false);
+      if (!storedConversationId) return;
+
+      try {
+        const res = await fetch(`/api/chat?conversationId=${encodeURIComponent(storedConversationId)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Could not load session");
+        const messages = data.messages as StoredMessage[];
+        if (cancelled) return;
+        const lastUser = [...messages].reverse().find((message) => message.role === "USER");
+        const lastAssistant = [...messages].reverse().find((message) => message.role === "ASSISTANT");
+        setHeard(lastUser?.content ?? null);
+        setCorrectionText(lastUser?.content ?? "");
+        setUserMessageId(lastUser?.id);
+        setReply(lastAssistant?.content ?? null);
+      } catch {
+        if (cancelled) return;
+        window.localStorage.removeItem(homeSessionKey);
+        setConversationId(undefined);
+      }
+    };
+
+    void hydrate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [homeSessionKey]);
 
   function stopPlaybackMeter() {
     if (playbackFrameRef.current != null) {
@@ -401,6 +455,10 @@ export function VoicePanel() {
       if (!text) throw new Error("I didn’t catch that");
 
       setConversationId(data.conversationId);
+      if (data.conversationId) {
+        window.localStorage.setItem(homeSessionKey, data.conversationId);
+        window.localStorage.setItem("gha:active-conversation", data.conversationId);
+      }
       setUserMessageId(data.userMessage?.id);
       setHeard(text);
       setCorrectionText(text);
@@ -479,7 +537,6 @@ export function VoicePanel() {
             className={`live-tab ${focus === item ? "live-tab--active" : ""}`}
             onClick={() => {
               setFocus(item);
-              setConversationId(undefined);
               setHeard(null);
               setReply(null);
               setStatus(null);
@@ -625,6 +682,23 @@ export function VoicePanel() {
             </>
           )}
           {status && !reply && <p className="live-error">{status}</p>}
+          <div className="live-action-row">
+            <button
+              type="button"
+              className={recording ? "icon-action chat-mic-action chat-mic-action--live" : "icon-action chat-mic-action"}
+              disabled={busy || speaking}
+              aria-label={recording ? "Stop recording" : "Record voice"}
+              onClick={() => {
+                if (recording) {
+                  stopRecording();
+                  return;
+                }
+                void listenAndRespond();
+              }}
+            >
+              <Mic className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
     </section>

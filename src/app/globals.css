@@ -830,6 +830,12 @@ select {
   cursor: wait;
 }
 
+.live-action-row {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.2rem;
+}
+
 @keyframes typingPulse {
   0%,
   80%,

@@ -21,6 +21,12 @@ type ChatMessage = {
   };
 };
 
+type StoredMessage = {
+  id: string;
+  role: "USER" | "ASSISTANT" | "SYSTEM";
+  content: string;
+};
+
 type StreamEvent = {
   event: string;
   data: unknown;
@@ -146,6 +152,39 @@ export function ChatPanel() {
   }, [messages, loading, speaking]);
 
   useEffect(() => {
+    let cancelled = false;
+    const storedConversationId = window.localStorage.getItem("gha:active-conversation");
+    if (!storedConversationId) return;
+
+    void fetch(`/api/chat?conversationId=${encodeURIComponent(storedConversationId)}`)
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Could not load session");
+        return data.messages as StoredMessage[];
+      })
+      .then((storedMessages) => {
+        if (cancelled) return;
+        setConversationId(storedConversationId);
+        setMessages(
+          storedMessages
+            .filter((message) => message.role === "USER" || message.role === "ASSISTANT")
+            .map((message) => ({
+              id: message.id,
+              role: message.role,
+              content: message.content,
+            })),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) window.localStorage.removeItem("gha:active-conversation");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     const sync = () => setOnline(navigator.onLine);
     sync();
     window.addEventListener("online", sync);
@@ -232,6 +271,7 @@ export function ChatPanel() {
       const messageContent = data.message?.content ?? data.understanding?.reply ?? "";
       if (!messageContent.trim()) throw new Error("No model response");
       setConversationId(data.conversationId);
+      if (data.conversationId) window.localStorage.setItem("gha:active-conversation", data.conversationId);
       setMessages((m) => {
         const finalMessage: ChatMessage = {
           id: messageId,
@@ -324,6 +364,7 @@ export function ChatPanel() {
       if (!text) throw new Error("No speech heard — try again");
 
       setConversationId(data.conversationId);
+      if (data.conversationId) window.localStorage.setItem("gha:active-conversation", data.conversationId);
       setInput("");
       setPipeline([
         "Transcribed",

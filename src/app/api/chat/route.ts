@@ -90,6 +90,15 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const conversationId = searchParams.get("conversationId");
   if (!conversationId) return jsonError("conversationId required");
+  const user = await getSessionUser();
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: { id: true, userId: true },
+  });
+  if (!conversation) return jsonError("Conversation not found", 404);
+  if (conversation.userId && conversation.userId !== user?.id) {
+    return jsonError("Conversation not found", 404);
+  }
   const messages = await prisma.message.findMany({
     where: { conversationId },
     orderBy: { createdAt: "asc" },

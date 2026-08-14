@@ -24,6 +24,8 @@ const envSchema = z.object({
   NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: z.string().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().optional(),
   HEALTH_ESCALATION_HOTLINE: z.string().optional(),
   SENTRY_DSN: z.string().optional(),
   HEALTH_DISCLAIMER_ENABLED: z

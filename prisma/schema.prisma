@@ -89,8 +89,25 @@ model User {
   carts            Cart[]
   orders           Order[]
   consentRecords   ConsentRecord[]
+  emailOtps        EmailOtp[]
 
   @@map("users")
+}
+
+model EmailOtp {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String
+  codeHash  String   @map("code_hash")
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  userId    String?  @map("user_id") @db.Uuid
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email, createdAt])
+  @@index([expiresAt])
+  @@map("email_otps")
 }
 
 model AgentMemory {
