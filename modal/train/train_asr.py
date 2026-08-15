@@ -86,6 +86,8 @@ ckpt_vol = modal.Volume.from_name("akan-speech-checkpoints", create_if_missing=T
 results_vol = modal.Volume.from_name("akan-speech-eval-results", create_if_missing=True)
 
 _TRAIN_DIR = os.path.dirname(os.path.abspath(__file__))
+_REPO_ROOT = os.path.dirname(os.path.dirname(_TRAIN_DIR))
+_LOCAL_ASR_DIR = os.path.join(_REPO_ROOT, "tmp", "asr-local-train")
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -110,6 +112,10 @@ image = (
     .add_local_file(
         local_path=os.path.join(_TRAIN_DIR, "model_card.py"),
         remote_path="/root/gha_train/model_card.py",
+    )
+    .add_local_dir(
+        local_path=_LOCAL_ASR_DIR,
+        remote_path="/root/gha_local_asr",
     )
 )
 
@@ -182,6 +188,9 @@ def train(
     full_test_after: bool = True,
     train_limit: int = 0,
     eval_limit: int = 0,
+    use_local_data: bool = True,
+    local_manifest_path: str = "/root/gha_local_asr/manifest.jsonl",
+    local_weight: float = 0.20,
 ) -> dict[str, Any]:
     """
     Retrain from openai/whisper-* on Waxal + Common Voice Twi (+ optional extras).
@@ -615,6 +624,50 @@ def train(
     mix_weights: list[float] = [waxal_weight]
     sources_used = [f"{dataset_name}:{dataset_config}"]
 
+    def _load_local_manifest(manifest_path: str) -> Optional[Dataset]:
+        if not use_local_data:
+            return None
+        if not manifest_path or not os.path.exists(manifest_path):
+            print(f"[train] local ASR manifest not found: {manifest_path}")
+            return None
+
+        local_rows: list[dict[str, Any]] = []
+        skipped = 0
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                item = json.loads(line)
+                audio_path = str(item.get("audio_path") or "")
+                text = str(item.get("reference") or item.get("text") or "")
+                if not audio_path or not os.path.exists(audio_path):
+                    skipped += 1
+                    continue
+                if len(_normalize_text(text)) < 2:
+                    skipped += 1
+                    continue
+                local_rows.append({"audio": audio_path, "text": text})
+
+        if len(local_rows) < 8:
+            print(
+                f"[train] local ASR manifest too small n={len(local_rows)} skipped={skipped}"
+            )
+            return None
+
+        ds = Dataset.from_list(local_rows).cast_column(
+            "audio", Audio(sampling_rate=16000)
+        )
+        print(
+            f"[train] local ASR ready n={len(ds)} skipped={skipped} manifest={manifest_path}"
+        )
+        return ds
+
+    local_std = _load_local_manifest(local_manifest_path)
+    if local_std is not None:
+        train_parts.append(local_std)
+        mix_weights.append(max(0.01, float(local_weight)))
+        sources_used.append("local:ghana-health-ai-recorder")
+
     if use_extra_data and not smoke:
         for extra in EXTRA_DATASETS:
             extra = dict(extra)
@@ -1035,6 +1088,7 @@ def train(
 - Run: `{run_name}`
 - Freeze encoder: `{freeze_encoder}`
 - LR / steps / batch: `{learning_rate}` / `{max_steps}` / `{batch_size}x{grad_accum}`
+- Local recorder data: `{use_local_data}` · manifest `{local_manifest_path}` · weight `{local_weight}`
 - Baseline to beat (Waxal full test greedy): `{BASELINE_WER}`
 - Beats Round 2 greedy: **{beats_greedy}** · beam5 bar: **{beats_beam}**
 
@@ -1159,6 +1213,9 @@ def main(
     full_test_after: bool = True,
     train_limit: int = 0,
     eval_limit: int = 0,
+    use_local_data: bool = True,
+    local_manifest_path: str = "/root/gha_local_asr/manifest.jsonl",
+    local_weight: float = 0.20,
     wait: bool = True,
 ):
     """
@@ -1180,6 +1237,9 @@ def main(
         full_test_after=full_test_after,
         train_limit=train_limit,
         eval_limit=eval_limit,
+        use_local_data=use_local_data,
+        local_manifest_path=local_manifest_path,
+        local_weight=local_weight,
     )
     print(f"[train] spawned {call.object_id} run={run_name} base={base_model}")
     print("[train] follow Modal dashboard; summary → akan-speech-eval-results")
