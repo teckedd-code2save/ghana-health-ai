@@ -320,6 +320,19 @@ weight normalized 0.0625, mix = Waxal + local32 + CV-tw + CV-en + GhanaNLP.
   retry loop around the full-test `load_dataset` in `_run_full_test`.
   Relaunched as `ap-uz9Tbd7BkJ2jX3orxRFx4t` (~12:23 UTC).
 
+### DONDO serving endpoint deployed (2026-08-16)
+
+`modal/dondo_asr_service.py` (commit after this doc's commits) is a drop-in
+clone of the production ASR contract backed by
+`teckedd/gha-dondo-w2v-bert-twi-v1`, deployed as a separate Modal app —
+production stays on v6.
+
+- Endpoint: `https://createdliving1000--ghana-health-asr-dondo-api.modal.run`
+- Health: `{"ok":true,"service":"ghana-health-asr-dondo","engine":"transformers-wav2vec2-bert-ctc"}`
+- Live smoke (held-out health clip, 4.4 s): **306 ms latency** (vs seconds
+  for Whisper beam-5), transcript near-exact (`koko→kuku` only).
+- Local A/B: `MODAL_ASR_URL=https://createdliving1000--ghana-health-asr-dondo-api.modal.run sec -- npm run dev`
+
 ## Next decision gates — RESOLVED this session
 
 - **Stage 1 (full Whisper v8 from v6, scaled corpus): GO** — the clean hold-out
