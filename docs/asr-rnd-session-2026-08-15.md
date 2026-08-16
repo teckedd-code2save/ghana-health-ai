@@ -333,6 +333,21 @@ production stays on v6.
   for Whisper beam-5), transcript near-exact (`koko→kuku` only).
 - Local A/B: `MODAL_ASR_URL=https://createdliving1000--ghana-health-asr-dondo-api.modal.run sec -- npm run dev`
 
+### In-app A/B switch (2026-08-16, commit `ee90563`)
+
+The voice UI now has a persisted **ASR v6 / DONDO β** toggle
+(`gha:asr-model` in localStorage) flowing `asrModel` through
+`/api/voice/transcribe`, `/api/voice/converse`, `/api/voice/converse/stream`,
+and `/api/voice/preview` into `modalTranscribe` routing
+(`MODAL_ASR_DONDO_URL` env override, default = the DONDO endpoint). English
+turns always keep the dedicated English route; default remains v6.
+
+Verified end-to-end via `/api/voice/preview` on a held-out commerce clip
+(ref: "Fa aduro no brɛ me wɔ Adenta"): **DONDO** "fa eduro no brɛ me wɔ
+adɛnta" (meaning preserved) vs **v6** "fa aduru no barima wɔ adɛnta"
+("brɛ me" → "barima" — meaning changed). First in-app evidence that the
+domain gap is user-visible, not just metric-visible.
+
 ## Next decision gates — RESOLVED this session
 
 - **Stage 1 (full Whisper v8 from v6, scaled corpus): GO** — the clean hold-out
