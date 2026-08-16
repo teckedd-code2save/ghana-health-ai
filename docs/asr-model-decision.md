@@ -187,3 +187,39 @@ Real trial history:
 Final DONDO evidence: the resumed run completed 800/800 steps. It improved from **71.91%** zero-shot WER and **53.82%** smoke WER to **35.77%** final WER / **12.19%** CER, then pushed model files and a valid model card to Hugging Face. That is real progress, but it still fails the baseline-to-beat value of **30.44%** and should not replace the current Whisper-family serving path.
 
 The DONDO training script now includes explicit phase logs and row-prep progress logs. Keep it available for controlled follow-up experiments, but do not run another expensive DONDO trial without changing the data or evaluation design.
+
+---
+
+## 2026-08-16 R&D session addendum
+
+Full writeup: [`docs/asr-rnd-session-2026-08-15.md`](./asr-rnd-session-2026-08-15.md).
+
+### New evidence (same-split comparisons, streaming)
+
+| Model | Eval | WER | CER | Decision |
+| --- | ---: | ---: | ---: | --- |
+| `teckedd/gha-dondo-w2v-bert-twi-v1` | Waxal test n=300, CTC greedy | 36.47% | 11.36% | Trails v6 (30.16/28.76) on benchmark |
+| `teckedd/gha-dondo-w2v-bert-twi-v1` | Common Voice 22 English n=100 | 43.55% | 17.11% | English route stays separate, permanently |
+| `teckedd/gha-whisper-small-twi-v6` | Local product corpus n=40, beam5 | **54.18%** | 20.92% | Benchmark WER does not predict product WER |
+| `teckedd/gha-dondo-w2v-bert-twi-v1` | Local product corpus n=40 | **32.66%** | 10.78% | **DONDO beats v6 by ~22pp on domain audio** |
+| v6-local-adapt-s600 (checkpoint) | Waxal test n=1522 greedy / beam5 | 31.76% / 30.73% | 10.68% | No regression; not a promotion |
+| v6-local-holdout-s600 (checkpoint) | Held-out 8 domain clips, beam5 | **35.00%** vs v6 46.67% | 12.79% | **Domain data generalizes: −11.7pp from 32 clips** |
+
+### Updated direction
+
+1. **Domain evals become first-class promotion gates.** v6's 30.44% Waxal
+   beam5 hides a 54.18% product-domain WER. Waxal-first promotion measured the
+   wrong thing. Gates must add held-out product-domain clips (health/commerce/
+   code-switch) — candidates must never train on the gate set
+   (`tmp/asr-local-train/manifest.train32.jsonl` / `manifest.holdout8.jsonl`
+   is the split template).
+2. **DONDO v2 is approved for spend** with the changed design: full Waxal +
+   CV-Twi + local corpus, LR ~1e-4, KenLM Twi beam decode, domain-first eval.
+   Rationale: best domain number on record (32.66%) achieved with every
+   handicap (1,800 rows, LR 5e-6, bare CTC greedy).
+3. **Whisper v8 (Stage 1) is approved for spend** gated on corpus scaling:
+   the hold-out experiment proves the data lever works for the Whisper track.
+4. **Data collection is the critical path** (200+ clips, 4+ speakers,
+   code-switch priority, noisy/phone conditions). Both tracks are gated on
+   data, not compute.
+5. **v6 remains the serving model.** No checkpoint from this session promotes.

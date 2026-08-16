@@ -153,6 +153,19 @@ Modal secret `huggingface-token` 403 on Qwen/Llama. Refresh token → re-run `tr
 
 ### 3. ASR multi-domain promote
 
+> **2026-08-16 update — see [`docs/asr-rnd-session-2026-08-15.md`](./asr-rnd-session-2026-08-15.md) and the
+> [`asr-model-decision.md` addendum](./asr-model-decision.md#2026-08-16-rd-session-addendum).**
+> Key shifts: (a) v6's product-domain WER is 54.18% — Waxal WER does not
+> predict product WER; held-out domain evals are now first-class gates.
+> (b) DONDO v1 beats v6 by ~22pp on the local corpus (32.66% vs 54.18%) —
+> DONDO v2 approved with the changed design (more data, LR ~1e-4, KenLM
+> decode). (c) Clean hold-out experiment proves domain data generalizes
+> (−11.7pp on unseen clips from 32 training clips) — Whisper v8 approved once
+> the corpus scales. **Critical path: corpus scaling (200+ clips, new
+> speakers, code-switch priority), not compute.** v6 stays serving.
+> Trainer hardened this session: always pass `--train-limit` (capped
+> streaming loader) and launch with `modal run --detach`.
+
 Current evidence says **do not hard-pivot DONDO into serving yet**:
 
 - v6 / current Whisper-family path is still the product candidate.
