@@ -155,7 +155,7 @@ function stageLabel(stage: string | null) {
 function localizedStageLabel(stage: string | null, lang: string) {
   const label = stageLabel(stage);
   if (!label || lang !== "tw") return label;
-  if (label === "Transcribing") return "Meretwerɛ nea wotee";
+  if (label === "Transcribing") return "Merekyerɛw nea metee";
   if (label === "Thinking") return "Meredwene";
   if (label === "Responding") return "Merebua";
   if (label === "Preparing voice") return "Meresiesie nne";
@@ -236,7 +236,7 @@ export function VoicePanel() {
   const [commerceStatus, setCommerceStatus] = useState<string | null>(null);
   const [confirmingCommerce, setConfirmingCommerce] = useState(false);
   // A/B: Whisper v6 (default, production) vs DONDO CTC (research endpoint)
-  const [asrModel, setAsrModel] = useState<"v6" | "dondo">("v6");
+  const [asrModel] = useAsrModel();
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const playbackCtxRef = useRef<AudioContext | null>(null);
@@ -267,16 +267,6 @@ export function VoicePanel() {
   useEffect(() => {
     speakingRef.current = speaking;
   }, [speaking]);
-
-  useEffect(() => {
-    const saved = window.localStorage.getItem("gha:asr-model");
-    if (saved === "dondo" || saved === "v6") setAsrModel(saved);
-  }, []);
-
-  function selectAsrModel(next: "v6" | "dondo") {
-    setAsrModel(next);
-    window.localStorage.setItem("gha:asr-model", next);
-  }
 
   useEffect(() => {
     let cancelled = false;
@@ -565,19 +555,6 @@ export function VoicePanel() {
             }}
           >
             {item === "health" ? "Health" : "Commerce"}
-          </button>
-        ))}
-      </div>
-
-      <div className="live-tabs" role="group" aria-label="ASR model A/B">
-        {(["v6", "dondo"] as const).map((model) => (
-          <button
-            key={model}
-            type="button"
-            className={`live-tab ${asrModel === model ? "live-tab--active" : ""}`}
-            onClick={() => selectAsrModel(model)}
-          >
-            {model === "v6" ? "ASR v6" : "DONDO β"}
           </button>
         ))}
       </div>

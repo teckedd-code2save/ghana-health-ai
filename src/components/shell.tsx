@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HeartPulse, History, Languages, User } from "lucide-react";
+import { HeartPulse, History, Languages, Mic, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLang, type AppLang } from "@/components/lang-provider";
+import { useAsrModel, type AsrModel } from "@/lib/asr-model-store";
 
 const menu = [
   { href: "/chat", label: "Sessions", icon: History },
@@ -16,6 +17,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { lang, setLang, labels } = useLang();
   const [open, setOpen] = useState(false);
+  // A/B: Whisper v6 (default, production) vs DONDO CTC (research endpoint)
+  const [asrModel, changeAsrModel] = useAsrModel();
 
   return (
     <div className="relative flex min-h-screen flex-col overflow-hidden">
@@ -53,6 +56,18 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   {labels[code]}
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div className="app-menu__language">
+            <Mic className="h-4 w-4 shrink-0" />
+            <select
+              value={asrModel}
+              onChange={(e) => changeAsrModel(e.target.value as AsrModel)}
+              aria-label="ASR model"
+            >
+              <option value="v6">ASR v6 (prod)</option>
+              <option value="dondo">DONDO β (research)</option>
             </select>
           </div>
 
