@@ -1,9 +1,10 @@
 """
 Fine-tune Whisper ASR for Twi/Akan from OpenAI bases — go for gold.
 
-Promotion bar (immutable full Waxal test n=1522, greedy):
-  Round 2 greedy  WER 32.83%  CER 11.79%
-  Round 2 beam=5  WER 31.52%  CER 11.27%  (serving decode only)
+Promotion bar (immutable full Waxal test n=1522, same split + decode):
+  v6 greedy  WER 31.49%  CER 10.62%  ← current production, the gate
+  v6 beam=5  WER 30.44%  CER 10.62%  (serving decode bar)
+  Round 2 greedy WER 32.83% (historical reference only — superseded by v6)
 
 Past failures (continued FT from Round 2 overfit val):
   v3 33.99% · v4 34.96% · v5 34.13%  — do not promote
@@ -17,7 +18,7 @@ v6 recipe (retrain FROM openai/whisper-* bases):
     - Full FT (encoder unfrozen) — base is English-pretrained
     - SpecAugment + speed-pert {0.9,1.0,1.1}
     - Early-stop on Waxal validation WER
-    - Auto full-test gate; promote only if WER < 0.3283
+    - Auto full-test gate; promote only if WER beats serving v6 (< 0.3149 greedy)
   Ladder:
     1) openai/whisper-small  → teckedd/gha-whisper-small-twi-v6
     2) openai/whisper-medium → teckedd/gha-whisper-medium-twi-v6
@@ -45,9 +46,12 @@ import modal
 
 APP_NAME = "ghana-health-asr-train"
 DEFAULT_BASE = "openai/whisper-small"
-BASELINE_WER = 0.3283
-BASELINE_CER = 0.1179
-BEAM5_WER = 0.3152  # serving bar with beams=5
+# Serving gate: v6 is production. A new checkpoint promotes only if it beats
+# v6 on the immutable full Waxal test (n=1522) under the same decode.
+BASELINE_WER = 0.3149  # v6 greedy, full Waxal test n=1522
+BASELINE_CER = 0.1062
+BEAM5_WER = 0.3044  # v6 beam=5, full Waxal test n=1522 (serving decode)
+ROUND2_WER = 0.3283  # historical reference only — superseded by v6
 
 # Extra corpora mixed into train (Waxal always primary)
 EXTRA_DATASETS = [
@@ -228,6 +232,7 @@ def train(
 
     token = _hf_token()
     os.environ.setdefault("HF_HOME", "/root/.cache/huggingface")
+    os.environ.setdefault("HF_HUB_DOWNLOAD_TIMEOUT", "60")
     cache = "/root/.cache/huggingface"
     out_dir = f"/checkpoints/gha-asr/{run_name}_{base_model.replace('/', '_')}_s{max_steps}"
     os.makedirs(out_dir, exist_ok=True)
@@ -242,6 +247,23 @@ def train(
         if limit and int(limit) > 0:
             return f"{split_name}[:{int(limit)}]"
         return split_name
+
+    def _with_retries(fn, what: str, attempts: int = 4):
+        """Retry transient HF CDN failures (read timeouts, 503s). The hf-cache
+        volume keeps completed shards, so each retry resumes where it died."""
+        import time
+
+        for attempt in range(1, attempts + 1):
+            try:
+                return fn()
+            except Exception as exc:  # noqa: BLE001
+                print(
+                    f"[train] {what} attempt {attempt}/{attempts} failed: {exc}",
+                    flush=True,
+                )
+                if attempt == attempts:
+                    raise
+                time.sleep(15 * attempt)
 
     def _materialize_streaming_waxal(split_name: str, limit: int, source: str) -> Dataset:
         """
@@ -385,15 +407,21 @@ def train(
 
     # ── Waxal foundation ────────────────────────────────────────────
     if train_limit or eval_limit:
-        waxal_train = _materialize_streaming_waxal(
-            "train",
-            int(train_limit or 3000),
+        waxal_train = _with_retries(
+            lambda: _materialize_streaming_waxal(
+                "train",
+                int(train_limit or 3000),
+                "waxal-train",
+            ),
             "waxal-train",
         )
         try:
-            eval_ds = _materialize_streaming_waxal(
-                "validation",
-                int(eval_limit or max(100, min(300, len(waxal_train) // 10))),
+            eval_ds = _with_retries(
+                lambda: _materialize_streaming_waxal(
+                    "validation",
+                    int(eval_limit or max(100, min(300, len(waxal_train) // 10))),
+                    "waxal-val",
+                ),
                 "waxal-val",
             )
         except Exception as exc:  # noqa: BLE001
@@ -503,7 +531,32 @@ def train(
             ds = ds.rename_column(a_col, "audio")
         if t_col != "text":
             ds = ds.rename_column(t_col, "text")
-        ds = ds.cast_column("audio", Audio(sampling_rate=16000))
+        try:
+            ds = ds.cast_column("audio", Audio(sampling_rate=16000))
+        except TypeError as exc:
+            # datasets 3.1.0 + recent pyarrow: chunked cast of pre-decoded audio
+            # dicts crashes ("Cannot convert ChunkedArray to Array") once the
+            # table is large enough to span multiple chunks. Rebuild in small
+            # parts (single-chunk casts are proven fine) so the Audio feature
+            # type is preserved — interleave_datasets requires aligned features.
+            sample = ds[0]["audio"] if len(ds) else None
+            if not (isinstance(sample, dict) and sample.get("array") is not None):
+                raise
+            print(
+                f"[train] {source} chunked audio-cast workaround ({exc})",
+                flush=True,
+            )
+            from datasets import concatenate_datasets
+
+            rows = ds.to_list()
+            part_size = 800
+            parts = [
+                Dataset.from_list(rows[i : i + part_size]).cast_column(
+                    "audio", Audio(sampling_rate=16000)
+                )
+                for i in range(0, len(rows), part_size)
+            ]
+            ds = parts[0] if len(parts) == 1 else concatenate_datasets(parts)
         print(f"[train] {source} ready n={len(ds)}")
         return ds
 
@@ -519,7 +572,10 @@ def train(
         name = cfg["name"]
         config = cfg.get("config") or "tw"
         if cfg.get("max_n"):
-            streamed = _materialize_streaming_extra(cfg, f"common_voice_{config}")
+            streamed = _with_retries(
+                lambda: _materialize_streaming_extra(cfg, f"common_voice_{config}"),
+                f"common_voice_{config}",
+            )
             if streamed is not None:
                 return streamed
         try:
@@ -1089,8 +1145,9 @@ def train(
 - Freeze encoder: `{freeze_encoder}`
 - LR / steps / batch: `{learning_rate}` / `{max_steps}` / `{batch_size}x{grad_accum}`
 - Local recorder data: `{use_local_data}` · manifest `{local_manifest_path}` · weight `{local_weight}`
-- Baseline to beat (Waxal full test greedy): `{BASELINE_WER}`
-- Beats Round 2 greedy: **{beats_greedy}** · beam5 bar: **{beats_beam}**
+- Baseline to beat (v6 serving, Waxal full test greedy): `{BASELINE_WER}`
+- Beats v6 greedy: **{beats_greedy}** · v6 beam5 bar (`{BEAM5_WER}`): **{beats_beam}**
+- Historical reference (Round 2 greedy, superseded): `{ROUND2_WER}`
 
 ## Serving
 
@@ -1126,8 +1183,9 @@ Production decode uses `num_beams=5` in `modal/asr_service.py`.
         "val_wer": val_wer,
         "val_cer": val_cer,
         "full_test": full_test,
-        "beats_round2_greedy": beats_greedy,
-        "beats_round2_beam5": beats_beam,
+        "beats_v6_greedy": beats_greedy,
+        "beats_v6_beam5": beats_beam,
+        "round2_reference_wer": ROUND2_WER,
         "promote": beats_greedy,
         "train_metrics": {
             k: float(v) if isinstance(v, (int, float)) else v for k, v in metrics.items()
@@ -1138,7 +1196,7 @@ Production decode uses `num_beams=5` in `modal/asr_service.py`.
         "hub": hub_status,
         "push_repo": push_repo,
         "note": (
-            "PROMOTE" if beats_greedy else "DO NOT PROMOTE — keep Round 2 weights"
+            "PROMOTE" if beats_greedy else "DO NOT PROMOTE — keep v6 serving"
         ),
     }
     with open(f"/results/train_{run_name}_summary.json", "w", encoding="utf-8") as f:
@@ -1150,11 +1208,21 @@ Production decode uses `num_beams=5` in `modal/asr_service.py`.
 
 def _run_full_test(model, processor, token, cache, device, num_beams: int = 1) -> dict[str, Any]:
     import evaluate
+    import time
     import torch
     from datasets import Audio, load_dataset
     from tqdm import tqdm
 
-    raw = load_dataset("google/WaxalNLP", "aka_asr", token=token, cache_dir=cache)
+    raw = None
+    for attempt in range(1, 5):
+        try:
+            raw = load_dataset("google/WaxalNLP", "aka_asr", token=token, cache_dir=cache)
+            break
+        except Exception as exc:  # noqa: BLE001 — transient HF CDN failures
+            print(f"[train] full-test load attempt {attempt}/4 failed: {exc}", flush=True)
+            if attempt == 4:
+                raise
+            time.sleep(15 * attempt)
     split = "test" if "test" in raw else list(raw.keys())[-1]
     ds = raw[split]
     audio_col = "audio" if "audio" in ds.column_names else ds.column_names[0]
@@ -1254,10 +1322,11 @@ def main(
         b5 = ft.get("beam5") or {}
         print(
             f"\n=== PROMOTION GATE ===\n"
-            f"  Round 2 greedy:  WER {BASELINE_WER*100:.2f}%\n"
-            f"  Round 2 beam5:   WER {BEAM5_WER*100:.2f}%\n"
+            f"  v6 (serving) greedy: WER {BASELINE_WER*100:.2f}%\n"
+            f"  v6 (serving) beam5:  WER {BEAM5_WER*100:.2f}%\n"
+            f"  Round 2 (ref) greedy: WER {ROUND2_WER*100:.2f}%\n"
             f"  {run_name} greedy: WER {ft.get('wer_pct')}%  CER {ft.get('cer_pct')}% "
             f"(Δ {ft.get('delta_wer_pp'):+.2f} pp)\n"
             f"  {run_name} beam5:  WER {b5.get('wer_pct', 'n/a')}%\n"
-            f"  → {'PROMOTE' if result.get('beats_round2_greedy') else 'KEEP ROUND 2'}\n"
+            f"  → {'PROMOTE' if result.get('beats_v6_greedy') else 'KEEP V6 SERVING'}\n"
         )
