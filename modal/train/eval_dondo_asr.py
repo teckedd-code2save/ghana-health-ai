@@ -30,6 +30,10 @@ app = modal.App("ghana-health-dondo-asr-eval")
 hf_cache = modal.Volume.from_name("akan-speech-hf-cache", create_if_missing=True)
 results_vol = modal.Volume.from_name("akan-speech-eval-results", create_if_missing=True)
 
+_TRAIN_DIR = os.path.dirname(os.path.abspath(__file__))
+_REPO_ROOT = os.path.dirname(os.path.dirname(_TRAIN_DIR))
+_LOCAL_ASR_DIR = os.path.join(_REPO_ROOT, "tmp", "asr-local-train")
+
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("ffmpeg", "libsndfile1")
@@ -45,6 +49,10 @@ image = (
         "tqdm",
         "soundfile==0.13.1",
         "huggingface_hub==0.26.2",
+    )
+    .add_local_dir(
+        local_path=_LOCAL_ASR_DIR,
+        remote_path="/root/gha_local_asr",
     )
 )
 
@@ -155,6 +163,7 @@ def evaluate_dondo(
     language: str = "Asante Twi",
     max_samples: int = 500,
     streaming: bool = True,
+    local_manifest_path: Optional[str] = None,
 ) -> dict[str, Any]:
     import json
     import torch
@@ -179,70 +188,122 @@ def evaluate_dondo(
     model.eval()
     print(f"[eval-dondo] model ready device={device}", flush=True)
 
-    print(
-        f"[eval-dondo] load dataset {dataset_name}/{dataset_config or ''}:{split} streaming={streaming}",
-        flush=True,
-    )
-    if streaming:
-        if dataset_config:
-            ds = load_dataset(
-                dataset_name,
-                dataset_config,
-                split=split,
-                token=token,
-                cache_dir=cache,
-                streaming=True,
-            )
-        else:
-            ds = load_dataset(
-                dataset_name,
-                split=split,
-                token=token,
-                cache_dir=cache,
-                streaming=True,
-            )
-        ds = ds.cast_column("audio", Audio(sampling_rate=16000))
-        column_names = list(getattr(ds, "column_names", []) or [])
-        sample_iter = iter(ds.take(max_samples) if max_samples else ds)
-    else:
-        if dataset_config:
-            raw = load_dataset(dataset_name, dataset_config, token=token, cache_dir=cache)
-        else:
-            raw = load_dataset(dataset_name, token=token, cache_dir=cache)
-        if split not in raw:
-            split = list(raw.keys())[-1]
-        ds = raw[split]
-        if max_samples and len(ds) > max_samples:
-            ds = ds.select(range(max_samples))
-        ds = ds.cast_column("audio", Audio(sampling_rate=16000))
-        sample_iter = iter(ds)
-        column_names = list(ds.column_names)
-    print(f"[eval-dondo] dataset ready cols={column_names}", flush=True)
+    if local_manifest_path:
+        # Local recorder corpus mode: manifest.jsonl rows with
+        # audio_path / reference / bucket (mounted at /root/gha_local_asr).
+        import soundfile as sf
 
-    first_row = next(sample_iter, None)
-    if first_row is None:
-        raise RuntimeError("Dataset produced no rows")
-    if not column_names:
-        column_names = list(first_row.keys())
-    audio_col = _find_audio_col(column_names)
-    text_col = _find_text_col(column_names)
-    if audio_col is None:
-        raise RuntimeError(f"No audio column in dataset: {column_names}")
-    if text_col is None:
-        raise RuntimeError(f"No transcript column in dataset: {column_names}")
+        if not os.path.exists(local_manifest_path):
+            raise RuntimeError(f"Local manifest not found: {local_manifest_path}")
+        local_rows: list[dict[str, Any]] = []
+        skipped = 0
+        with open(local_manifest_path, "r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                item = json.loads(line)
+                ap = str(item.get("audio_path") or "")
+                text = str(item.get("reference") or item.get("text") or "")
+                if not ap or not os.path.exists(ap) or len(_normalize_text(text)) < 2:
+                    skipped += 1
+                    continue
+                arr, sr = sf.read(ap, dtype="float32")
+                if getattr(arr, "ndim", 1) > 1:
+                    arr = arr.mean(axis=1)
+                if sr != 16000:
+                    import librosa
+
+                    arr = librosa.resample(arr, orig_sr=sr, target_sr=16000)
+                local_rows.append(
+                    {
+                        "array": arr,
+                        "text": text,
+                        "bucket": str(item.get("bucket") or "unknown"),
+                    }
+                )
+        if max_samples and len(local_rows) > max_samples:
+            local_rows = local_rows[:max_samples]
+        print(
+            f"[eval-dondo] local manifest ready n={len(local_rows)} skipped={skipped} "
+            f"manifest={local_manifest_path}",
+            flush=True,
+        )
+
+        def sample_rows():
+            yield from local_rows
+
+    else:
+        print(
+            f"[eval-dondo] load dataset {dataset_name}/{dataset_config or ''}:{split} streaming={streaming}",
+            flush=True,
+        )
+        if streaming:
+            if dataset_config:
+                ds = load_dataset(
+                    dataset_name,
+                    dataset_config,
+                    split=split,
+                    token=token,
+                    cache_dir=cache,
+                    streaming=True,
+                )
+            else:
+                ds = load_dataset(
+                    dataset_name,
+                    split=split,
+                    token=token,
+                    cache_dir=cache,
+                    streaming=True,
+                )
+            ds = ds.cast_column("audio", Audio(sampling_rate=16000))
+            column_names = list(getattr(ds, "column_names", []) or [])
+            sample_iter = iter(ds.take(max_samples) if max_samples else ds)
+        else:
+            if dataset_config:
+                raw = load_dataset(dataset_name, dataset_config, token=token, cache_dir=cache)
+            else:
+                raw = load_dataset(dataset_name, token=token, cache_dir=cache)
+            if split not in raw:
+                split = list(raw.keys())[-1]
+            ds = raw[split]
+            if max_samples and len(ds) > max_samples:
+                ds = ds.select(range(max_samples))
+            ds = ds.cast_column("audio", Audio(sampling_rate=16000))
+            sample_iter = iter(ds)
+            column_names = list(ds.column_names)
+        print(f"[eval-dondo] dataset ready cols={column_names}", flush=True)
+
+        import itertools
+
+        first_row = next(sample_iter, None)
+        if first_row is None:
+            raise RuntimeError("Dataset produced no rows")
+        if not column_names:
+            column_names = list(first_row.keys())
+        audio_col = _find_audio_col(column_names)
+        text_col = _find_text_col(column_names)
+        if audio_col is None:
+            raise RuntimeError(f"No audio column in dataset: {column_names}")
+        if text_col is None:
+            raise RuntimeError(f"No transcript column in dataset: {column_names}")
+
+        def sample_rows():
+            for row in itertools.chain([first_row], sample_iter):
+                yield {
+                    "array": row[audio_col]["array"],
+                    "text": str(row[text_col]),
+                    "bucket": f"{dataset_config or 'default'}:{split}",
+                }
 
     wer_m = evaluate.load("wer")
     cer_m = evaluate.load("cer")
     preds: list[str] = []
     refs: list[str] = []
+    bucket_preds: dict[str, list[str]] = {}
+    bucket_refs: dict[str, list[str]] = {}
 
-    def rows_with_first():
-        yield first_row
-        yield from sample_iter
-
-    for row in tqdm(rows_with_first(), desc=f"dondo-eval {language}"):
-        audio = row[audio_col]
-        proc = processor(audio["array"], sampling_rate=16000, return_tensors="pt")
+    for row in tqdm(sample_rows(), desc=f"dondo-eval {language}"):
+        proc = processor(row["array"], sampling_rate=16000, return_tensors="pt")
         feats = getattr(proc, "input_features", None)
         if feats is None:
             values = getattr(proc, "input_values", None)
@@ -254,19 +315,41 @@ def evaluate_dondo(
             logits = model(input_features=feats).logits
         pred_ids = torch.argmax(logits, dim=-1)
         hyp = processor.batch_decode(pred_ids)[0]
-        preds.append(_normalize_text(hyp))
-        refs.append(_normalize_text(str(row[text_col])))
+        pred = _normalize_text(hyp)
+        ref = _normalize_text(row["text"])
+        preds.append(pred)
+        refs.append(ref)
+        bucket_preds.setdefault(row["bucket"], []).append(pred)
+        bucket_refs.setdefault(row["bucket"], []).append(ref)
 
     wer = float(wer_m.compute(predictions=preds, references=refs))
     cer = float(cer_m.compute(predictions=preds, references=refs))
+    per_bucket = {
+        b: {
+            "n": len(bp),
+            "wer_pct": round(
+                float(wer_m.compute(predictions=bp, references=bucket_refs[b])) * 100, 2
+            ),
+            "cer_pct": round(
+                float(cer_m.compute(predictions=bp, references=bucket_refs[b])) * 100, 2
+            ),
+        }
+        for b, bp in sorted(bucket_preds.items())
+    }
     result = {
         "model_id": model_id,
         "architecture": "wav2vec2-bert-ctc",
-        "dataset": f"{dataset_name}/{dataset_config or ''}:{split}",
+        "dataset": (
+            f"local:{local_manifest_path}"
+            if local_manifest_path
+            else f"{dataset_name}/{dataset_config or ''}:{split}"
+        ),
+        "local_manifest": local_manifest_path,
+        "per_bucket": per_bucket,
         "language": language,
         "language_id": lang_id,
         "n": len(preds),
-        "streaming": streaming,
+        "streaming": bool(streaming and not local_manifest_path),
         "wer": wer,
         "cer": cer,
         "wer_pct": round(wer * 100, 2),
@@ -278,9 +361,14 @@ def evaluate_dondo(
     }
 
     safe_name = (
-        f"dondo_{model_id.replace('/', '_')}__{dataset_name.replace('/', '_')}"
-        f"__{dataset_config or 'default'}__{split}__{language.replace(' ', '_')}"
-        f"_n{len(preds)}{'_streaming' if streaming else ''}"
+        f"dondo_{model_id.replace('/', '_')}__"
+        + (
+            "local_recorder_corpus__manifest"
+            if local_manifest_path
+            else f"{dataset_name.replace('/', '_')}__{dataset_config or 'default'}__{split}"
+        )
+        + f"__{language.replace(' ', '_')}"
+        f"_n{len(preds)}{'_streaming' if streaming and not local_manifest_path else ''}"
     )
     out_path = f"/results/{safe_name}.json"
     with open(out_path, "w", encoding="utf-8") as f:
@@ -300,6 +388,7 @@ def main(
     language: str = "Asante Twi",
     max_samples: int = 500,
     streaming: bool = True,
+    local_manifest_path: str = "",
     wait: bool = True,
 ):
     call = evaluate_dondo.spawn(
@@ -310,6 +399,7 @@ def main(
         language=language,
         max_samples=max_samples,
         streaming=streaming,
+        local_manifest_path=local_manifest_path or None,
     )
     print(f"[eval-dondo] spawned {call.object_id} model={model_id} lang={language}")
     if wait:
