@@ -22,6 +22,7 @@ export async function POST(req: Request) {
     const form = await req.formData();
     const file = form.get("audio");
     const lang = form.get("language");
+    const asrModelValue = form.get("asrModel");
     if (!(file instanceof Blob)) return jsonError("Audio required", 400);
 
     const audio = await file.arrayBuffer();
@@ -32,6 +33,8 @@ export async function POST(req: Request) {
       contentType: file.type || "audio/webm",
       filename: "preview.webm",
       language: language === "en" ? "en" : undefined,
+      asrModel:
+        typeof asrModelValue === "string" && asrModelValue ? asrModelValue : undefined,
     });
 
     if (result.error && !result.text?.trim()) {

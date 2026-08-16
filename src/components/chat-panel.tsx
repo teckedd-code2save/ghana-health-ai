@@ -350,6 +350,9 @@ export function ChatPanel() {
       const form = new FormData();
       form.append("audio", blob, "chat-utterance.webm");
       form.append("language", lang);
+      if (window.localStorage.getItem("gha:asr-model") === "dondo") {
+        form.append("asrModel", "dondo");
+      }
 
       if (conversationId) form.append("conversationId", conversationId);
       form.append("speak", "true");

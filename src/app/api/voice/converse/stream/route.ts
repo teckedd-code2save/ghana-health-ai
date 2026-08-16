@@ -125,6 +125,7 @@ export async function POST(req: Request) {
           const sp = form.get("speak");
           const focusValue = form.get("focus");
           const instructionValue = form.get("instruction");
+          const asrModelValue = form.get("asrModel");
 
           const language: LanguageCode =
             typeof lang === "string" && ["tw", "en", "ga"].includes(lang)
@@ -137,6 +138,10 @@ export async function POST(req: Request) {
           const instruction =
             typeof instructionValue === "string" && instructionValue.trim()
               ? instructionValue.slice(0, 240)
+              : undefined;
+          const asrModel =
+            typeof asrModelValue === "string" && asrModelValue
+              ? asrModelValue
               : undefined;
 
           if (!(file instanceof Blob)) {
@@ -156,6 +161,7 @@ export async function POST(req: Request) {
             language: language === "en" ? "en" : undefined,
             contentType: file.type || "audio/webm",
             filename: "utterance.webm",
+            asrModel,
           });
           if (asr.error || !asr.text?.trim()) {
             send("error", { error: asr.error || "Empty transcription", status: 422, asr });

@@ -19,7 +19,7 @@ export type ModalAsrResult = {
 };
 
 export type ModalAsrRoute = {
-  name: "twi-default" | "english" | "english-fallback";
+  name: "twi-default" | "english" | "english-fallback" | "dondo";
   url: string;
   requestedLanguage?: string;
   routedLanguage: "tw" | "en";
@@ -28,13 +28,22 @@ export type ModalAsrRoute = {
 export const DEFAULT_MODAL_ASR_EN_URL =
   "https://createdliving1000--ghana-health-asr-en-api.modal.run";
 
+export const DEFAULT_MODAL_ASR_DONDO_URL =
+  "https://createdliving1000--ghana-health-asr-dondo-api.modal.run";
+
 function cleanUrl(value: string | undefined): string | null {
   return value?.replace(/\/$/, "") || null;
 }
 
-export function resolveModalAsrRoute(language?: string): ModalAsrRoute | null {
+export function resolveModalAsrRoute(
+  language?: string,
+  asrModel?: string,
+): ModalAsrRoute | null {
   const defaultUrl = cleanUrl(process.env.MODAL_ASR_URL);
   const englishUrl = cleanUrl(process.env.MODAL_ASR_EN_URL || DEFAULT_MODAL_ASR_EN_URL);
+  const dondoUrl = cleanUrl(
+    process.env.MODAL_ASR_DONDO_URL || DEFAULT_MODAL_ASR_DONDO_URL,
+  );
   const wantsEnglish = language === "en";
 
   if (wantsEnglish && englishUrl) {
@@ -43,6 +52,16 @@ export function resolveModalAsrRoute(language?: string): ModalAsrRoute | null {
       url: englishUrl,
       requestedLanguage: language,
       routedLanguage: "en",
+    };
+  }
+
+  // Explicit opt-in A/B route: DONDO CTC serves Twi turns only.
+  if (asrModel === "dondo" && dondoUrl) {
+    return {
+      name: "dondo",
+      url: dondoUrl,
+      requestedLanguage: language,
+      routedLanguage: "tw",
     };
   }
 
@@ -62,9 +81,9 @@ export function isModalAsrConfigured(): boolean {
 
 export async function modalTranscribe(
   audio: ArrayBuffer | Buffer | Uint8Array,
-  opts?: { language?: string; contentType?: string; filename?: string },
+  opts?: { language?: string; contentType?: string; filename?: string; asrModel?: string },
 ): Promise<ModalAsrResult> {
-  const route = resolveModalAsrRoute(opts?.language);
+  const route = resolveModalAsrRoute(opts?.language, opts?.asrModel);
   if (!route) throw new Error("MODAL_ASR_URL is not set");
 
   const bytes =

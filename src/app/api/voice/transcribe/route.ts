@@ -25,6 +25,7 @@ export async function POST(req: Request) {
     let filename: string | undefined;
     let audioCt: string | undefined;
     let language: string | undefined;
+    let asrModel: string | undefined;
 
     if (contentType.includes("multipart/form-data")) {
       const form = await req.formData();
@@ -38,6 +39,8 @@ export async function POST(req: Request) {
       }
       const lang = form.get("language");
       if (typeof lang === "string") language = lang;
+      const model = form.get("asrModel");
+      if (typeof model === "string") asrModel = model;
     } else if (
       contentType.includes("application/octet-stream") ||
       contentType.startsWith("audio/")
@@ -54,6 +57,7 @@ export async function POST(req: Request) {
       contentType: audioCt,
       filename,
       language: language === "en" || user?.preferredLang === "en" ? "en" : undefined,
+      asrModel,
     });
 
     if (result.error && !result.text?.trim()) {

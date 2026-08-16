@@ -45,6 +45,7 @@ export async function POST(req: Request) {
     let speak = true;
     let focus: "health" | "commerce" | undefined;
     let instruction: string | undefined;
+    let asrModel: string | undefined;
 
     if (contentType.includes("multipart/form-data")) {
       const form = await req.formData();
@@ -58,6 +59,8 @@ export async function POST(req: Request) {
       if (typeof cid === "string" && cid) conversationId = cid;
       const sp = form.get("speak");
       if (sp === "false" || sp === "0") speak = false;
+      const model = form.get("asrModel");
+      if (typeof model === "string" && model) asrModel = model;
       const focusValue = form.get("focus");
       if (focusValue === "health" || focusValue === "commerce") focus = focusValue;
       const instructionValue = form.get("instruction");
@@ -76,6 +79,7 @@ export async function POST(req: Request) {
     const asr = await modalTranscribe(audio, {
       language: language === "en" ? "en" : undefined,
       contentType: "audio/webm",
+      asrModel,
     });
     if (asr.error || !asr.text?.trim()) {
       return jsonError(asr.error || "Empty transcription", 422, { asr });
