@@ -1,13 +1,33 @@
 """
 Fine-tune KhayaAI DONDO / w2v-BERT CTC for Ghana Health AI.
 
-This is the credible DONDO trial path, not a serving switch:
+v1 (baseline: Waxal-only, LR 5e-6, greedy CTC):
 
   modal run modal/train/train_dondo_asr.py --smoke
   modal run --detach modal/train/train_dondo_asr.py \\
     --run-name dondo-waxal-twi-v1 \\
     --max-steps 800 --train-limit 1800 --eval-limit 200 \\
     --push-repo teckedd/gha-dondo-w2v-bert-twi-v1 --no-wait
+
+v2 (full data mix + higher LR + optional KenLM beam decode; see
+docs/asr-rnd-session-2026-08-15.md "Stage 2 design"):
+
+  modal run --detach modal/train/train_dondo_asr.py \\
+    --run-name dondo-twi-v2 \\
+    --max-steps 2500 --learning-rate 1e-4 \\
+    --train-limit 0 --cv-twi-limit 3000 --use-local-data \\
+    --push-repo teckedd/gha-dondo-w2v-bert-twi-v2 --no-wait
+
+v2 notes:
+- --learning-rate default stays 5e-6 for v1 compatibility; v2 recommends 1e-4.
+- --train-limit 0 streams all available Waxal train rows (capped at 20000).
+- --cv-twi-limit N mixes in up to N validated-only Common Voice 22 Twi rows.
+- --use-local-data mixes in the local recorder corpus mounted at
+  /root/gha_local_asr (--local-manifest-path picks the manifest file).
+- --lm-path <kenlm.arpa|kenlm.bin> adds pyctcdecode beam+LM WER/CER to the
+  final eval; a missing file or missing kenlm degrades to greedy-only with a
+  log line (never crashes the run).
+- --warmup-ratio > 0 overrides the legacy warmup_steps heuristic.
 
 OOM-safe resume:
   modal run --detach modal/train/train_dondo_asr.py \\
@@ -34,6 +54,7 @@ import modal
 APP_NAME = "ghana-health-dondo-asr-train"
 DEFAULT_MODEL = "KhayaAI/w2v-bert-ada_ewe_fat_fra_gaa_nzi_twi_en"
 BASELINE_WER = 0.3044  # current v6 beam=5 full Waxal test
+WAXAL_FULL_CAP = 20000  # generous streaming cap when --train-limit 0 (all rows)
 
 app = modal.App(APP_NAME)
 hf_cache = modal.Volume.from_name("akan-speech-hf-cache", create_if_missing=True)
@@ -41,10 +62,13 @@ ckpt_vol = modal.Volume.from_name("akan-speech-checkpoints", create_if_missing=T
 results_vol = modal.Volume.from_name("akan-speech-eval-results", create_if_missing=True)
 
 _TRAIN_DIR = os.path.dirname(os.path.abspath(__file__))
+_REPO_ROOT = os.path.dirname(os.path.dirname(_TRAIN_DIR))
+_LOCAL_ASR_DIR = os.path.join(_REPO_ROOT, "tmp", "asr-local-train")
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
-    .apt_install("ffmpeg", "libsndfile1")
+    # g++ lets pip build kenlm from sdist (no manylinux wheels are published)
+    .apt_install("ffmpeg", "libsndfile1", "g++")
     .pip_install(
         "torch==2.5.1",
         "torchaudio==2.5.1",
@@ -57,10 +81,17 @@ image = (
         "numpy<2.3",
         "soundfile==0.13.1",
         "huggingface_hub==0.26.2",
+        "pyctcdecode==0.5.0",
+        "kenlm==0.2.0",
     )
     .add_local_file(
         local_path=os.path.join(_TRAIN_DIR, "model_card.py"),
         remote_path="/root/gha_train/model_card.py",
+    )
+    # Local recorder corpus (manifest.jsonl / manifest.train32.jsonl + audio/)
+    .add_local_dir(
+        local_path=_LOCAL_ASR_DIR,
+        remote_path="/root/gha_local_asr",
     )
 )
 
@@ -259,9 +290,14 @@ def train_dondo(
     run_name: str = "dondo-waxal-twi-v1",
     language: str = "Asante Twi",
     max_steps: int = 800,
-    learning_rate: float = 5e-6,
-    train_limit: int = 1800,
+    learning_rate: float = 5e-6,  # v1 compat; v2 recommends 1e-4
+    train_limit: int = 1800,  # 0 = all Waxal train rows (streamed, capped at WAXAL_FULL_CAP)
     eval_limit: int = 200,
+    cv_twi_limit: int = 0,  # >0 mixes in validated-only Common Voice 22 Twi rows
+    use_local_data: bool = False,
+    local_manifest_path: str = "/root/gha_local_asr/manifest.jsonl",
+    lm_path: str = "",  # KenLM .arpa/.binary for beam+LM eval decode; empty = greedy only
+    warmup_ratio: float = 0.0,  # >0 overrides the legacy warmup_steps heuristic
     per_device_train_batch_size: int = 2,
     gradient_accumulation_steps: int = 8,
     resume_from_checkpoint: Optional[str] = None,
@@ -269,18 +305,24 @@ def train_dondo(
     smoke: bool = False,
 ) -> dict[str, Any]:
     import json
+    import random
+
+    import numpy as np
     import torch
-    from datasets import Audio, Dataset, load_dataset
+    from datasets import Audio, Dataset, concatenate_datasets, load_dataset
     from transformers import AutoModelForCTC, AutoProcessor, Trainer, TrainingArguments
 
     token = _hf_token()
     cache = "/root/.cache/huggingface"
     os.environ.setdefault("HF_HOME", cache)
+    os.environ.setdefault("HF_HUB_DOWNLOAD_TIMEOUT", "60")
     os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
     lang_id = LANGUAGE_MAP[language]
     print(
         "[train-dondo] start "
         f"run={run_name} model={model_id} language={language} max_steps={max_steps} "
+        f"lr={learning_rate} train_limit={train_limit or 'all'} "
+        f"cv_twi_limit={cv_twi_limit} local={use_local_data} lm={lm_path or 'none'} "
         f"batch={per_device_train_batch_size} accum={gradient_accumulation_steps} "
         f"resume={resume_from_checkpoint or 'none'}",
         flush=True,
@@ -288,8 +330,9 @@ def train_dondo(
 
     if smoke:
         max_steps = min(max_steps, 8)
-        train_limit = min(train_limit, 24)
+        train_limit = min(train_limit, 24) if train_limit else 24
         eval_limit = min(eval_limit, 8)
+        cv_twi_limit = min(cv_twi_limit, 16)
         per_device_train_batch_size = min(per_device_train_batch_size, 2)
 
     print("[train-dondo] loading processor", flush=True)
@@ -302,40 +345,175 @@ def train_dondo(
         model.gradient_checkpointing_enable()
         print("[train-dondo] gradient checkpointing enabled", flush=True)
 
-    print("[train-dondo] loading train dataset", flush=True)
-    train_ds = load_dataset(
-        "google/WaxalNLP",
-        "aka_asr",
-        split="train",
-        streaming=True,
-        token=token,
-        cache_dir=cache,
-    ).cast_column("audio", Audio(sampling_rate=16000))
-    print("[train-dondo] train dataset ready", flush=True)
+    def _with_retries(fn, what: str, attempts: int = 4):
+        """Retry transient HF CDN failures (read timeouts, 503s). The hf-cache
+        volume keeps completed shards, so each retry resumes where it died."""
+        import time
+
+        for attempt in range(1, attempts + 1):
+            try:
+                return fn()
+            except Exception as exc:  # noqa: BLE001
+                print(
+                    f"[train-dondo] {what} attempt {attempt}/{attempts} failed: {exc}",
+                    flush=True,
+                )
+                if attempt == attempts:
+                    raise
+                time.sleep(15 * attempt)
+
+    def _load_waxal_rows(split: str, limit: int, name: str) -> list[dict[str, Any]]:
+        def _do() -> list[dict[str, Any]]:
+            ds = load_dataset(
+                "google/WaxalNLP",
+                "aka_asr",
+                split=split,
+                streaming=True,
+                token=token,
+                cache_dir=cache,
+            ).cast_column("audio", Audio(sampling_rate=16000))
+            return _prepare_rows(ds, processor, limit, name)
+
+        return _with_retries(_do, name)
+
+    def _materialize_cv_twi(limit: int) -> list[dict[str, Any]]:
+        """Stream Common Voice 22 Twi (validated-only) into raw audio/text rows,
+        capped at `limit` — split slicing would resolve every CV shard."""
+        print(f"[train-dondo] streaming common-voice-tw target={limit}", flush=True)
+        ds_stream = load_dataset(
+            "fsicoli/common_voice_22_0",
+            "tw",
+            split="train",
+            streaming=True,
+            token=token,
+            cache_dir=cache,
+            trust_remote_code=True,
+        ).cast_column("audio", Audio(sampling_rate=16000))
+        rows: list[dict[str, Any]] = []
+        skipped = 0
+        for row in ds_stream:
+            try:
+                if int(row.get("up_votes") or 0) < 2 or int(row.get("down_votes") or 0) != 0:
+                    skipped += 1
+                    continue
+            except Exception:  # noqa: BLE001
+                pass
+            text = str(row.get("sentence") or row.get("text") or "")
+            if len(_normalize_text(text)) < 2:
+                skipped += 1
+                continue
+            audio = row.get("audio")
+            if not isinstance(audio, dict) or audio.get("array") is None:
+                skipped += 1
+                continue
+            arr = np.asarray(audio["array"], dtype=np.float32)
+            sr = int(audio.get("sampling_rate") or 16000)
+            dur = arr.size / max(1, sr)
+            if dur < 0.5 or dur > 28.0:
+                skipped += 1
+                continue
+            rows.append({"audio": {"array": arr, "sampling_rate": sr}, "sentence": text})
+            if len(rows) >= limit:
+                break
+        print(
+            f"[train-dondo] common-voice-tw materialized n={len(rows)} skipped={skipped}",
+            flush=True,
+        )
+        return rows
+
+    def _cast_audio_chunked(ds, name: str):
+        """cast_column to Audio; work around the datasets 3.1.0 + pyarrow bug
+        where casting a multi-chunk table of pre-decoded audio dicts crashes
+        ("Cannot convert ChunkedArray to Array") — rebuild in 800-row parts
+        (single-chunk casts are proven fine)."""
+        try:
+            return ds.cast_column("audio", Audio(sampling_rate=16000))
+        except TypeError as exc:
+            print(
+                f"[train-dondo] {name} chunked audio-cast workaround ({exc})",
+                flush=True,
+            )
+            rows = ds.to_list()
+            part_size = 800
+            parts = [
+                Dataset.from_list(rows[i : i + part_size]).cast_column(
+                    "audio", Audio(sampling_rate=16000)
+                )
+                for i in range(0, len(rows), part_size)
+            ]
+            return parts[0] if len(parts) == 1 else concatenate_datasets(parts)
+
+    def _load_local_rows(manifest_path: str) -> list[dict[str, Any]]:
+        """Load the local recorder manifest (audio_path + reference per line),
+        decode the WAVs via an Audio cast, and prepare feature rows."""
+        if not manifest_path or not os.path.exists(manifest_path):
+            print(f"[train-dondo] local ASR manifest not found: {manifest_path}", flush=True)
+            return []
+        raw: list[dict[str, Any]] = []
+        skipped = 0
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                item = json.loads(line)
+                audio_path = str(item.get("audio_path") or "")
+                text = str(item.get("reference") or item.get("text") or "")
+                if not audio_path or not os.path.exists(audio_path):
+                    skipped += 1
+                    continue
+                if len(_normalize_text(text)) < 2:
+                    skipped += 1
+                    continue
+                raw.append({"audio": audio_path, "text": text})
+        if len(raw) < 8:
+            print(
+                f"[train-dondo] local ASR manifest too small n={len(raw)} skipped={skipped}",
+                flush=True,
+            )
+            return []
+        ds = _cast_audio_chunked(Dataset.from_list(raw), "local")
+        print(
+            f"[train-dondo] local ASR ready n={len(ds)} skipped={skipped} "
+            f"manifest={manifest_path}",
+            flush=True,
+        )
+        return _prepare_rows(ds, processor, 0, "local")
+
+    # ── Train data: Waxal primary + optional CV-Twi + optional local ──
+    waxal_limit = train_limit if train_limit > 0 else WAXAL_FULL_CAP
+    print(f"[train-dondo] loading train dataset limit={waxal_limit}", flush=True)
+    train_rows = _load_waxal_rows("train", waxal_limit, "train")
+    sources_used = [f"google/WaxalNLP:aka_asr(n={len(train_rows)})"]
+
+    if cv_twi_limit > 0:
+        cv_raw = _with_retries(lambda: _materialize_cv_twi(cv_twi_limit), "common-voice-tw")
+        if len(cv_raw) >= 30:
+            cv_rows = _prepare_rows(cv_raw, processor, 0, "common-voice-tw")
+            train_rows = train_rows + cv_rows
+            sources_used.append(f"fsicoli/common_voice_22_0:tw(n={len(cv_rows)})")
+        else:
+            print(
+                f"[train-dondo] common-voice-tw too small n={len(cv_raw)}; skipping",
+                flush=True,
+            )
+
+    if use_local_data:
+        local_rows = _load_local_rows(local_manifest_path)
+        if local_rows:
+            train_rows = train_rows + local_rows
+            sources_used.append(f"local:ghana-health-ai-recorder(n={len(local_rows)})")
+
+    if len(sources_used) > 1:
+        random.Random(42).shuffle(train_rows)
+        print(f"[train-dondo] MIX sources={sources_used} total={len(train_rows)}", flush=True)
+
     print("[train-dondo] loading eval dataset", flush=True)
     try:
-        eval_ds = load_dataset(
-            "google/WaxalNLP",
-            "aka_asr",
-            split="validation",
-            streaming=True,
-            token=token,
-            cache_dir=cache,
-        ).cast_column("audio", Audio(sampling_rate=16000))
+        eval_rows = _load_waxal_rows("validation", eval_limit, "eval")
     except Exception:  # noqa: BLE001
         print("[train-dondo] validation split unavailable; falling back to test", flush=True)
-        eval_ds = load_dataset(
-            "google/WaxalNLP",
-            "aka_asr",
-            split="test",
-            streaming=True,
-            token=token,
-            cache_dir=cache,
-        ).cast_column("audio", Audio(sampling_rate=16000))
+        eval_rows = _load_waxal_rows("test", eval_limit, "eval")
     print("[train-dondo] eval dataset ready", flush=True)
-
-    train_rows = _prepare_rows(train_ds, processor, train_limit, "train")
-    eval_rows = _prepare_rows(eval_ds, processor, eval_limit, "eval")
 
     out_dir = f"/checkpoints/gha-dondo/{run_name}"
     resume_arg: Optional[str | bool] = None
@@ -349,6 +527,11 @@ def train_dondo(
         else:
             resume_arg = resume_from_checkpoint
 
+    warmup_kwargs: dict[str, Any] = (
+        {"warmup_ratio": warmup_ratio}
+        if warmup_ratio and warmup_ratio > 0
+        else {"warmup_steps": max(5, max_steps // 20)}
+    )
     print("[train-dondo] creating training arguments", flush=True)
     args = TrainingArguments(
         output_dir=out_dir,
@@ -356,7 +539,6 @@ def train_dondo(
         per_device_train_batch_size=per_device_train_batch_size,
         gradient_accumulation_steps=gradient_accumulation_steps,
         learning_rate=learning_rate,
-        warmup_steps=max(5, max_steps // 20),
         logging_steps=10,
         eval_strategy="steps",
         eval_steps=max(20, max_steps // 4),
@@ -366,6 +548,7 @@ def train_dondo(
         gradient_checkpointing=True,
         report_to=[],
         remove_unused_columns=False,
+        **warmup_kwargs,
     )
 
     print("[train-dondo] creating trainer", flush=True)
@@ -390,6 +573,56 @@ def train_dondo(
     val_cer = float(eval_metrics.get("eval_cer", 999.0))
     promote = val_wer < BASELINE_WER
 
+    # Optional final-eval decode with a KenLM language model (beam search).
+    # Greedy WER/CER above remain the promotion-gate numbers; these are the
+    # v2 decode-quality measurements reported alongside them.
+    lm_decode_used = False
+    val_lm_wer: Optional[float] = None
+    val_lm_cer: Optional[float] = None
+    if lm_path:
+        if not os.path.exists(lm_path):
+            print(f"[train-dondo] lm file missing: {lm_path}; greedy-only eval", flush=True)
+        else:
+            try:
+                import kenlm  # noqa: F401
+                import evaluate
+                from pyctcdecode import build_ctcdecoder
+
+                vocab = processor.tokenizer.get_vocab()
+                sorted_tokens = [
+                    tok for tok, _ in sorted(vocab.items(), key=lambda kv: kv[1])
+                ]
+                decoder = build_ctcdecoder(sorted_tokens, kenlm_model_path=lm_path)
+                print(f"[train-dondo] beam+LM decoding eval logits lm={lm_path}", flush=True)
+                pred = trainer.predict(trainer.eval_dataset)
+                logits = np.asarray(pred.predictions)
+                label_ids = pred.label_ids
+                label_ids[label_ids == -100] = processor.tokenizer.pad_token_id
+                refs = [
+                    _normalize_text(x)
+                    for x in processor.batch_decode(label_ids, group_tokens=False)
+                ]
+                preds = [
+                    _normalize_text(" ".join(str(decoder.decode(logits[i])).split("|")))
+                    for i in range(logits.shape[0])
+                ]
+                wer_m = evaluate.load("wer")
+                cer_m = evaluate.load("cer")
+                val_lm_wer = float(wer_m.compute(predictions=preds, references=refs))
+                val_lm_cer = float(cer_m.compute(predictions=preds, references=refs))
+                lm_decode_used = True
+                print(
+                    f"[train-dondo] lm decode wer={val_lm_wer:.4f} cer={val_lm_cer:.4f} "
+                    f"(greedy wer={val_wer:.4f} cer={val_cer:.4f})",
+                    flush=True,
+                )
+            except Exception as exc:  # noqa: BLE001
+                print(
+                    f"[train-dondo] LM decode unavailable ({exc}); "
+                    "falling back to greedy-only",
+                    flush=True,
+                )
+
     hub_status = None
     if push_repo and not smoke and token:
         try:
@@ -400,13 +633,22 @@ def train_dondo(
             sys.path.insert(0, "/root/gha_train")
             from model_card import write_and_push_model_card  # type: ignore
 
+            card_metrics: dict[str, Any] = {"val_wer": val_wer, "val_cer": val_cer}
+            if lm_decode_used:
+                card_metrics["val_lm_wer"] = val_lm_wer
+                card_metrics["val_lm_cer"] = val_lm_cer
+            lm_section = (
+                f"Beam search + KenLM (`{lm_path}`): WER `{val_lm_wer}` / CER `{val_lm_cer}`"
+                if lm_decode_used
+                else "Greedy CTC argmax only (no LM decode in this run)."
+            )
             write_and_push_model_card(
                 push_repo,
                 task="automatic-speech-recognition",
                 language=["tw", "ak"],
                 base_model=model_id,
-                datasets=["google/WaxalNLP"],
-                metrics={"val_wer": val_wer, "val_cer": val_cer},
+                datasets=[s.split("(", 1)[0] for s in sources_used],
+                metrics=card_metrics,
                 summary=(
                     f"DONDO w2v-BERT CTC fine-tune trial for Ghana Health AI (`{run_name}`). "
                     f"Promotion candidate: {promote}."
@@ -417,10 +659,20 @@ def train_dondo(
 This checkpoint follows DONDO's language-conditioned CTC setup. For Asante Twi, prepend
 language id `{lang_id}` to acoustic features before decoding.
 
+## Training mix
+
+- Sources: {", ".join(f"`{s}`" for s in sources_used)}
+- Learning rate: `{learning_rate}` · max steps: `{max_steps}`
+
+## Decode
+
+- Greedy CTC: WER `{val_wer}` / CER `{val_cer}`
+- {lm_section}
+
 ## Promotion gate
 
 - Current v6 Whisper beam=5 WER: `{BASELINE_WER}`
-- This validation WER: `{val_wer}`
+- This validation WER (greedy): `{val_wer}`
 - Promote: **{promote}**
 """,
                 tags=["dondo", "w2v-bert", "ctc", "asr", "asante-twi"],
@@ -442,9 +694,17 @@ language id `{lang_id}` to acoustic features before decoding.
         "eval_limit": len(eval_rows),
         "max_steps": max_steps,
         "learning_rate": learning_rate,
+        "warmup_ratio": warmup_ratio,
         "per_device_train_batch_size": per_device_train_batch_size,
         "gradient_accumulation_steps": gradient_accumulation_steps,
         "resume_from_checkpoint": resume_arg,
+        "data_sources": sources_used,
+        "cv_twi_limit": cv_twi_limit,
+        "use_local_data": use_local_data,
+        "lm_path": lm_path or None,
+        "lm_decode": lm_decode_used,
+        "val_lm_wer": val_lm_wer,
+        "val_lm_cer": val_lm_cer,
         "baseline_wer_to_beat": BASELINE_WER,
         "val_wer": val_wer,
         "val_cer": val_cer,
@@ -476,6 +736,11 @@ def main(
     learning_rate: float = 5e-6,
     train_limit: int = 1800,
     eval_limit: int = 200,
+    cv_twi_limit: int = 0,
+    use_local_data: bool = False,
+    local_manifest_path: str = "/root/gha_local_asr/manifest.jsonl",
+    lm_path: str = "",
+    warmup_ratio: float = 0.0,
     per_device_train_batch_size: int = 2,
     gradient_accumulation_steps: int = 8,
     resume_from_checkpoint: str = "",
@@ -491,6 +756,11 @@ def main(
         learning_rate=learning_rate,
         train_limit=train_limit,
         eval_limit=eval_limit,
+        cv_twi_limit=cv_twi_limit,
+        use_local_data=use_local_data,
+        local_manifest_path=local_manifest_path,
+        lm_path=lm_path,
+        warmup_ratio=warmup_ratio,
         per_device_train_batch_size=per_device_train_batch_size,
         gradient_accumulation_steps=gradient_accumulation_steps,
         resume_from_checkpoint=resume_from_checkpoint or None,
