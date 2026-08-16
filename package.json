@@ -30,6 +30,7 @@
     "eval:asr-routing": "node --import tsx scripts/eval-asr-routing.ts",
     "eval:asr-manifest": "node --import tsx scripts/validate-asr-eval-manifest.ts",
     "eval:asr-manifest:strict": "node --import tsx scripts/validate-asr-eval-manifest.ts --strict",
+    "eval:local-asr-import": "node --import tsx scripts/validate-local-asr-import.ts",
     "eval:asr-feedback:export": "node --import tsx scripts/export-asr-feedback.ts",
     "eval:asr-feedback:export-contract": "node --import tsx scripts/eval-asr-feedback-export-contract.ts",
     "eval:asr-promotion": "node --import tsx scripts/audit-asr-promotion.ts",

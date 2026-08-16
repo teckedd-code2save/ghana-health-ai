@@ -386,3 +386,20 @@ those was a handicap. v2 removes them:
 5. **Open question to verify before the run:** the language-conditioning hack
    (`_add_language_prefix` — one-hot row prepended to features) vs KhayaAI's
    actual DONDO conditioning. If wrong, v2 fixes it and re-baselines.
+
+### Data collector upgrades
+
+The browser recorder (`tmp/asr-collection-pack/recorder.html`) now persists
+per-speaker progress in localStorage, blocks accidental re-records (explicit
+`take_2`/`take_3` via confirm), and shuffles prompt order seeded by speaker
+code so speakers cover different prompt subsets. Capture-time quality gates
+(live level meter; duration/RMS/clipping/silence checks after stop) block
+clips outside 1–20s and require "keep anyway" for soft failures, with instant
+playback and re-record before accepting a take. Exported JSONL manifests now
+carry dialect/device/environment metadata, a holdout flag (opt-in checkbox
+plus automatic every-5th-clip holdout), and a sha256 of each audio file.
+`scripts/validate-local-asr-import.ts` (`pnpm eval:local-asr-import`) gates
+imports: schema/duration/text checks, exact (sha256) and near (speaker +
+reference) duplicate detection against existing manifests, per-bucket and
+holdout counts — non-zero exit on schema/dup failures, warnings only for
+quality flags.
