@@ -420,6 +420,31 @@ those was a handicap. v2 removes them:
 
 ### Data collector upgrades
 
+**Strategy shift (2026-08-17): curated read-speech corpus becomes the primary
+data engine.** The user flagged that (a) not all recorder prompt transcripts
+are accurate Twi, and (b) free-form collection yields deficient, imbalanced
+data (commerce_twi n=10, codeswitch n=5). The agreed pipeline, mirroring how
+serious ASR corpora are built:
+
+1. **Source trusted text** — starting with our own reviewed Twi health
+   knowledge seed (17 articles in `KnowledgeArticle`).
+2. **Extract/correct prompts** — `tmp/asr-collection-pack/prompts.corpus-v1.jsonl`
+   (59 utterances, 3–22 words each, health_twi). Translations of medical
+   source text get a native-speaker correction pass BEFORE recording; the
+   older 432-prompt pack is marked needs-review and must not be trusted as
+   gold without that pass.
+3. **Read + record in batches** — recorder gets a focused reading-session
+   mode (big prompt, minimal chrome, per-bucket progress chips, loadable
+   corpus packs).
+4. **Validate on import** — `pnpm eval:local-asr-import` gates every batch
+   (dedup, duration, holdout flags) before training use.
+
+Read speech ≠ spontaneous speech, and both models need the latter eventually
+(pilot feedback loop covers that) — but for domain vocabulary, bucket
+balance, and volume, curated read speech is the highest-quality lever per
+hour of effort. Solo-recorder constraint acknowledged: content/environment
+diversity now, speaker diversity later via pilot corrections.
+
 The browser recorder (`tmp/asr-collection-pack/recorder.html`) now persists
 per-speaker progress in localStorage, blocks accidental re-records (explicit
 `take_2`/`take_3` via confirm), and shuffles prompt order seeded by speaker
