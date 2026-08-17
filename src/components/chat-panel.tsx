@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Mic, Send } from "lucide-react";
 import { useLang } from "@/components/lang-provider";
+import { readAsrModel } from "@/lib/asr-model-store";
 import { enqueueOffline } from "@/lib/offline-queue";
 import { recordUntilSilence } from "@/lib/browser-audio";
 import { VoiceOrb, modeLabel, type OrbMode } from "@/components/voice-orb";
@@ -350,7 +351,7 @@ export function ChatPanel() {
       const form = new FormData();
       form.append("audio", blob, "chat-utterance.webm");
       form.append("language", lang);
-      if (window.localStorage.getItem("gha:asr-model") === "dondo") {
+      if (readAsrModel() === "dondo") {
         form.append("asrModel", "dondo");
       }
 

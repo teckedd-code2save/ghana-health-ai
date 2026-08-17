@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Mic, Pencil, ShoppingCart, Volume2, X } from "lucide-react";
 import { useLang } from "@/components/lang-provider";
+import { useAsrModel } from "@/lib/asr-model-store";
 import { recordUntilSilence } from "@/lib/browser-audio";
 import { VoiceOrb, localizedModeLabel, type OrbMode } from "@/components/voice-orb";
 
