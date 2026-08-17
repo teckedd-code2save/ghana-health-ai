@@ -14,12 +14,14 @@ docs/asr-rnd-session-2026-08-15.md "Stage 2 design"):
 
   modal run --detach modal/train/train_dondo_asr.py \\
     --run-name dondo-twi-v2 \\
-    --max-steps 2500 --learning-rate 1e-4 \\
+    --max-steps 2500 --learning-rate 5e-5 \\
     --train-limit 0 --cv-twi-limit 3000 --use-local-data \\
     --push-repo teckedd/gha-dondo-w2v-bert-twi-v2 --no-wait
 
 v2 notes:
-- --learning-rate default stays 5e-6 for v1 compatibility; v2 recommends 1e-4.
+- --learning-rate default stays 5e-6 for v1 compatibility; v2 recommends 5e-5
+  (DONDO paper step-1 rate; the paper anneals to 5e-6 — our cosine schedule
+  approximates the anneal within one run).
 - --train-limit 0 streams all available Waxal train rows (capped at 20000).
 - --cv-twi-limit N mixes in up to N validated-only Common Voice 22 Twi rows.
 - --use-local-data mixes in the local recorder corpus mounted at
@@ -67,8 +69,11 @@ _LOCAL_ASR_DIR = os.path.join(_REPO_ROOT, "tmp", "asr-local-train")
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
-    # g++ lets pip build kenlm from sdist (no manylinux wheels are published)
+    # g++ compiles kenlm from sdist (no manylinux wheels). cmake must be <4:
+    # cmake 4.x rejects kenlm 0.2.0's ancient CMakeLists. Installed as a
+    # separate early layer so the binary is on PATH when kenlm builds.
     .apt_install("ffmpeg", "libsndfile1", "g++")
+    .pip_install("cmake==3.31.6")
     .pip_install(
         "torch==2.5.1",
         "torchaudio==2.5.1",
@@ -82,8 +87,11 @@ image = (
         "soundfile==0.13.1",
         "huggingface_hub==0.26.2",
         "pyctcdecode==0.5.0",
-        "kenlm==0.2.0",
     )
+    # kenlm must build WITHOUT pip's isolated build env (which would pull the
+    # latest cmake 4.x and fail on kenlm's ancient CMakeLists); the pinned
+    # cmake 3.31.6 layer above is used instead.
+    .run_commands("pip install --no-build-isolation kenlm==0.2.0")
     .add_local_file(
         local_path=os.path.join(_TRAIN_DIR, "model_card.py"),
         remote_path="/root/gha_train/model_card.py",
@@ -290,7 +298,7 @@ def train_dondo(
     run_name: str = "dondo-waxal-twi-v1",
     language: str = "Asante Twi",
     max_steps: int = 800,
-    learning_rate: float = 5e-6,  # v1 compat; v2 recommends 1e-4
+    learning_rate: float = 5e-6,  # v1 compat; v2 recommends 5e-5 (DONDO paper step 1)
     train_limit: int = 1800,  # 0 = all Waxal train rows (streamed, capped at WAXAL_FULL_CAP)
     eval_limit: int = 200,
     cv_twi_limit: int = 0,  # >0 mixes in validated-only Common Voice 22 Twi rows
