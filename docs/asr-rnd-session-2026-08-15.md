@@ -414,9 +414,21 @@ those was a handicap. v2 removes them:
 4. **Eval design (must change per CONTINUE.md's rule):** report Waxal test
    n=300 AND local-corpus per-bucket WER in the same run summary; promotion
    judged on domain first, benchmark second.
-5. **Open question to verify before the run:** the language-conditioning hack
-   (`_add_language_prefix` — one-hot row prepended to features) vs KhayaAI's
-   actual DONDO conditioning. If wrong, v2 fixes it and re-baselines.
+5. ~~**Open question to verify before the run**~~ — **RESOLVED (2026-08-17):**
+   the official KhayaAI model card's reference `add_language_prefix` is
+   byte-identical to our implementation (`lang_vec[lang_id % D] = 1.0`,
+   `prefix_len=1`). Our conditioning was never wrong. Bigger finds from the
+   DONDO paper (arXiv:2607.21540, Azunre et al., Apache-2.0):
+   - **v1 was undertrained by design**: the paper's recipe is step-1 LR 5e-5
+     then anneal 5e-6; our v1 ran a constant 5e-6 (the anneal rate) for 800
+     steps on 1,800 rows. v2 runs 2,500 steps at 5e-5 (cosine decay
+     approximates the anneal).
+   - **Reference baselines (in-domain, religious read speech):** Asante Twi
+     monolingual 15.75% WER; multilingual step-2 14.7% — the realistic ceiling
+     on clean read Twi. Our Waxal/domain numbers sit on harder data.
+   - Paper's own limitation confirms our gap: read religious text → weak on
+     spontaneous/code-switched speech "until fine-tuned". That fine-tune is
+     exactly what v2 is.
 
 ### Data collector upgrades
 
@@ -474,3 +486,24 @@ imports: schema/duration/text checks, exact (sha256) and near (speaker +
 reference) duplicate detection against existing manifests, per-bucket and
 holdout counts — non-zero exit on schema/dup failures, warnings only for
 quality flags.
+
+## Stage 2 launch — DONDO v2 RUNNING (2026-08-17)
+
+```
+modal run --detach modal/train/train_dondo_asr.py \
+  --run-name dondo-twi-v2 --max-steps 2500 --learning-rate 5e-5 \
+  --train-limit 0 --cv-twi-limit 3000 \
+  --use-local-data --local-manifest-path /root/gha_local_asr/manifest.train32.jsonl \
+  --eval-limit 300 --push-repo teckedd/gha-dondo-w2v-bert-twi-v2 --no-wait
+```
+
+App `ap-8UFzfnfrkoH4wiaJc3oMJf`, call `fc-01M08V6614GFXFBE41ZKA27P1X`.
+Data: full Waxal train (streamed, cap 20k) + CV22 Twi validated (3k) + local
+train32 (holdout8 stays frozen for the domain gate). Image fixes to get
+there: cmake pinned 3.31.6 in an early layer + kenlm installed with
+`--no-build-isolation` (pip's isolated build env kept pulling cmake 4.x,
+which rejects kenlm 0.2.0's CMakeLists). Commit `fe30f3a`.
+
+After completion: eval v2 on Waxal test n=300 AND the frozen holdout8 +
+full local corpus via `eval_dondo_asr.py`; LM beam-decode comparison once
+the Twi KenLM (`akan-speech-lm` volume) is built.
