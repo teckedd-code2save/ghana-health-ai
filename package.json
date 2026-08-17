@@ -46,7 +46,8 @@
     "eval:asr-results:pull": "rm -rf tmp/asr-results && mkdir -p tmp/asr-results && modal volume get --force akan-speech-eval-results / tmp/asr-results",
     "eval:asr-results": "node --import tsx scripts/summarize-asr-results.ts",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "corpus:gen": "node --import tsx scripts/gen-corpus-pack.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

@@ -439,6 +439,21 @@ serious ASR corpora are built:
 4. **Validate on import** — `pnpm eval:local-asr-import` gates every batch
    (dedup, duration, holdout flags) before training use.
 
+**Corpus pack v2 (2026-08-17):** `scripts/gen-corpus-pack.ts`
+(`pnpm corpus:gen`) translates curated English source lines
+(`tmp/corpus-source/*.txt`, authored in-repo for clean licensing) into Twi /
+Twi-English drafts via the configured LLM. Generated packs: health_twi 126,
+commerce_twi 74, codeswitch_tw_en 50 — all `needs_review: true` with
+`en_reference` kept for the correction pass.
+
+**⚑ Translation-quality finding:** both available general models
+(gpt-4o-mini AND gpt-4o) produce Twi drafts with **meaning-level errors**
+(e.g. "I am pregnant" → "Medi aberewa…" = "I am an old woman"; "stomach" →
+"me nan mu" = "my leg"). General LLMs cannot be trusted as Twi translators
+for ground-truth data — the human correction pass is load-bearing, not
+cosmetic. For larger future packs, GhanaNLP's Khaya translation API
+(purpose-built Twi MT) should produce better first drafts; needs an API key.
+
 Read speech ≠ spontaneous speech, and both models need the latter eventually
 (pilot feedback loop covers that) — but for domain vocabulary, bucket
 balance, and volume, curated read speech is the highest-quality lever per
