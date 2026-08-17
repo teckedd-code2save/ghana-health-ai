@@ -231,6 +231,7 @@ export function VoicePanel() {
   const [userMessageId, setUserMessageId] = useState<string | undefined>();
   const [correctionOpen, setCorrectionOpen] = useState(false);
   const [correctionText, setCorrectionText] = useState("");
+  const [shareAudioConsent, setShareAudioConsent] = useState(false);
   const [feedbackStatus, setFeedbackStatus] = useState<string | null>(null);
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [commerceExecution, setCommerceExecution] = useState<CommerceExecution | null>(null);
@@ -240,6 +241,7 @@ export function VoicePanel() {
   const [asrModel] = useAsrModel();
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastAudioBlobRef = useRef<Blob | null>(null);
   const playbackCtxRef = useRef<AudioContext | null>(null);
   const playbackFrameRef = useRef<number | null>(null);
   const recordAbortRef = useRef<AbortController | null>(null);
@@ -424,6 +426,7 @@ export function VoicePanel() {
       if (!speechDetected) return;
       if (blob.size < 400 || peakLevel < 0.01) throw new Error("Move closer and try again");
       if (durationMs < 400) throw new Error("Say a little more");
+      lastAudioBlobRef.current = blob;
 
       setBusy(true);
       setPipelineStage("asr_started");
@@ -499,24 +502,42 @@ export function VoicePanel() {
     }
     setFeedbackStatus(null);
     try {
-      const res = await fetch("/api/voice/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId,
-          messageId: userMessageId,
-          originalTranscript: heard,
-          correctedTranscript: corrected,
-          language: lang,
-          focus,
-          rating: 3,
-        }),
-      });
+      const blob = lastAudioBlobRef.current;
+      let res: Response;
+      if (shareAudioConsent && blob) {
+        // Explicit opt-in: send the clip so corrections carry real audio.
+        const form = new FormData();
+        form.append("audio", blob, "correction.webm");
+        form.append("audioConsent", "true");
+        form.append("conversationId", conversationId);
+        if (userMessageId) form.append("messageId", userMessageId);
+        form.append("originalTranscript", heard);
+        form.append("correctedTranscript", corrected);
+        form.append("language", lang);
+        form.append("focus", focus);
+        form.append("rating", "3");
+        res = await fetch("/api/voice/feedback", { method: "POST", body: form });
+      } else {
+        res = await fetch("/api/voice/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversationId,
+            messageId: userMessageId,
+            originalTranscript: heard,
+            correctedTranscript: corrected,
+            language: lang,
+            focus,
+            rating: 3,
+          }),
+        });
+      }
       if (!res.ok) throw new Error("Correction failed");
       setHeard(corrected);
       setCorrectionOpen(false);
       setFeedbackSent(true);
       setFeedbackStatus("Saved");
+      setShareAudioConsent(false);
     } catch (error) {
       setFeedbackStatus(friendlyVoiceError(error));
     }
@@ -610,10 +631,21 @@ export function VoicePanel() {
                       setCorrectionOpen(false);
                       setCorrectionText(heard);
                       setFeedbackStatus(null);
+                      setShareAudioConsent(false);
                     }}
                   >
                     <X className="h-4 w-4" />
                   </button>
+                  <label className="transcript-correction__consent">
+                    <input
+                      type="checkbox"
+                      checked={shareAudioConsent}
+                      onChange={(event) => setShareAudioConsent(event.target.checked)}
+                    />
+                    {lang === "en"
+                      ? "Share this recording to improve the model"
+                      : "Ma yɛmfa nne a wokae no nsiɛ model no"}
+                  </label>
                 </form>
               ) : (
                 <>

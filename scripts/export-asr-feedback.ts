@@ -18,7 +18,7 @@ type ExportRow = {
   reference: string;
   audio_path: string;
   speaker_label: string;
-  consent: "internal_eval";
+  consent: "internal_eval" | "user_shared_audio";
   domain_tags: string[];
   recording_tags: string[];
   notes: string;
@@ -118,6 +118,10 @@ export async function exportAsrFeedback(options: ExportOptions = {}) {
     take: limit,
   });
 
+  const audioDir =
+    process.env.ASR_FEEDBACK_AUDIO_DIR ||
+    path.join(process.cwd(), "data", "asr-feedback-audio");
+
   const rows: ExportRow[] = [];
   for (const item of feedback) {
     const corrected = item.correctedTranscript?.trim();
@@ -137,15 +141,18 @@ export async function exportAsrFeedback(options: ExportOptions = {}) {
       reference,
       notes: item.notes,
     });
+    const hasConsentedAudio = Boolean(item.audioConsent && item.audioPath);
 
     rows.push({
       id: `feedback_${item.id}`,
       bucket,
       language,
       reference,
-      audio_path: `MISSING_AUDIO_FOR_FEEDBACK_${item.id}`,
+      audio_path: hasConsentedAudio
+        ? path.join(audioDir, item.audioPath as string)
+        : `MISSING_AUDIO_FOR_FEEDBACK_${item.id}`,
       speaker_label: item.userId ? `user_${item.userId.slice(0, 8)}` : "anonymous_user",
-      consent: "internal_eval",
+      consent: hasConsentedAudio ? "user_shared_audio" : "internal_eval",
       domain_tags: domainTagsFor({
         focus: item.focus,
         reference,

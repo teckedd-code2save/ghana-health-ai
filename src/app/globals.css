@@ -663,6 +663,7 @@ select {
 
 .transcript-correction {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.36rem;
   width: min(82vw, 34rem);
@@ -671,6 +672,18 @@ select {
   background: rgba(255, 255, 255, 0.78);
   padding: 0.32rem;
   box-shadow: 0 0.75rem 1.75rem rgba(49, 43, 28, 0.08);
+}
+
+.transcript-correction__consent {
+  display: flex;
+  align-items: center;
+  gap: 0.34rem;
+  flex-basis: 100%;
+  padding: 0 0.6rem 0.28rem;
+  font-size: 0.74rem;
+  color: rgba(23, 35, 29, 0.62);
+  cursor: pointer;
+  user-select: none;
 }
 
 .transcript-correction input {

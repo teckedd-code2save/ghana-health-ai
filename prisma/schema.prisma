@@ -204,6 +204,10 @@ model AsrFeedback {
   notes               String?       @db.Text
   asrModel            String?       @map("asr_model")
   asrRoute            String?       @map("asr_route")
+  // Consented audio capture: only set when the user explicitly opted in at
+  // correction time. Path is relative to ASR_FEEDBACK_AUDIO_DIR.
+  audioConsent        Boolean       @default(false) @map("audio_consent")
+  audioPath           String?       @map("audio_path")
   metadata            Json?
   createdAt           DateTime      @default(now()) @map("created_at")
 

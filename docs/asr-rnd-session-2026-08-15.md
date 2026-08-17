@@ -348,6 +348,37 @@ adɛnta" (meaning preserved) vs **v6** "fa aduru no barima wɔ adɛnta"
 ("brɛ me" → "barima" — meaning changed). First in-app evidence that the
 domain gap is user-visible, not just metric-visible.
 
+### First real-user corrections + known product issues (2026-08-17)
+
+The switch moved into the side nav (commit `2aaa3d6`; store:
+`src/lib/asr-model-store.ts`). First two real corrections landed, both
+DONDOβ, both health-domain vocabulary misses:
+
+1. "meteɛ me meyɛ apaa mepɛ **parasita mɔ** atɔ" → "…mepɛ **paracetamol** atɔ"
+2. "mete pae me na me **ano soro nso kyie me**" → "meti pae me na **me ho nso
+   aye hye**" (fever vocabulary)
+
+User's qualitative read: DONDO is more accurate overall; v6 is close and
+sometimes matches. Consistent with the metrics.
+
+**Known issue — response generation (noted for the response-quality pass):**
+replies are formulaic — roughly "if you say {transcript} you have to see a
+doctor…" in Twi regardless of content. Not an ASR problem; the LLM/reviewer
+step needs work (better Twi reply prompting, less templated triage phrasing).
+Tracked here so it is not lost.
+
+**Consented audio capture shipped (2026-08-17):** text-only corrections can't
+feed audio training, so the correction form now has an explicit opt-in
+checkbox ("Ma yɛmfa nne a wokae no nsiɛ model no" / "Share this recording to
+improve the model"). With consent, the clip is uploaded with the correction,
+stored at `ASR_FEEDBACK_AUDIO_DIR` (default `data/asr-feedback-audio/`,
+gitignored), and linked via `AsrFeedback.audioConsent` / `audioPath`
+(migration `20260817133000_asr_feedback_consented_audio`). Without consent,
+nothing changes — audio is never retained. Export tags consented rows
+`consent=user_shared_audio` with real audio paths; unconsented rows keep the
+`MISSING_AUDIO_*` marker. Verified e2e: multipart correction → file on disk +
+DB row + export row.
+
 ## Next decision gates — RESOLVED this session
 
 - **Stage 1 (full Whisper v8 from v6, scaled corpus): GO** — the clean hold-out

@@ -44,3 +44,4 @@ next-env.d.ts
 
 modal/**/__pycache__/
 *.pyc
+data/asr-feedback-audio/
