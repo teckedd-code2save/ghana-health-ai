@@ -29,6 +29,7 @@ import modal
 app = modal.App("ghana-health-dondo-asr-eval")
 hf_cache = modal.Volume.from_name("akan-speech-hf-cache", create_if_missing=True)
 results_vol = modal.Volume.from_name("akan-speech-eval-results", create_if_missing=True)
+lm_vol = modal.Volume.from_name("akan-speech-lm", create_if_missing=True)
 
 _TRAIN_DIR = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT = os.path.dirname(os.path.dirname(_TRAIN_DIR))
@@ -36,7 +37,10 @@ _LOCAL_ASR_DIR = os.path.join(_REPO_ROOT, "tmp", "asr-local-train")
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
-    .apt_install("ffmpeg", "libsndfile1")
+    .apt_install("ffmpeg", "libsndfile1", "g++")
+    # cmake <4 pinned early: pip's isolated build env would pull cmake 4.x,
+    # which rejects kenlm 0.2.0's CMakeLists (see train_dondo_asr.py).
+    .pip_install("cmake==3.31.6")
     .pip_install(
         "torch==2.5.1",
         "torchaudio==2.5.1",
@@ -49,7 +53,9 @@ image = (
         "tqdm",
         "soundfile==0.13.1",
         "huggingface_hub==0.26.2",
+        "pyctcdecode==0.5.0",
     )
+    .run_commands("pip install --no-build-isolation kenlm==0.2.0")
     .add_local_dir(
         local_path=_LOCAL_ASR_DIR,
         remote_path="/root/gha_local_asr",
@@ -152,6 +158,7 @@ def _add_language_prefix(features, lang_id: int):
     volumes={
         "/root/.cache/huggingface": hf_cache,
         "/results": results_vol,
+        "/lm": lm_vol,
     },
     secrets=SECRETS,
 )
@@ -164,6 +171,7 @@ def evaluate_dondo(
     max_samples: int = 500,
     streaming: bool = True,
     local_manifest_path: Optional[str] = None,
+    lm_path: str = "",
 ) -> dict[str, Any]:
     import json
     import torch
@@ -302,6 +310,26 @@ def evaluate_dondo(
     bucket_preds: dict[str, list[str]] = {}
     bucket_refs: dict[str, list[str]] = {}
 
+    decoder = None
+    if lm_path:
+        if not os.path.exists(lm_path):
+            print(f"[eval-dondo] lm file missing: {lm_path}; greedy-only", flush=True)
+        else:
+            try:
+                import kenlm  # noqa: F401
+                from pyctcdecode import build_ctcdecoder
+
+                vocab = processor.tokenizer.get_vocab()
+                sorted_tokens = [
+                    tok for tok, _ in sorted(vocab.items(), key=lambda kv: kv[1])
+                ]
+                decoder = build_ctcdecoder(sorted_tokens, kenlm_model_path=lm_path)
+                print(f"[eval-dondo] beam+LM decode enabled lm={lm_path}", flush=True)
+            except Exception as exc:  # noqa: BLE001
+                print(f"[eval-dondo] LM decode unavailable ({exc}); greedy-only", flush=True)
+    lm_preds: list[str] = []
+    lm_bucket_preds: dict[str, list[str]] = {}
+
     for row in tqdm(sample_rows(), desc=f"dondo-eval {language}"):
         proc = processor(row["array"], sampling_rate=16000, return_tensors="pt")
         feats = getattr(proc, "input_features", None)
@@ -321,6 +349,13 @@ def evaluate_dondo(
         refs.append(ref)
         bucket_preds.setdefault(row["bucket"], []).append(pred)
         bucket_refs.setdefault(row["bucket"], []).append(ref)
+        if decoder is not None:
+            lm_hyp = " ".join(
+                str(decoder.decode(logits[0].detach().cpu().numpy())).split("|")
+            )
+            lm_pred = _normalize_text(lm_hyp)
+            lm_preds.append(lm_pred)
+            lm_bucket_preds.setdefault(row["bucket"], []).append(lm_pred)
 
     wer = float(wer_m.compute(predictions=preds, references=refs))
     cer = float(cer_m.compute(predictions=preds, references=refs))
@@ -336,6 +371,33 @@ def evaluate_dondo(
         }
         for b, bp in sorted(bucket_preds.items())
     }
+    lm_decode = None
+    if decoder is not None and lm_preds:
+        lm_decode = {
+            "lm_path": lm_path,
+            "wer_pct": round(
+                float(wer_m.compute(predictions=lm_preds, references=refs)) * 100, 2
+            ),
+            "cer_pct": round(
+                float(cer_m.compute(predictions=lm_preds, references=refs)) * 100, 2
+            ),
+            "per_bucket": {
+                b: {
+                    "n": len(bp),
+                    "wer_pct": round(
+                        float(wer_m.compute(predictions=bp, references=bucket_refs[b]))
+                        * 100,
+                        2,
+                    ),
+                    "cer_pct": round(
+                        float(cer_m.compute(predictions=bp, references=bucket_refs[b]))
+                        * 100,
+                        2,
+                    ),
+                }
+                for b, bp in sorted(lm_bucket_preds.items())
+            },
+        }
     result = {
         "model_id": model_id,
         "architecture": "wav2vec2-bert-ctc",
@@ -346,6 +408,7 @@ def evaluate_dondo(
         ),
         "local_manifest": local_manifest_path,
         "per_bucket": per_bucket,
+        "lm_decode": lm_decode,
         "language": language,
         "language_id": lang_id,
         "n": len(preds),
@@ -389,6 +452,7 @@ def main(
     max_samples: int = 500,
     streaming: bool = True,
     local_manifest_path: str = "",
+    lm_path: str = "",
     wait: bool = True,
 ):
     call = evaluate_dondo.spawn(
@@ -399,6 +463,7 @@ def main(
         language=language,
         max_samples=max_samples,
         streaming=streaming,
+        lm_path=lm_path,
         local_manifest_path=local_manifest_path or None,
     )
     print(f"[eval-dondo] spawned {call.object_id} model={model_id} lang={language}")
