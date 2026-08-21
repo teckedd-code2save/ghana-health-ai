@@ -144,12 +144,22 @@ compensation for weak transcription.
 
 This track improves the product feel after ASR is usable.
 
+Current production TTS is `facebook/mms-tts-aka`, which is intelligible but not
+natural enough for the product. Replace it.
+
 TTS candidates:
 
-- Evaluate Qwen3-TTS 12Hz as a research candidate for low-latency,
-  controllable multilingual voice output.
-- Start with the smaller Qwen3-TTS 12Hz 0.6B path for feasibility checks, then
-  test 1.7B only if quality clearly needs it.
+- First evaluate GhanaNLP `stable-twi-tts` for natural Twi and Twi-English
+  code-switching. It is IPA-driven and explicitly built for Twi plus Ghanaian
+  English spans.
+- Evaluate GhanaNLP `nano-twi` as a fast, offline Asante Twi fallback. It is
+  single-voice and not voice-cloning, but the latency profile is attractive.
+- Evaluate Qwen3-TTS 12Hz as a research candidate for naturalness, streaming,
+  and consented voice-clone experiments. It does not officially list Twi among
+  supported languages, so it must prove Twi pronunciation before becoming a
+  product TTS candidate.
+- Start Qwen checks with the smaller Qwen3-TTS 12Hz 0.6B path for feasibility,
+  then test 1.7B only if quality clearly needs it.
 - Measure first-audio latency, real-time factor, Twi pronunciation, English
   medicine/product words, interruption behavior, and Modal cost.
 - Do not ship cloned voices or custom voice features without an explicit
@@ -166,6 +176,12 @@ Agent candidates:
 
 Reference candidates:
 
+- GhanaNLP stable Twi TTS:
+  `https://huggingface.co/ghananlpcommunity/stable-twi-tts`
+- GhanaNLP nano Twi TTS:
+  `https://huggingface.co/ghananlpcommunity/nano-twi`
+- WAXAL MMS Twi fine-tuning baseline:
+  `https://huggingface.co/rnjema-unima/mms-tts-twi-baseline`
 - Qwen3-TTS 12Hz HF collection:
   `https://huggingface.co/collections/Qwen/qwen3-tts`
 - Qwen3-TTS 12Hz 0.6B Base:
