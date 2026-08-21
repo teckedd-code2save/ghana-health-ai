@@ -153,24 +153,29 @@ Modal secret `huggingface-token` 403 on Qwen/Llama. Refresh token → re-run `tr
 
 ### 3. ASR multi-domain promote
 
-> **2026-08-16 update — see [`docs/asr-rnd-session-2026-08-15.md`](./asr-rnd-session-2026-08-15.md) and the
+> **2026-08-20 update — see [`docs/asr-rnd-session-2026-08-15.md`](./asr-rnd-session-2026-08-15.md) and the
 > [`asr-model-decision.md` addendum](./asr-model-decision.md#2026-08-16-rd-session-addendum).**
 > Key shifts: (a) v6's product-domain WER is 54.18% — Waxal WER does not
 > predict product WER; held-out domain evals are now first-class gates.
 > (b) DONDO v1 beats v6 by ~22pp on the local corpus (32.66% vs 54.18%) —
-> DONDO v2 approved with the changed design (more data, LR ~1e-4, KenLM
-> decode). (c) Clean hold-out experiment proves domain data generalizes
+> DONDO v2 completed and is now the Twi ASR front-runner: Waxal n=300
+> **28.12% greedy / 27.31% with Twi LM**, frozen local holdout8
+> **26.67% greedy / 6.67% with Twi LM**. (c) Clean hold-out experiment proves domain data generalizes
 > (−11.7pp on unseen clips from 32 training clips) — Whisper v8 approved once
 > the corpus scales. **Critical path: corpus scaling (200+ clips, new
 > speakers, code-switch priority), not compute.** v6 stays serving.
 > Trainer hardened this session: always pass `--train-limit` (capped
 > streaming loader) and launch with `modal run --detach`.
 
-Current evidence says **do not hard-pivot DONDO into serving yet**:
+Current evidence says **do not hard-pivot DONDO into default serving yet**:
 
-- v6 / current Whisper-family path is still the product candidate.
+- DONDO v2 should be the Twi beta/A-B candidate.
+- v6 / current Whisper-family path remains the stable default until a larger
+  held-out product-domain corpus confirms v2 across speakers/noise/code-switch.
 - v6 is **hold-and-validate only**, not a competitive final model. Its Hugging Face model card has been backfilled with real WER/CER, datasets, intended use, limitations, and a medical-device disclaimer.
-- DONDO zero-shot was much worse on Waxal. A real Modal fine-tune completed and improved sharply, but still missed the promotion bar.
+- DONDO zero-shot was much worse on Waxal. v2 fixed that enough to beat v6 on
+  Waxal n=300 and on the tiny product-domain holdout, but the holdout size is
+  not enough for final promotion.
 - English voice uses the separate English route by default, with `MODAL_ASR_EN_URL` available as an override.
   - 100-sample Common Voice English: `openai/whisper-small` WER **11.82%**, v6 WER **42.34%**.
 - `modal/train/train_asr.py` now includes Common Voice English in the extra-data mix for balanced v7 runs.

@@ -487,7 +487,7 @@ reference) duplicate detection against existing manifests, per-bucket and
 holdout counts — non-zero exit on schema/dup failures, warnings only for
 quality flags.
 
-## Stage 2 launch — DONDO v2 RUNNING (2026-08-17)
+## Stage 2 launch — DONDO v2 (2026-08-17)
 
 ```
 modal run --detach modal/train/train_dondo_asr.py \
@@ -504,6 +504,51 @@ there: cmake pinned 3.31.6 in an early layer + kenlm installed with
 `--no-build-isolation` (pip's isolated build env kept pulling cmake 4.x,
 which rejects kenlm 0.2.0's CMakeLists). Commit `fe30f3a`.
 
-After completion: eval v2 on Waxal test n=300 AND the frozen holdout8 +
-full local corpus via `eval_dondo_asr.py`; LM beam-decode comparison once
-the Twi KenLM (`akan-speech-lm` volume) is built.
+## Stage 2 results — DONDO v2 metrics recovered (2026-08-20)
+
+Training completed and pushed to `teckedd/gha-dondo-w2v-bert-twi-v2` with a
+model card. The training summary landed in the Modal results volume:
+
+- Training data: Waxal full streamed cap (10,107 rows), Common Voice 22 Twi
+  validated (201 rows available), and local train32.
+- Recipe: DONDO base, 2,500 steps, LR 5e-5, batch 2, grad accumulation 8.
+- Trainer validation: **27.43% WER / 9.02% CER** on 300 validation samples.
+- Hub status: `pushed:teckedd/gha-dondo-w2v-bert-twi-v2+card`.
+
+Kimi's run had not produced the required post-train gate files, so the missing
+evals were launched on 2026-08-20 with `eval_dondo_asr.py` and the built Twi
+KenLM at `/lm/twi_3gram.bin`.
+
+| Gate | n | Greedy WER | Greedy CER | LM WER | LM CER |
+|------|---|------------|------------|--------|--------|
+| Waxal test streaming | 300 | **28.12%** | 8.67% | **27.31%** | 8.43% |
+| Frozen local holdout | 8 | **26.67%** | 6.59% | **6.67%** | 2.33% |
+| Full local corpus | 40 | **11.45%** | 3.51% | **3.03%** | 0.98% |
+
+Per-bucket local holdout (cleaner than full local because v2 trained on the
+other 32 clips):
+
+| Bucket | n | Greedy WER | LM WER |
+|--------|---|------------|--------|
+| health_twi | 5 | 25.00% | 7.50% |
+| commerce_twi | 2 | 38.46% | 7.69% |
+| codeswitch_tw_en | 1 | 14.29% | 0.00% |
+
+Per-bucket full local corpus:
+
+| Bucket | n | Greedy WER | LM WER |
+|--------|---|------------|--------|
+| health_twi | 25 | 9.00% | 3.50% |
+| commerce_twi | 10 | 15.00% | 1.67% |
+| codeswitch_tw_en | 5 | 18.92% | 2.70% |
+
+**Interpretation.** DONDO v2 is the first model in this repo to beat the v6
+serving benchmark on the same Waxal n=300 sample (v6 beam5: 28.76%; v2+LM:
+27.31%) while also winning the product-domain holdout (v6 baseline holdout8:
+46.67%; v6-local-holdout: 35.00%; v2 greedy: 26.67%; v2+LM: 6.67%).
+
+**Caveat.** The local holdout has only 8 clips and two speakers. The LM result
+is directionally excellent, but it is too small for final promotion. Treat v2
+as the current Twi ASR front-runner and deploy as an A/B beta, then collect a
+larger held-out product corpus with more speakers, phone/noise variation,
+health, commerce, and code-switch coverage before making it the default.

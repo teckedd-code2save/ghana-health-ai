@@ -223,3 +223,25 @@ Full writeup: [`docs/asr-rnd-session-2026-08-15.md`](./asr-rnd-session-2026-08-1
    code-switch priority, noisy/phone conditions). Both tracks are gated on
    data, not compute.
 5. **v6 remains the serving model.** No checkpoint from this session promotes.
+
+---
+
+## 2026-08-20 DONDO v2 recovery addendum
+
+Full metrics: [`docs/asr-rnd-session-2026-08-15.md`](./asr-rnd-session-2026-08-15.md#stage-2-results--dondo-v2-metrics-recovered-2026-08-20).
+
+Kimi's DONDO v2 training run completed, pushed
+`teckedd/gha-dondo-w2v-bert-twi-v2` with a model card, but did not leave the
+required post-train gate files. The missing evals were recovered on Modal with
+the Twi KenLM decoder enabled.
+
+| Model | Eval | Greedy WER | LM WER | Decision |
+| --- | ---: | ---: | ---: | --- |
+| `teckedd/gha-dondo-w2v-bert-twi-v2` | Waxal test n=300 | 28.12% | **27.31%** | Beats v6 beam5 on same n=300 sample (28.76%) |
+| `teckedd/gha-dondo-w2v-bert-twi-v2` | Frozen local holdout8 | 26.67% | **6.67%** | Best product-domain holdout result so far |
+| `teckedd/gha-dondo-w2v-bert-twi-v2` | Full local corpus n=40 | 11.45% | **3.03%** | Strong but partly train-set recall; do not use as final proof |
+
+Updated decision: **DONDO v2 is the Twi ASR front-runner and should be the
+beta/A-B candidate.** v6 remains the stable default until a larger held-out
+product corpus confirms v2 across more speakers, code-switching, phone/noise,
+health, and commerce. English still stays on the separate English ASR route.
