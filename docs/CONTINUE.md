@@ -9,6 +9,64 @@
 
 ---
 
+## 2026-08-21 handoff
+
+Production is testable at `https://ghanahealth.serendepify.com`.
+
+Current live deploy:
+
+- Commit: `092626068d32d896bf6c9d17fef9767d07487e06`
+- Web image: `ghcr.io/teckedd-code2save/ghana-health-ai:092626068d32d896bf6c9d17fef9767d07487e06`
+- Twi TTS route: `stable-twi`
+- Twi TTS model: `ghananlpcommunity/stable-twi-tts`
+- English TTS route: `facebook/mms-tts-eng`
+- Stable Twi Modal endpoint:
+  `https://createdliving1000--ghana-health-tts-stable-twi-speak.modal.run`
+
+Verification already run:
+
+```bash
+curl -sS https://ghanahealth.serendepify.com/api/config
+curl -sS https://ghanahealth.serendepify.com/api/tts \
+  -H 'Content-Type: application/json' \
+  --data '{"text":"Akwaaba, wo ho te sɛn?","language":"tw"}'
+```
+
+The TTS smoke test returned `provider=stable-twi`, sample rate `22050`, WAV
+audio, and about 2s synthesis latency. Test the service now by using normal
+Twi voice chat, then compare:
+
+- Does the voice sound more natural than MMS?
+- Does the response stay in Twi when the input is Twi?
+- Does the conversation append turns instead of replacing previous turns?
+- Does the model picker near the mic route Twi beta/stable as expected?
+
+GitHub Actions deploys are currently blocked by exhausted Actions credits. The
+repo now has a direct VPS deploy route:
+
+```bash
+bin/deploy-direct
+```
+
+That command builds the committed repo on the VPS, applies Prisma migrations,
+restarts only `ghana-health-ai-web`, and smoke-tests production config/readiness.
+Use `STOP_OTHER_CONTAINERS=1 bin/deploy-direct` only when the VPS needs extra
+memory and unrelated containers can be stopped. It does not upload local env
+files and does not depend on pulling from GHCR.
+
+Next product/R&D work:
+
+1. Continue P4 live voice polish: interruption handling, streaming states, and
+   TTS quality comparison against stable-twi/nano-twi/Qwen research.
+2. Continue R1 beta measurement: v6 vs DONDO v2+LM with the same product clips,
+   correction logs, and latency.
+3. Start P5 commerce tool orchestration only after voice continuity feels
+   stable.
+4. Build R3 synthetic Twi voice-note generation from reviewed corpus JSONL, but
+   keep synthetic audio out of final human held-out evals.
+
+---
+
 ## Product goal (do not lose this)
 
 Voice-first **Twi** health companion for Ghana:
