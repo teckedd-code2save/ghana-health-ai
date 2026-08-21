@@ -1,19 +1,17 @@
 """
 Ghana Health AI — DONDO (w2v-BERT CTC) ASR on Modal.
 
-Model: teckedd/gha-dondo-w2v-bert-twi-v1
-  (KhayaAI/w2v-bert-ada_ewe_fat_fra_gaa_nzi_twi_en + Waxal fine-tune, 800 steps)
+Model: teckedd/gha-dondo-w2v-bert-twi-v2
+  (KhayaAI/w2v-bert-ada_ewe_fat_fra_gaa_nzi_twi_en + Waxal/CV-Twi/local fine-tune)
 
 Why this service exists:
-  Best product-domain WER on record (32.66% on the 40-clip local corpus vs
-  v6's 54.18%), while v6 still wins the Waxal benchmark. Deployed as a
-  SEPARATE app so production (v6) is untouched; point MODAL_ASR_URL at this
-  endpoint locally to A/B the app against the Whisper serving path.
+  DONDO v2 is the current Twi ASR front-runner. Deployed as a SEPARATE app so
+  the stable v6 Whisper service remains available; route Twi beta traffic here.
 
 Evidence (docs/asr-rnd-session-2026-08-15.md):
-  Waxal test n=300 CTC greedy  WER 36.47%  CER 11.36%
-  CV22 English n=100           WER 43.55%  (English stays on the EN route)
-  Local corpus n=40            WER 32.66%  CER 10.78%  (health_twi 28.0%)
+  Waxal test n=300             WER 28.12% greedy / 27.31% with Twi LM
+  Frozen local holdout n=8     WER 26.67% greedy / 6.67% with Twi LM
+  Full local corpus n=40       WER 11.45% greedy / 3.03% with Twi LM
 
   modal deploy modal/dondo_asr_service.py
 """
@@ -28,21 +26,30 @@ from typing import Any, Optional
 import modal
 
 APP_NAME = os.environ.get("ASR_APP_NAME", "ghana-health-asr-dondo")
-DEFAULT_MODEL = os.environ.get("MODEL_ID", "teckedd/gha-dondo-w2v-bert-twi-v1")
+DEFAULT_MODEL = os.environ.get("MODEL_ID", "teckedd/gha-dondo-w2v-bert-twi-v2")
 FALLBACK_MODEL = "KhayaAI/w2v-bert-ada_ewe_fat_fra_gaa_nzi_twi_en"
 MAX_AUDIO_SECONDS = float(os.environ.get("ASR_MAX_AUDIO_SECONDS", "45"))
 MIN_RMS = float(os.environ.get("ASR_MIN_RMS", "0.008"))
 MIN_SECONDS = float(os.environ.get("ASR_MIN_SECONDS", "0.35"))
 # DONDO language conditioning: prepend one-hot language id row to features.
 DONDO_LANGUAGE_ID = int(os.environ.get("DONDO_LANGUAGE_ID", "2"))  # Asante Twi
+DONDO_LM_ENABLED = os.environ.get("DONDO_LM_ENABLED", "1").lower() not in {
+    "0",
+    "false",
+    "no",
+}
+DONDO_LM_PATH = os.environ.get("DONDO_LM_PATH", "/lm/twi_3gram.bin")
 
 app = modal.App(APP_NAME)
 model_volume = modal.Volume.from_name("ghana-health-asr-models", create_if_missing=True)
+lm_volume = modal.Volume.from_name("akan-speech-lm", create_if_missing=True)
 
 gpu_image = (
     modal.Image.debian_slim(python_version="3.11")
     .env({"MODEL_ID": DEFAULT_MODEL, "ASR_SERVICE_NAME": APP_NAME})
     .apt_install("ffmpeg", "libsndfile1")
+    # cmake <4 is needed by kenlm 0.2.0.
+    .pip_install("cmake==3.31.6")
     .pip_install(
         "torch==2.5.1",
         "torchaudio==2.5.1",
@@ -52,7 +59,9 @@ gpu_image = (
         "soundfile==0.13.1",
         "librosa==0.10.2.post1",
         "huggingface_hub==0.26.2",
+        "pyctcdecode==0.5.0",
     )
+    .run_commands("pip install --no-build-isolation kenlm==0.2.0")
 )
 
 web_image = (
@@ -126,7 +135,7 @@ def _add_language_prefix(features, lang_id: int):
     timeout=180,
     scaledown_window=45,
     max_containers=1,
-    volumes={"/models": model_volume},
+    volumes={"/models": model_volume, "/lm": lm_volume},
 )
 class DondoEngine:
     @modal.enter()
@@ -152,7 +161,31 @@ class DondoEngine:
                 FALLBACK_MODEL, cache_dir=cache
             ).to(self.device)
         self.model.eval()
-        print(f"[asr-dondo] ready model={self.model_id} device={self.device}")
+        self.decoder = None
+        self.decode_mode = "ctc_greedy"
+        if DONDO_LM_ENABLED:
+            if not os.path.exists(DONDO_LM_PATH):
+                print(f"[asr-dondo] LM missing at {DONDO_LM_PATH}; using greedy")
+            else:
+                try:
+                    from pyctcdecode import build_ctcdecoder
+
+                    vocab = self.processor.tokenizer.get_vocab()
+                    sorted_tokens = [
+                        tok for tok, _ in sorted(vocab.items(), key=lambda kv: kv[1])
+                    ]
+                    self.decoder = build_ctcdecoder(
+                        sorted_tokens,
+                        kenlm_model_path=DONDO_LM_PATH,
+                    )
+                    self.decode_mode = "ctc_beam_lm"
+                    print(f"[asr-dondo] LM decode enabled path={DONDO_LM_PATH}")
+                except Exception as exc:  # noqa: BLE001
+                    print(f"[asr-dondo] LM decode unavailable ({exc}); using greedy")
+        print(
+            f"[asr-dondo] ready model={self.model_id} device={self.device} "
+            f"decode={self.decode_mode}"
+        )
 
     @modal.method()
     def transcribe(
@@ -242,8 +275,13 @@ class DondoEngine:
 
             with torch.no_grad():
                 logits = self.model(input_features=feats).logits
-            pred_ids = torch.argmax(logits, dim=-1)
-            text = self.processor.batch_decode(pred_ids)[0].strip()
+            if self.decoder is not None:
+                text = " ".join(
+                    str(self.decoder.decode(logits[0].detach().cpu().numpy())).split("|")
+                ).strip()
+            else:
+                pred_ids = torch.argmax(logits, dim=-1)
+                text = self.processor.batch_decode(pred_ids)[0].strip()
 
             if not text:
                 return {
@@ -263,6 +301,7 @@ class DondoEngine:
                 "segments": [{"start": 0.0, "end": round(duration, 2), "text": text}],
                 "latency_ms": int((time.time() - started) * 1000),
                 "model": self.model_id,
+                "decode": self.decode_mode,
                 "speaker": "Speaker 1 (User)",
                 "verified": None,
             }
@@ -304,6 +343,8 @@ def api():
             "service": os.environ.get("ASR_SERVICE_NAME", APP_NAME),
             "model": os.environ.get("MODEL_ID", DEFAULT_MODEL),
             "engine": "transformers-wav2vec2-bert-ctc",
+            "decode": "ctc_beam_lm" if DONDO_LM_ENABLED else "ctc_greedy",
+            "lm_path": DONDO_LM_PATH if DONDO_LM_ENABLED else None,
             "dondo_language_id": DONDO_LANGUAGE_ID,
             "gpu_scaledown_s": 45,
             "max_audio_s": MAX_AUDIO_SECONDS,

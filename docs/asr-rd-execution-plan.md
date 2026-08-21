@@ -56,9 +56,12 @@ Model-quality research lane:
    audio for training.
 2. **R2 — held-out corpus expansion:** build the 250+ clip product-domain gate
    with more speakers, code-switching, and phone/noise coverage.
-3. **R3 — DONDO v3:** return to training only after the beta loop and larger
+3. **R3 — synthetic Twi voice-note generation:** use a Twi TTS model to turn
+   reviewed synthetic Twi text into labeled audio for augmentation and stress
+   testing. Synthetic audio must not be used as final promotion evidence.
+4. **R4 — DONDO v3:** return to training only after the beta loop and larger
    validated corpus produce enough signal.
-4. **R4 — Whisper hedge:** keep broader Whisper as a later comparison lane,
+5. **R5 — Whisper hedge:** keep broader Whisper as a later comparison lane,
    not the immediate product bet.
 
 ## Execution Tracks
@@ -119,6 +122,45 @@ Collection rules:
   paracetamol, malaria test, ORS, tomatoes, rice, delivery, MoMo, price.
 
 Do not train on unreviewed LLM-generated Twi as gold text.
+
+### Track 3B — Synthetic Twi Voice Notes
+
+Research lane.
+
+Explore a streamlined flow where reviewed synthetic Twi text is converted into
+voice notes by a Twi TTS model, producing paired `audio + transcript + metadata`
+without manual recording for every utterance.
+
+Use cases:
+
+- Pretraining/augmentation for domain vocabulary and phrase coverage.
+- Stress tests for health, commerce, code-switch, numbers, medicine names, and
+  place names.
+- Regression fixtures for the ASR service and response pipeline.
+- Bootstrapping prompts before collecting real speaker audio.
+
+Rules:
+
+- Synthetic text must be reviewed Twi, not raw LLM output.
+- Synthetic audio must be labeled `source=synthetic_tts` with model, voice,
+  generation date, text source, bucket, and language metadata.
+- Do not mix synthetic audio into the final held-out human evaluation set.
+- Do not let synthetic audio dominate DONDO v3; use it as a controlled
+  augmentation slice with Waxal/CV/local human replay.
+- Always validate gains on real held-out human speech.
+
+Candidate TTS generators:
+
+- `ghananlpcommunity/stable-twi-tts` for Twi/code-switch voice generation.
+- `ghananlpcommunity/nano-twi` for fast Asante Twi generation.
+- Qwen3-TTS 12Hz only if it proves usable Twi pronunciation.
+
+Target artifact:
+
+- A script that reads reviewed corpus JSONL and writes a manifest:
+  `audio_path`, `reference`, `bucket`, `speaker_label=synthetic_<model>`,
+  `source=synthetic_tts`, `tts_model`, `voice_id`, `duration_s`, and
+  `holdout=false`.
 
 ### Track 4 — Next Training Spend
 
@@ -257,5 +299,6 @@ No model gets promoted from trainer validation alone.
 6. Evaluate SmolAgents for commerce/tool orchestration and R&D automation.
 7. Run the beta measurement loop: v6 vs DONDO v2 greedy vs DONDO v2+LM on the
    same fixtures and consented correction stream.
-8. Expand the held-out product corpus to 250+ clips with speaker diversity.
-9. Launch DONDO v3 only after the expanded corpus is validated.
+8. Build the synthetic Twi voice-note generator from reviewed corpus JSONL.
+9. Expand the held-out product corpus to 250+ clips with speaker diversity.
+10. Launch DONDO v3 only after the expanded corpus is validated.
