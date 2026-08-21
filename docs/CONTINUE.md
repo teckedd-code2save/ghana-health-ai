@@ -65,6 +65,83 @@ Next product/R&D work:
 4. Build R3 synthetic Twi voice-note generation from reviewed corpus JSONL, but
    keep synthetic audio out of final human held-out evals.
 
+### Later 2026-08-21 continuation update
+
+R3 synthetic Twi voice-note generation is now an executable pipeline, not just a
+plan item.
+
+Added:
+
+- `scripts/synthesize-twi-voice-notes.ts`
+- `scripts/eval-synthetic-voice-notes.ts`
+- `pnpm corpus:synthesize-twi`
+- `pnpm eval:synthetic-voice-notes`
+
+The generator reads reviewed Twi/code-switch corpus JSONL, calls the configured
+Twi TTS provider, writes audio files, and emits a training/augmentation manifest
+with:
+
+- `audio_path`
+- `reference`
+- `bucket`
+- `speaker_label=synthetic_<provider>`
+- `source=synthetic_tts`
+- `tts_model`
+- `voice_id`
+- `duration_s`
+- `sha256`
+- `holdout=false`
+
+Important guardrail: the script refuses `needs_review: true` rows and
+`source=llm_translation_draft` rows by default. This is intentional because the
+current generated Twi prompt packs still contain poor draft translations and
+repetitions. Do not synthesize those into training audio unless using
+`--allow-drafts` for a clearly labeled non-training experiment.
+
+Validation completed:
+
+```bash
+pnpm eval:synthetic-voice-notes
+pnpm eval:tts-routing
+pnpm lint
+pnpm corpus:synthesize-twi -- \
+  --input tmp/asr-collection-pack/prompts.corpus-v2.health_twi.jsonl \
+  --dry-run \
+  --limit 5
+pnpm eval:product-readiness:prod
+```
+
+Results:
+
+- Synthetic voice-note contract passed.
+- TTS routing contract passed.
+- Lint passed.
+- Dry-run correctly found `0` eligible rows in the current `health_twi` draft
+  prompt pack and skipped all draft rows.
+- Production readiness is `ready`.
+- Expected degraded items remain:
+  - no ASR checkpoint passes all promotion gates yet
+  - product eval buckets still need more consented, speaker-diverse clips
+
+One check was intentionally stopped because the user needed to leave:
+
+```bash
+pnpm eval:prod:smoke
+```
+
+It had already passed production readiness and all JSON live-pipeline fixtures,
+then was stopped while waiting on the stream fixture phase. Re-run it next time
+if full production stream verification is needed.
+
+Next best step from a new device:
+
+1. Commit/push the R3 synthetic voice-note changes if not already committed.
+2. Create or export a reviewed corpus JSONL with `needs_review=false` rows.
+3. Run `pnpm corpus:synthesize-twi -- --input <reviewed.jsonl> --dry-run`.
+4. If eligible rows look correct, run the same command without `--dry-run`.
+5. Validate the resulting manifest with
+   `pnpm eval:local-asr-import -- tmp/synthetic-twi-voice-notes/manifest.jsonl`.
+
 ---
 
 ## Product goal (do not lose this)

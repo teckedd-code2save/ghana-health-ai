@@ -162,6 +162,25 @@ Target artifact:
   `source=synthetic_tts`, `tts_model`, `voice_id`, `duration_s`, and
   `holdout=false`.
 
+Executable path:
+
+```bash
+pnpm corpus:synthesize-twi -- \
+  --input data/reviewed-corpus/health_twi.reviewed.jsonl \
+  --out-dir tmp/synthetic-twi-voice-notes/audio \
+  --manifest tmp/synthetic-twi-voice-notes/manifest.jsonl \
+  --provider stable-twi
+```
+
+The script refuses `needs_review: true` / `source=llm_translation_draft` rows by
+default. Use `--dry-run` to count eligible rows before spending TTS calls, and
+use `--allow-drafts` only for clearly labeled non-training experiments. Validate
+the generated manifest with:
+
+```bash
+pnpm eval:local-asr-import -- tmp/synthetic-twi-voice-notes/manifest.jsonl
+```
+
 ### Track 4 — Next Training Spend
 
 Research lane.

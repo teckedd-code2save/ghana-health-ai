@@ -25,6 +25,7 @@
     "eval:voice-preview": "node --import tsx scripts/eval-voice-preview-contract.ts",
     "eval:voice-feedback": "node --import tsx scripts/eval-voice-feedback-contract.ts",
     "eval:tts-routing": "node --import tsx scripts/eval-tts-routing.ts",
+    "eval:synthetic-voice-notes": "node --import tsx scripts/eval-synthetic-voice-notes.ts",
     "eval:product-readiness": "node --import tsx scripts/eval-product-readiness.ts",
     "eval:product-readiness:prod": "EVAL_BASE_URL=https://ghanahealth.serendepify.com node --import tsx scripts/eval-product-readiness.ts",
     "eval:prod:smoke": "node --import tsx scripts/eval-production-smoke.ts",
@@ -49,7 +50,8 @@
     "eval:asr-results": "node --import tsx scripts/summarize-asr-results.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
-    "corpus:gen": "node --import tsx scripts/gen-corpus-pack.ts"
+    "corpus:gen": "node --import tsx scripts/gen-corpus-pack.ts",
+    "corpus:synthesize-twi": "node --import tsx scripts/synthesize-twi-voice-notes.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
