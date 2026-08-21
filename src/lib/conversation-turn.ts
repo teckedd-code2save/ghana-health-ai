@@ -62,6 +62,7 @@ export type ConversationTurnResult = {
     sampleRate?: number;
     format?: string;
     model?: string;
+    provider?: string;
     latencyMs?: number;
   } | null;
   stage: {
@@ -249,6 +250,7 @@ export async function runConversationTurn(
         sampleRate: spoken.sample_rate,
         format: spoken.format || "wav",
         model: spoken.model,
+        provider: spoken.provider,
         latencyMs: spoken.latency_ms,
       };
     }

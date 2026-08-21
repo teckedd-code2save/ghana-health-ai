@@ -5,9 +5,19 @@ export type ModalTtsResult = {
   duration?: number;
   latency_ms: number;
   model: string;
+  provider?: TtsProvider;
   text?: string;
   language?: string;
   error?: string;
+};
+
+export type TtsProvider = "mms" | "stable-twi" | "nano-twi" | "qwen";
+
+export type TtsRoute = {
+  provider: TtsProvider;
+  url: string;
+  configured: boolean;
+  modelLabel: string;
 };
 
 /**
@@ -18,15 +28,62 @@ export type ModalTtsResult = {
 export const DEFAULT_MODAL_TTS_URL =
   "https://createdliving1000--ghana-health-tts-speak.modal.run";
 
-function ttsSpeakUrl(): string | null {
-  const raw = (process.env.MODAL_TTS_URL || DEFAULT_MODAL_TTS_URL).replace(/\/$/, "");
+function normalizeSpeakUrl(rawValue: string | undefined, fallback?: string): string | null {
+  const raw = (rawValue || fallback || "").replace(/\/$/, "");
   if (!raw) return null;
   if (raw.endsWith("/speak") || raw.includes("-speak")) return raw;
   return `${raw}/speak`;
 }
 
+function providerFromEnv(language: string): TtsProvider {
+  const configured =
+    language === "en"
+      ? process.env.TTS_EN_PROVIDER || process.env.TTS_PROVIDER
+      : process.env.TTS_TWI_PROVIDER || process.env.TTS_PROVIDER;
+  if (configured === "stable-twi" || configured === "nano-twi" || configured === "qwen") {
+    return configured;
+  }
+  return "mms";
+}
+
+function urlForProvider(provider: TtsProvider) {
+  if (provider === "stable-twi") {
+    return normalizeSpeakUrl(process.env.STABLE_TWI_TTS_URL || process.env.TTS_STABLE_TWI_URL);
+  }
+  if (provider === "nano-twi") {
+    return normalizeSpeakUrl(process.env.NANO_TWI_TTS_URL || process.env.TTS_NANO_TWI_URL);
+  }
+  if (provider === "qwen") {
+    return normalizeSpeakUrl(process.env.QWEN_TTS_URL || process.env.TTS_QWEN_URL);
+  }
+  return normalizeSpeakUrl(process.env.MODAL_TTS_URL, DEFAULT_MODAL_TTS_URL);
+}
+
+export function resolveTtsRoute(language: string = "tw", requestedProvider?: TtsProvider): TtsRoute | null {
+  const lang = language === "en" ? "en" : "tw";
+  const provider = lang === "en" ? "mms" : requestedProvider ?? providerFromEnv(lang);
+  const url = urlForProvider(provider);
+  if (!url) return null;
+  const modelLabel =
+    provider === "mms"
+      ? lang === "en"
+        ? process.env.TTS_ENG_MODEL_ID || "facebook/mms-tts-eng"
+        : process.env.TTS_MODEL_ID || "facebook/mms-tts-aka"
+      : provider === "stable-twi"
+        ? "ghananlpcommunity/stable-twi-tts"
+        : provider === "nano-twi"
+          ? "ghananlpcommunity/nano-twi"
+          : "qwen3-tts-12hz";
+  return {
+    provider,
+    url,
+    configured: Boolean(url),
+    modelLabel,
+  };
+}
+
 export function isModalTtsConfigured(): boolean {
-  return Boolean(ttsSpeakUrl());
+  return Boolean(resolveTtsRoute("tw") || resolveTtsRoute("en"));
 }
 
 /** Expand jargon + strip symbols so speech models don't say "C H W". */
@@ -52,11 +109,12 @@ export function speakableText(text: string, language: string = "tw"): string {
 export async function modalSpeak(
   text: string,
   language: string = "tw",
+  opts?: { provider?: TtsProvider },
 ): Promise<ModalTtsResult> {
-  const url = ttsSpeakUrl();
-  if (!url) throw new Error("MODAL_TTS_URL is not set");
-
   const lang = language === "en" ? "en" : "tw";
+  const route = resolveTtsRoute(lang, opts?.provider);
+  if (!route) throw new Error(`TTS route is not configured for ${lang}`);
+
   const clean = speakableText(text, lang);
   if (!clean) {
     return {
@@ -65,11 +123,12 @@ export async function modalSpeak(
       format: "wav",
       latency_ms: 0,
       model: "skipped",
+      provider: route.provider,
       error: "empty_text",
     };
   }
 
-  const res = await fetch(url, {
+  const res = await fetch(route.url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -77,12 +136,23 @@ export async function modalSpeak(
         ? { Authorization: `Bearer ${process.env.MODAL_TTS_TOKEN}` }
         : {}),
     },
-    body: JSON.stringify({ text: clean, language: lang }),
+    body: JSON.stringify({
+      text: clean,
+      language: lang,
+      provider: route.provider,
+      model: route.modelLabel,
+    }),
   });
 
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`Modal TTS ${res.status}: ${body.slice(0, 200)}`);
   }
-  return (await res.json()) as ModalTtsResult;
+  const result = (await res.json()) as ModalTtsResult;
+  return {
+    ...result,
+    provider: result.provider ?? route.provider,
+    model: result.model || route.modelLabel,
+    language: result.language ?? lang,
+  };
 }

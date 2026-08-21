@@ -24,6 +24,7 @@
     "eval:voice-stream": "node --import tsx scripts/eval-voice-stream-contract.ts",
     "eval:voice-preview": "node --import tsx scripts/eval-voice-preview-contract.ts",
     "eval:voice-feedback": "node --import tsx scripts/eval-voice-feedback-contract.ts",
+    "eval:tts-routing": "node --import tsx scripts/eval-tts-routing.ts",
     "eval:product-readiness": "node --import tsx scripts/eval-product-readiness.ts",
     "eval:product-readiness:prod": "EVAL_BASE_URL=https://ghanahealth.serendepify.com node --import tsx scripts/eval-product-readiness.ts",
     "eval:prod:smoke": "node --import tsx scripts/eval-production-smoke.ts",

@@ -1,11 +1,12 @@
 import { z } from "zod";
-import { isModalTtsConfigured, modalSpeak } from "@/lib/modal-tts";
+import { isModalTtsConfigured, modalSpeak, type TtsProvider } from "@/lib/modal-tts";
 import { jsonError, jsonOk } from "@/lib/api";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 const schema = z.object({
   text: z.string().min(1).max(2000),
   language: z.enum(["tw", "en", "ga"]).optional(),
+  provider: z.enum(["mms", "stable-twi", "nano-twi", "qwen"]).optional(),
 });
 
 export async function POST(req: Request) {
@@ -19,7 +20,9 @@ export async function POST(req: Request) {
     }
 
     const body = schema.parse(await req.json());
-    const result = await modalSpeak(body.text, body.language ?? "tw");
+    const result = await modalSpeak(body.text, body.language ?? "tw", {
+      provider: body.provider as TtsProvider | undefined,
+    });
     if (result.error || !result.audio_base64) {
       return jsonError(result.error || "TTS failed", 502);
     }
@@ -29,6 +32,7 @@ export async function POST(req: Request) {
       sampleRate: result.sample_rate,
       format: result.format,
       model: result.model,
+      provider: result.provider,
       latencyMs: result.latency_ms,
       duration: result.duration,
     });

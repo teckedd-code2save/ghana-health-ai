@@ -2,12 +2,14 @@ import { jsonOk } from "@/lib/api";
 import { isPaystackConfigured, getPaystackPublicKey } from "@/lib/paystack";
 import { isLlmConfigured } from "@/lib/llm";
 import { isModalAsrConfigured, resolveModalAsrRoute } from "@/lib/modal-asr";
-import { isModalTtsConfigured } from "@/lib/modal-tts";
+import { isModalTtsConfigured, resolveTtsRoute } from "@/lib/modal-tts";
 import { isAbenaConfigured, isEmbedConfigured } from "@/lib/embed";
 
 /** Public runtime flags (no secrets). */
 export async function GET(request: Request) {
   const englishRoute = resolveModalAsrRoute("en");
+  const twiTtsRoute = resolveTtsRoute("tw");
+  const englishTtsRoute = resolveTtsRoute("en");
   const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL;
   const forwardedHost = request.headers.get("x-forwarded-host");
   const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
@@ -23,6 +25,14 @@ export async function GET(request: Request) {
       en: englishRoute?.name ?? "unconfigured",
     },
     modalTts: isModalTtsConfigured(),
+    ttsRoutes: {
+      tw: twiTtsRoute
+        ? { provider: twiTtsRoute.provider, model: twiTtsRoute.modelLabel }
+        : { provider: "unconfigured", model: "unconfigured" },
+      en: englishTtsRoute
+        ? { provider: englishTtsRoute.provider, model: englishTtsRoute.modelLabel }
+        : { provider: "unconfigured", model: "unconfigured" },
+    },
     /** True only when Modal ABENA URL is set (research path). */
     abenaEmbed: isAbenaConfigured(),
     /** Any embed path (ABENA or OpenAI emergency fallback). */
@@ -33,7 +43,7 @@ export async function GET(request: Request) {
     stack: {
       asr: "Twi: teckedd/gha-whisper-small-twi-v6; English: separate openai/whisper-small route; DONDO research checkpoint",
       embed: "Ghana-NLP/abena-base-asante-twi-uncased",
-      tts: "facebook/mms-tts-aka",
+      tts: twiTtsRoute?.modelLabel ?? "unconfigured",
       language: "Master Twi + English first; Ga next",
       docs: "docs/research-stack.md",
     },

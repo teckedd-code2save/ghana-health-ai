@@ -246,6 +246,18 @@ TTS candidates:
 - Do not ship cloned voices or custom voice features without an explicit
   consent and safety policy.
 
+Runtime routing knobs:
+
+- `TTS_TWI_PROVIDER=mms|stable-twi|nano-twi|qwen` selects the Twi voice route.
+- `MODAL_TTS_URL` remains the default MMS route.
+- `STABLE_TWI_TTS_URL`, `NANO_TWI_TTS_URL`, and `QWEN_TTS_URL` point to
+  candidate `/speak` endpoints with the same response contract.
+- `/api/config`, `/api/readiness`, `/api/tts`, and voice-turn metadata expose
+  the active provider/model so live tests can compare voice quality without UI
+  changes.
+- `pnpm eval:tts-routing` verifies provider routing without calling remote
+  synthesis services.
+
 Agent candidates:
 
 - Evaluate Hugging Face SmolAgents for tool orchestration around commerce

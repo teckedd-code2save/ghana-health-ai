@@ -1,6 +1,6 @@
 import { isLlmConfigured } from "@/lib/llm";
 import { isModalAsrConfigured, resolveModalAsrRoute } from "@/lib/modal-asr";
-import { isModalTtsConfigured } from "@/lib/modal-tts";
+import { isModalTtsConfigured, resolveTtsRoute } from "@/lib/modal-tts";
 import { isAbenaConfigured, isEmbedConfigured } from "@/lib/embed";
 import { prisma } from "@/db/prisma";
 
@@ -54,6 +54,7 @@ export async function getProductReadiness(): Promise<ProductReadiness> {
 
   const twiRoute = resolveModalAsrRoute("tw");
   const englishRoute = resolveModalAsrRoute("en");
+  const twiTtsRoute = resolveTtsRoute("tw");
   const llm = isLlmConfigured();
 
   const checks: ReadinessCheck[] = [
@@ -89,7 +90,7 @@ export async function getProductReadiness(): Promise<ProductReadiness> {
       level: isModalTtsConfigured() ? "pass" : "fail",
       required: true,
       detail: isModalTtsConfigured()
-        ? "Modal TTS route is configured."
+        ? `TTS route is configured: ${twiTtsRoute?.provider ?? "unknown"} (${twiTtsRoute?.modelLabel ?? "unknown"}).`
         : "No TTS route is configured.",
     }),
     check({
