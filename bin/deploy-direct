@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+# Build and deploy ghana-health-ai directly on the VPS without GitHub Actions.
+#
+# Usage:
+#   bin/deploy-direct
+#
+# Optional environment:
+#   VPS_HOST=128.140.12.62
+#   VPS_USER=root
+#   SSH_KEY=$HOME/.ssh/optimi_github_actions
+#   NEXT_PUBLIC_APP_URL=https://ghanahealth.serendepify.com
+#   NEXT_PUBLIC_API_URL=https://ghanahealth.serendepify.com/api
+#   REMOTE_SWAP_GB=2              # temporary swap during build if VPS has none
+#   STOP_OTHER_CONTAINERS=1       # stop non ghana-health-ai containers first
+#   PUSH_IMAGE=1                  # also push tags to GHCR when gh auth works
+#   ALLOW_DIRTY=1                 # deploy uncommitted local changes
+set -euo pipefail
+
+VPS_HOST="${VPS_HOST:-128.140.12.62}"
+VPS_USER="${VPS_USER:-root}"
+SSH_KEY="${SSH_KEY:-$HOME/.ssh/optimi_github_actions}"
+REPO="ghcr.io/teckedd-code2save/ghana-health-ai"
+NEXT_PUBLIC_APP_URL="${NEXT_PUBLIC_APP_URL:-https://ghanahealth.serendepify.com}"
+NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-https://ghanahealth.serendepify.com/api}"
+REMOTE_SWAP_GB="${REMOTE_SWAP_GB:-2}"
+STOP_OTHER_CONTAINERS="${STOP_OTHER_CONTAINERS:-0}"
+PUSH_IMAGE="${PUSH_IMAGE:-0}"
+ALLOW_DIRTY="${ALLOW_DIRTY:-0}"
+
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+
+if [[ "$ALLOW_DIRTY" != "1" ]] && ! git diff --quiet --exit-code; then
+  echo "[deploy-direct] working tree has unstaged changes; commit or set ALLOW_DIRTY=1" >&2
+  exit 1
+fi
+
+if [[ "$ALLOW_DIRTY" != "1" ]] && ! git diff --cached --quiet --exit-code; then
+  echo "[deploy-direct] working tree has staged changes; commit or set ALLOW_DIRTY=1" >&2
+  exit 1
+fi
+
+sha="$(git rev-parse HEAD)"
+short_sha="$(git rev-parse --short HEAD)"
+image="${REPO}:${sha}"
+remote_dir="/tmp/gha-build-${sha}"
+
+echo "[deploy-direct] commit: ${sha}"
+echo "[deploy-direct] host: ${VPS_USER}@${VPS_HOST}"
+echo "[deploy-direct] image: ${image}"
+
+if [[ "$STOP_OTHER_CONTAINERS" == "1" ]]; then
+  ssh -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new "${VPS_USER}@${VPS_HOST}" <<'REMOTE'
+set -euo pipefail
+docker ps --format '{{.Names}}' \
+  | grep -vE '^(ghana-health-ai-web|ghana-health-ai-postgres)$' \
+  | xargs -r docker stop
+REMOTE
+fi
+
+echo "[deploy-direct] uploading source"
+tar \
+  --exclude='.git' \
+  --exclude='node_modules' \
+  --exclude='.next' \
+  --exclude='tmp' \
+  --exclude='.env' \
+  --exclude='.env.*' \
+  -czf - . \
+  | ssh -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new "${VPS_USER}@${VPS_HOST}" \
+      "rm -rf '$remote_dir' && mkdir -p '$remote_dir' && tar -xzf - -C '$remote_dir'"
+
+push_token=""
+if [[ "$PUSH_IMAGE" == "1" ]]; then
+  if command -v gh >/dev/null 2>&1; then
+    push_token="$(gh auth token 2>/dev/null || true)"
+  fi
+fi
+
+echo "[deploy-direct] building on VPS"
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new "${VPS_USER}@${VPS_HOST}" \
+  "SHA='$sha' SHORT_SHA='$short_sha' IMAGE='$image' REPO='$REPO' NEXT_PUBLIC_APP_URL='$NEXT_PUBLIC_APP_URL' NEXT_PUBLIC_API_URL='$NEXT_PUBLIC_API_URL' REMOTE_SWAP_GB='$REMOTE_SWAP_GB' PUSH_IMAGE='$PUSH_IMAGE' GHCR_TOKEN='$push_token' bash -se" <<'REMOTE'
+set -euo pipefail
+
+swap_file=""
+if [[ "${REMOTE_SWAP_GB}" != "0" ]] && ! swapon --show=NAME --noheadings | grep -q .; then
+  swap_file="/tmp/gha-build-swap"
+  echo "[vps] enabling ${REMOTE_SWAP_GB}G temporary swap"
+  fallocate -l "${REMOTE_SWAP_GB}G" "$swap_file"
+  chmod 600 "$swap_file"
+  mkswap "$swap_file" >/dev/null
+  swapon "$swap_file"
+  cleanup_swap() {
+    swapoff "$swap_file" >/dev/null 2>&1 || true
+    rm -f "$swap_file"
+  }
+  trap cleanup_swap EXIT
+fi
+
+cd "/tmp/gha-build-${SHA}"
+docker buildx build \
+  --platform linux/amd64 \
+  --load \
+  --build-arg "NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}" \
+  --build-arg "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" \
+  -t "${IMAGE}" \
+  -t "${REPO}:sha-${SHA}" \
+  -t "${REPO}:latest" \
+  .
+
+if [[ "${PUSH_IMAGE}" == "1" && -n "${GHCR_TOKEN}" ]]; then
+  echo "${GHCR_TOKEN}" | docker login ghcr.io -u teckedd-code2save --password-stdin
+  docker push "${IMAGE}"
+  docker push "${REPO}:sha-${SHA}"
+  docker push "${REPO}:latest"
+else
+  echo "[vps] skipping GHCR push"
+fi
+REMOTE
+
+echo "[deploy-direct] applying migrations and restarting web"
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new "${VPS_USER}@${VPS_HOST}" \
+  "SHA='$sha' IMAGE='$image' bash -se" <<'REMOTE'
+set -euo pipefail
+cd /opt/ghana-health-ai
+export WEB_IMAGE="${IMAGE}"
+docker compose run --pull never -T --rm --no-deps web node node_modules/prisma/build/index.js migrate deploy < /dev/null
+docker compose up -d --no-deps --pull never web
+sleep 6
+docker compose ps
+docker logs --tail=40 ghana-health-ai-web
+REMOTE
+
+echo "[deploy-direct] smoke testing production"
+curl -fsS "${NEXT_PUBLIC_APP_URL}/api/readiness" >/dev/null
+curl -fsS "${NEXT_PUBLIC_APP_URL}/api/config" >/dev/null
+
+echo "[deploy-direct] deployed ${sha}"

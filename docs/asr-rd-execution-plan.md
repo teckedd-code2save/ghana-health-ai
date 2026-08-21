@@ -302,6 +302,24 @@ Every R&D cycle should produce:
 
 No model gets promoted from trainer validation alone.
 
+## Deploy Path While Actions Credits Are Constrained
+
+The normal path remains push-to-main through GitHub Actions. When Actions
+minutes/credits are unavailable, use the direct VPS path instead:
+
+```bash
+bin/deploy-direct
+```
+
+This builds the committed source on the VPS, applies Prisma migrations, restarts
+only the web container, and smoke-tests production readiness/config. It does not
+read or upload local `.env` files. Set `STOP_OTHER_CONTAINERS=1` only when the
+VPS needs extra memory and non-project containers can be stopped temporarily.
+
+Use `PUSH_IMAGE=1 bin/deploy-direct` when GHCR permissions are healthy and the
+image should also be pushed for rollback parity. The deploy itself does not rely
+on pulling from GHCR.
+
 ## Immediate Next Actions
 
 1. Wire DONDO v2 + Twi LM into the beta ASR service.
