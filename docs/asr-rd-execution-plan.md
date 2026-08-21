@@ -249,9 +249,14 @@ TTS candidates:
 Runtime routing knobs:
 
 - `TTS_TWI_PROVIDER=mms|stable-twi|nano-twi|qwen` selects the Twi voice route.
-- `MODAL_TTS_URL` remains the default MMS route.
+- Twi defaults to the deployed `stable-twi` candidate; set
+  `TTS_TWI_PROVIDER=mms` to force the old MMS route.
+- `MODAL_TTS_URL` remains the MMS fallback route.
 - `STABLE_TWI_TTS_URL`, `NANO_TWI_TTS_URL`, and `QWEN_TTS_URL` point to
   candidate `/speak` endpoints with the same response contract.
+- The checked-in stable Twi default is
+  `https://createdliving1000--ghana-health-tts-stable-twi-speak.modal.run`.
+- Deploy/update the stable Twi service with `pnpm deploy:tts:stable-twi`.
 - `/api/config`, `/api/readiness`, `/api/tts`, and voice-turn metadata expose
   the active provider/model so live tests can compare voice quality without UI
   changes.

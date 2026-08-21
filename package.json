@@ -44,6 +44,7 @@
     "train:dondo:modal": "modal run --detach modal/train/train_dondo_asr.py --run-name dondo-waxal-twi-v1 --max-steps 800 --train-limit 1800 --eval-limit 200 --per-device-train-batch-size 1 --gradient-accumulation-steps 16 --resume-from-checkpoint auto --push-repo teckedd/gha-dondo-w2v-bert-twi-v1 --no-wait",
     "train:dondo:monitor": "node --import tsx scripts/monitor-dondo.ts",
     "train:dondo:results": "node --import tsx scripts/monitor-dondo.ts --pull --no-logs",
+    "deploy:tts:stable-twi": "modal deploy modal/stable_twi_tts_service.py",
     "eval:asr-results:pull": "rm -rf tmp/asr-results && mkdir -p tmp/asr-results && modal volume get --force akan-speech-eval-results / tmp/asr-results",
     "eval:asr-results": "node --import tsx scripts/summarize-asr-results.ts",
     "db:studio": "prisma studio",

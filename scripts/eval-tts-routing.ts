@@ -33,9 +33,9 @@ withEnv(
   },
   () => {
     const tw = resolveTtsRoute("tw");
-    assertOk(tw?.provider === "mms", `expected default Twi provider mms, got ${tw?.provider}`);
+    assertOk(tw?.provider === "stable-twi", `expected default Twi provider stable-twi, got ${tw?.provider}`);
     assertOk(
-      tw.modelLabel === "facebook/mms-tts-aka",
+      tw.modelLabel === "ghananlpcommunity/stable-twi-tts",
       `expected default Twi model label, got ${tw.modelLabel}`,
     );
 
@@ -45,6 +45,18 @@ withEnv(
       en.modelLabel === "facebook/mms-tts-eng",
       `expected default English model label, got ${en.modelLabel}`,
     );
+  },
+);
+
+withEnv(
+  {
+    TTS_TWI_PROVIDER: "mms",
+    MODAL_TTS_URL: "https://example.invalid/mms/speak",
+  },
+  () => {
+    const route = resolveTtsRoute("tw");
+    assertOk(route?.provider === "mms", `expected forced mms, got ${route?.provider}`);
+    assertOk(route.url === "https://example.invalid/mms/speak", `unexpected MMS URL ${route.url}`);
   },
 );
 

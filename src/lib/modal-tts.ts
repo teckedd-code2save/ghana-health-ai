@@ -27,6 +27,8 @@ export type TtsRoute = {
  */
 export const DEFAULT_MODAL_TTS_URL =
   "https://createdliving1000--ghana-health-tts-speak.modal.run";
+export const DEFAULT_STABLE_TWI_TTS_URL =
+  "https://createdliving1000--ghana-health-tts-stable-twi-speak.modal.run";
 
 function normalizeSpeakUrl(rawValue: string | undefined, fallback?: string): string | null {
   const raw = (rawValue || fallback || "").replace(/\/$/, "");
@@ -40,15 +42,18 @@ function providerFromEnv(language: string): TtsProvider {
     language === "en"
       ? process.env.TTS_EN_PROVIDER || process.env.TTS_PROVIDER
       : process.env.TTS_TWI_PROVIDER || process.env.TTS_PROVIDER;
-  if (configured === "stable-twi" || configured === "nano-twi" || configured === "qwen") {
+  if (configured === "mms" || configured === "stable-twi" || configured === "nano-twi" || configured === "qwen") {
     return configured;
   }
-  return "mms";
+  return language === "en" ? "mms" : "stable-twi";
 }
 
 function urlForProvider(provider: TtsProvider) {
   if (provider === "stable-twi") {
-    return normalizeSpeakUrl(process.env.STABLE_TWI_TTS_URL || process.env.TTS_STABLE_TWI_URL);
+    return normalizeSpeakUrl(
+      process.env.STABLE_TWI_TTS_URL || process.env.TTS_STABLE_TWI_URL,
+      DEFAULT_STABLE_TWI_TTS_URL,
+    );
   }
   if (provider === "nano-twi") {
     return normalizeSpeakUrl(process.env.NANO_TWI_TTS_URL || process.env.TTS_NANO_TWI_URL);
@@ -128,6 +133,15 @@ export async function modalSpeak(
     };
   }
 
+  return speakViaRoute(clean, lang, route);
+}
+
+async function speakViaRoute(
+  clean: string,
+  lang: "tw" | "en",
+  route: TtsRoute,
+  allowFallback = true,
+): Promise<ModalTtsResult> {
   const res = await fetch(route.url, {
     method: "POST",
     headers: {
@@ -146,9 +160,17 @@ export async function modalSpeak(
 
   if (!res.ok) {
     const body = await res.text();
+    if (allowFallback && lang === "tw" && route.provider !== "mms") {
+      const fallback = resolveTtsRoute("tw", "mms");
+      if (fallback) return speakViaRoute(clean, lang, fallback, false);
+    }
     throw new Error(`Modal TTS ${res.status}: ${body.slice(0, 200)}`);
   }
   const result = (await res.json()) as ModalTtsResult;
+  if (result.error && allowFallback && lang === "tw" && route.provider !== "mms") {
+    const fallback = resolveTtsRoute("tw", "mms");
+    if (fallback) return speakViaRoute(clean, lang, fallback, false);
+  }
   return {
     ...result,
     provider: result.provider ?? route.provider,
