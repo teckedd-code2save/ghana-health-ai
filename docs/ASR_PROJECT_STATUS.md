@@ -11,7 +11,8 @@
 > local holdout8 **26.67% greedy / 6.67% with Twi LM**. This makes DONDO v2
 > the Twi ASR front-runner, but the local holdout is still too small for final
 > promotion. Keep v6 as stable serving default while v2 runs as beta/A-B and
-> the product-domain corpus scales.
+> the product-domain corpus scales. Execution plan:
+> [`docs/asr-rd-execution-plan.md`](./asr-rd-execution-plan.md).
 >
 > **⚑ 2026-08-16 update:** An R&D session completed after this audit. Read
 > [`docs/asr-rnd-session-2026-08-15.md`](./asr-rnd-session-2026-08-15.md) first.
