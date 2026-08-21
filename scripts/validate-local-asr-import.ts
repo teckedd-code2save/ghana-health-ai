@@ -78,7 +78,7 @@ async function readJsonl(filePath: string) {
 }
 
 async function main() {
-  const [newManifestPath, ...existingPaths] = process.argv.slice(2);
+  const [newManifestPath, ...existingPaths] = process.argv.slice(2).filter((arg) => arg !== "--");
   if (!newManifestPath) {
     console.error(
       "Usage: node --import tsx scripts/validate-local-asr-import.ts <new-manifest.jsonl> [existing-manifest.jsonl ...]",

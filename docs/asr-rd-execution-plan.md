@@ -89,6 +89,19 @@ Required buckets:
 
 Every batch must pass `pnpm eval:local-asr-import` before training use.
 
+Corpus readiness should also be audited before model-credit spend:
+
+```bash
+pnpm eval:asr-corpus -- --manifest tmp/asr-local-train/manifest.jsonl
+pnpm eval:asr-corpus:strict -- --manifest data/asr-product-eval/manifest.jsonl
+```
+
+The audit reports bucket counts, speaker diversity, holdout count, repeated
+references, missing audio, synthetic rows, and whether the corpus can support a
+promotion-grade model decision. Synthetic rows are allowed for augmentation and
+stress tests, but a `source=synthetic_tts` row must never be counted as final
+held-out promotion evidence.
+
 ### Track 2 — DONDO Serving Beta
 
 Product lane. Ship DONDO v2 as the Twi beta route, not the default.

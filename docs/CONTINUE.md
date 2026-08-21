@@ -142,6 +142,48 @@ Next best step from a new device:
 5. Validate the resulting manifest with
    `pnpm eval:local-asr-import -- tmp/synthetic-twi-voice-notes/manifest.jsonl`.
 
+### R2 corpus audit update
+
+R2 now has an executable corpus-readiness audit:
+
+```bash
+pnpm eval:asr-corpus -- --manifest tmp/asr-local-train/manifest.jsonl
+pnpm eval:asr-corpus:strict -- --manifest data/asr-product-eval/manifest.jsonl
+```
+
+The audit reports bucket counts, speaker diversity, holdout count, repeated
+references, missing audio, synthetic rows, and promotion readiness. It is meant
+to answer whether a corpus can support model-credit spend, not just whether the
+JSONL shape is valid.
+
+Current local corpus audit:
+
+- rows: `40`
+- speakers: `2`
+- duration: about `3.0` minutes
+- holdout rows: `0`
+- synthetic rows: `0`
+- missing audio: `0`
+- bucket counts:
+  - `health_twi`: `25 / 100`
+  - `commerce_twi`: `10 / 70`
+  - `codeswitch_tw_en`: `5 / 60`
+  - `health_en`: `0 / 50`
+  - `phone_noise`: `0 / 20`
+- promotion-corpus ready: `no`
+
+The same corpus passes import validation:
+
+```bash
+pnpm eval:local-asr-import -- tmp/asr-local-train/manifest.jsonl
+```
+
+So the immediate interpretation is: the current 40 clips are usable for local
+experiments and regression checks, but they are not enough for DONDO promotion
+or serious model-credit spend. The next data push needs more speakers, more
+commerce/code-switch clips, an English retention bucket, phone/noise clips, and
+a real frozen holdout split.
+
 ---
 
 ## Product goal (do not lose this)
