@@ -26,6 +26,25 @@ and speaker-diverse. Do expose it as the Twi beta/A-B model.
 English stays on a separate English ASR route. Do not spend cycles trying to
 force Twi fine-tunes to retain English until the Twi path is stable.
 
+## Priority Order
+
+User-approved order as of 2026-08-21:
+
+1. **1A — DONDO v2 beta serving:** wire `teckedd/gha-dondo-w2v-bert-twi-v2`
+   into the Twi beta route with Twi LM decoding enabled.
+2. **1B — beta measurement loop:** compare v6 vs DONDO v2 on the same product
+   fixtures, log model choice/latency/corrections, and preserve consented
+   audio for training.
+3. **Track 4 — response understanding:** fix intent/entity extraction and
+   language-matched response behavior once transcripts are usable.
+4. **Track 5 — live voice and TTS:** make the conversation feel real through
+   streaming state, TTS, interruption handling, and correction flow. Evaluate
+   Qwen3-TTS 12Hz and HF SmolAgents here.
+5. **1C — DONDO v3:** return to training only after the beta loop and larger
+   validated corpus produce enough signal.
+6. **Track 2 / Whisper hedge:** keep the broader Whisper path as a later
+   comparison lane, not the immediate product bet.
+
 ## Execution Tracks
 
 ### Track 1 — Evaluation Corpus
@@ -121,6 +140,41 @@ understanding and shopping action. For health, the goal is safe symptom
 clarification and referral guidance. Retrieval should not be the primary
 compensation for weak transcription.
 
+### Track 5B — Live Voice, TTS, and Agents
+
+This track improves the product feel after ASR is usable.
+
+TTS candidates:
+
+- Evaluate Qwen3-TTS 12Hz as a research candidate for low-latency,
+  controllable multilingual voice output.
+- Start with the smaller Qwen3-TTS 12Hz 0.6B path for feasibility checks, then
+  test 1.7B only if quality clearly needs it.
+- Measure first-audio latency, real-time factor, Twi pronunciation, English
+  medicine/product words, interruption behavior, and Modal cost.
+- Do not ship cloned voices or custom voice features without an explicit
+  consent and safety policy.
+
+Agent candidates:
+
+- Evaluate Hugging Face SmolAgents for tool orchestration around commerce
+  search/order flows, eval automation, and model-ops workflows.
+- Do not use an agent as the medical reasoning authority. Health safety stays
+  in deterministic policy checks plus reviewed LLM prompting.
+- Keep tool contracts explicit: `intent`, `entities`, `risk_flags`,
+  `recommended_next_action`, `language`, and `confidence`.
+
+Reference candidates:
+
+- Qwen3-TTS 12Hz HF collection:
+  `https://huggingface.co/collections/Qwen/qwen3-tts`
+- Qwen3-TTS 12Hz 0.6B Base:
+  `https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base`
+- Qwen3-TTS 12Hz 1.7B CustomVoice:
+  `https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice`
+- HF SmolAgents docs:
+  `https://huggingface.co/docs/smolagents/en/index`
+
 ## Weekly R&D Rhythm
 
 Every R&D cycle should produce:
@@ -138,6 +192,9 @@ No model gets promoted from trainer validation alone.
 
 1. Wire DONDO v2 + Twi LM into the beta ASR service.
 2. Run a local product smoke comparison: v6 vs DONDO v2 greedy vs DONDO v2+LM.
-3. Expand the held-out product corpus to 250+ clips with speaker diversity.
-4. Keep collecting consented real corrections from the app.
-5. Launch DONDO v3 only after the expanded corpus is validated.
+3. Repair response understanding and language-matched replies around the
+   improved transcript path.
+4. Prototype live voice/TTS quality checks, including Qwen3-TTS 12Hz.
+5. Evaluate SmolAgents for commerce/tool orchestration and R&D automation.
+6. Expand the held-out product corpus to 250+ clips with speaker diversity.
+7. Launch DONDO v3 only after the expanded corpus is validated.
