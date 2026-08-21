@@ -37,13 +37,16 @@ Product enhancement lane:
 
 1. **P1 — DONDO v2 beta serving:** wire `teckedd/gha-dondo-w2v-bert-twi-v2`
    into the Twi beta route with Twi LM decoding enabled.
-2. **P2 — response understanding:** fix intent/entity extraction and
+2. **P2 — chat continuity and controls:** keep conversations continuous within
+   a guest/browser session, add a compact model picker near the record control,
+   and keep previous sessions/settings in a collapsible side nav.
+3. **P3 — response understanding:** fix intent/entity extraction and
    language-matched response behavior once transcripts are usable.
-3. **P3 — live voice and TTS:** make the conversation feel real through
+4. **P4 — live voice and TTS:** make the conversation feel real through
    streaming state, TTS, interruption handling, and correction flow. Evaluate
    Twi-native TTS candidates first; keep Qwen3-TTS 12Hz as a research
    candidate that must prove Twi pronunciation.
-4. **P4 — commerce/tool orchestration:** evaluate HF SmolAgents for commerce
+5. **P5 — commerce/tool orchestration:** evaluate HF SmolAgents for commerce
    search/order and internal model-ops automation, not medical authority.
 
 Model-quality research lane:
@@ -141,6 +144,12 @@ Product lane.
 
 Do not let retrieval or templated responses mask ASR failures.
 
+Chat continuity is part of the voice product, not optional polish. The app must
+not clear the previous conversation after every recording inside the same
+browser session. For logged-out users, maintain a familiar guest-session
+experience with local/in-memory continuity; for logged-in users, persist turns
+to account sessions.
+
 The response path should be:
 
 1. ASR transcript with model confidence and language route.
@@ -149,6 +158,19 @@ The response path should be:
 4. Safety review for health.
 5. TTS response.
 6. User correction loop.
+
+UI requirements:
+
+- Keep the home/chat UI voice-first and minimal.
+- Put the model picker close to the record control, not buried in debug UI.
+- Keep the picker compact and explicit enough for beta testing: stable/v6 vs
+  DONDO beta. The picker is an intentional escape hatch when DONDO performs
+  badly repeatedly.
+- Previous sessions and settings belong in a collapsible side nav.
+- The side nav should collapse cleanly on web and mobile.
+- A new recording should append to the current conversation, not replace it.
+- Refresh should not destroy guest chat context within the active browser
+  session unless the user intentionally starts over.
 
 Retrieval is optional and task-specific. For commerce, the goal is item
 understanding and shopping action. For health, the goal is safe symptom
@@ -224,12 +246,16 @@ No model gets promoted from trainer validation alone.
 ## Immediate Next Actions
 
 1. Wire DONDO v2 + Twi LM into the beta ASR service.
-2. Repair response understanding and language-matched replies around the
+2. Fix chat continuity: recordings append to the current conversation, and
+   logged-out users keep guest-session continuity across refresh.
+3. Add a compact model picker near the record control and keep sessions/settings
+   in a collapsible side nav.
+4. Repair response understanding and language-matched replies around the
    improved transcript path.
-3. Prototype live voice/TTS quality checks with Twi-native voices first; keep
+5. Prototype live voice/TTS quality checks with Twi-native voices first; keep
    Qwen3-TTS 12Hz as a research candidate.
-4. Evaluate SmolAgents for commerce/tool orchestration and R&D automation.
-5. Run the beta measurement loop: v6 vs DONDO v2 greedy vs DONDO v2+LM on the
+6. Evaluate SmolAgents for commerce/tool orchestration and R&D automation.
+7. Run the beta measurement loop: v6 vs DONDO v2 greedy vs DONDO v2+LM on the
    same fixtures and consented correction stream.
-6. Expand the held-out product corpus to 250+ clips with speaker diversity.
-7. Launch DONDO v3 only after the expanded corpus is validated.
+8. Expand the held-out product corpus to 250+ clips with speaker diversity.
+9. Launch DONDO v3 only after the expanded corpus is validated.
