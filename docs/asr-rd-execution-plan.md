@@ -30,20 +30,33 @@ force Twi fine-tunes to retain English until the Twi path is stable.
 
 User-approved order as of 2026-08-21:
 
-1. **1A — DONDO v2 beta serving:** wire `teckedd/gha-dondo-w2v-bert-twi-v2`
+Split the work into two lanes so product improvements can move while model
+quality research stays rigorous.
+
+Product enhancement lane:
+
+1. **P1 — DONDO v2 beta serving:** wire `teckedd/gha-dondo-w2v-bert-twi-v2`
    into the Twi beta route with Twi LM decoding enabled.
-2. **1B — beta measurement loop:** compare v6 vs DONDO v2 on the same product
+2. **P2 — response understanding:** fix intent/entity extraction and
+   language-matched response behavior once transcripts are usable.
+3. **P3 — live voice and TTS:** make the conversation feel real through
+   streaming state, TTS, interruption handling, and correction flow. Evaluate
+   Twi-native TTS candidates first; keep Qwen3-TTS 12Hz as a research
+   candidate that must prove Twi pronunciation.
+4. **P4 — commerce/tool orchestration:** evaluate HF SmolAgents for commerce
+   search/order and internal model-ops automation, not medical authority.
+
+Model-quality research lane:
+
+1. **R1 — beta measurement loop:** compare v6 vs DONDO v2 on the same product
    fixtures, log model choice/latency/corrections, and preserve consented
    audio for training.
-3. **Track 4 — response understanding:** fix intent/entity extraction and
-   language-matched response behavior once transcripts are usable.
-4. **Track 5 — live voice and TTS:** make the conversation feel real through
-   streaming state, TTS, interruption handling, and correction flow. Evaluate
-   Qwen3-TTS 12Hz and HF SmolAgents here.
-5. **1C — DONDO v3:** return to training only after the beta loop and larger
+2. **R2 — held-out corpus expansion:** build the 250+ clip product-domain gate
+   with more speakers, code-switching, and phone/noise coverage.
+3. **R3 — DONDO v3:** return to training only after the beta loop and larger
    validated corpus produce enough signal.
-6. **Track 2 / Whisper hedge:** keep the broader Whisper path as a later
-   comparison lane, not the immediate product bet.
+4. **R4 — Whisper hedge:** keep broader Whisper as a later comparison lane,
+   not the immediate product bet.
 
 ## Execution Tracks
 
@@ -72,17 +85,13 @@ Every batch must pass `pnpm eval:local-asr-import` before training use.
 
 ### Track 2 — DONDO Serving Beta
 
-Ship DONDO v2 as the Twi beta route, not the default.
+Product lane. Ship DONDO v2 as the Twi beta route, not the default.
 
 Work items:
 
 - Point the DONDO beta service at `teckedd/gha-dondo-w2v-bert-twi-v2`.
 - Enable Twi LM decoding in the service path, matching the eval path.
 - Keep v6 available as fallback and comparison.
-- Log model choice, transcript, language, latency, correction, and consented
-  audio availability per turn.
-- Add a small product smoke set that runs both v6 and DONDO v2 against the
-  same local fixtures before deploy.
 
 Promotion condition:
 
@@ -92,6 +101,8 @@ Promotion condition:
 - It must pass safety and correction-review checks in health flows.
 
 ### Track 3 — Data Scaling
+
+Research lane.
 
 Prioritize data quality over more random fine-tunes.
 
@@ -108,11 +119,13 @@ Do not train on unreviewed LLM-generated Twi as gold text.
 
 ### Track 4 — Next Training Spend
 
+Research lane.
+
 Spend compute only after the next data batch lands.
 
 Recommended order:
 
-1. DONDO v2 service eval with LM enabled.
+1. Beta measurement loop with DONDO v2 + LM enabled.
 2. DONDO v3 after 250+ new reviewed/consented clips.
 3. Whisper v8 from v6 only if the new data shows Whisper still has a path
    to close the product-domain gap.
@@ -123,6 +136,8 @@ DONDO v3 recipe should start from v2, mix Waxal replay, CV Twi, and reviewed
 local product data, and preserve a frozen product-domain holdout.
 
 ### Track 5 — Product Response Pipeline
+
+Product lane.
 
 Do not let retrieval or templated responses mask ASR failures.
 
@@ -141,6 +156,8 @@ clarification and referral guidance. Retrieval should not be the primary
 compensation for weak transcription.
 
 ### Track 5B — Live Voice, TTS, and Agents
+
+Product lane.
 
 This track improves the product feel after ASR is usable.
 
@@ -207,10 +224,12 @@ No model gets promoted from trainer validation alone.
 ## Immediate Next Actions
 
 1. Wire DONDO v2 + Twi LM into the beta ASR service.
-2. Run a local product smoke comparison: v6 vs DONDO v2 greedy vs DONDO v2+LM.
-3. Repair response understanding and language-matched replies around the
+2. Repair response understanding and language-matched replies around the
    improved transcript path.
-4. Prototype live voice/TTS quality checks, including Qwen3-TTS 12Hz.
-5. Evaluate SmolAgents for commerce/tool orchestration and R&D automation.
+3. Prototype live voice/TTS quality checks with Twi-native voices first; keep
+   Qwen3-TTS 12Hz as a research candidate.
+4. Evaluate SmolAgents for commerce/tool orchestration and R&D automation.
+5. Run the beta measurement loop: v6 vs DONDO v2 greedy vs DONDO v2+LM on the
+   same fixtures and consented correction stream.
 6. Expand the held-out product corpus to 250+ clips with speaker diversity.
 7. Launch DONDO v3 only after the expanded corpus is validated.
