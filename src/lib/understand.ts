@@ -143,7 +143,7 @@ JSON only:
 {"reply":"...","intent":"HEALTH|ECOMMERCE|GENERAL|UNKNOWN","severity":"LOW|MEDIUM|HIGH|EMERGENCY","escalate":boolean}`;
 
 function dangerOverride(text: string) {
-  const lower = text.toLowerCase();
+  const lower = normalizeHealthText(text);
   const pregnancy =
     /\b(pregnan|nyinsɛn|nyinsen|yafunu)\b/.test(lower);
   const severeHeadache =
@@ -157,6 +157,75 @@ function dangerOverride(text: string) {
   if ((pregnancy && (severeHeadache || swelling || bleeding)) || chestPain || breathing) {
     return { severity: "EMERGENCY" as const, escalate: true };
   }
+  return null;
+}
+
+function normalizeHealthText(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/\b3y3\b/g, "ɛyɛ")
+    .replace(/\by3\b/g, "yɛ")
+    .replace(/\bserius\b/g, "serious")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function hasHistoryTopic(history: { role: "user" | "assistant"; content: string }[] | undefined, pattern: RegExp) {
+  return (history ?? []).some((turn) => pattern.test(normalizeHealthText(turn.content)));
+}
+
+function healthReplyOverride(input: {
+  text: string;
+  replyLang: "tw" | "en";
+  history?: { role: "user" | "assistant"; content: string }[];
+}) {
+  const lower = normalizeHealthText(input.text);
+  const danger = dangerOverride(input.text);
+  if (danger) return null;
+
+  const eyePain =
+    /\b(?:m'?ani|mani|ani)\s+(?:kum|yɛ\s+me\s+yaw|yare|red|hye)\b/.test(lower) ||
+    /\beye\s+(?:pain|hurts?|red)\b/.test(lower);
+  if (eyePain) {
+    return {
+      reply:
+        input.replyLang === "en"
+          ? "I understand you have strong eye pain. Please avoid rubbing the eye and do not put medicine in it unless a clinician gave it to you. If your vision is blurred, there is injury, swelling, or the pain is severe, go to a clinic or eye unit today."
+          : "Mate ase sɛ w'ani yɛ wo yaw paa. Mfa wo nsa nnya ani no mu, na mfa aduro ngu mu gye sɛ clinician na ɔmaa wo. Sɛ w'ani so yɛ kusuu, biribi apira no, ahonhon wɔ hɔ, anaa yaw no yɛ den paa a, kɔ clinic anaa eye unit nnɛ.",
+      severity: "MEDIUM" as const,
+      escalate: false,
+    };
+  }
+
+  const hospitalChoice =
+    /\bhospital\b.*\b(?:bɛn|ben|where|which|menkɔ|nkɔ|go)\b/.test(lower) ||
+    /\b(?:yɛsɛ|ɛsɛ|should)\b.*\bhospital\b/.test(lower);
+  if (hospitalChoice) {
+    return {
+      reply:
+        input.replyLang === "en"
+          ? "Tell me your town or area and the main symptom, then I can guide the next step. If breathing is difficult, bleeding is heavy, there is chest pain, pregnancy danger signs, or a child is very weak, go to the nearest emergency unit now or call the emergency line."
+          : "Ka wo town anaa area ne symptom titiriw no, na mɛkyerɛ wo step a edi hɔ. Sɛ ahome yɛ den, mogya retu bebree, koko mu yaw wɔ hɔ, pregnancy danger signs wɔ hɔ, anaa abofra ayɛ mmerɛ paa a, kɔ emergency unit a ɛbɛn wo seesei anaa frɛ emergency line.",
+      severity: "MEDIUM" as const,
+      escalate: false,
+    };
+  }
+
+  const seriousFollowUp =
+    /\b(?:ɛyɛ|eye|it'?s|it is)\s+(?:serious|den|bad)\b/.test(lower) ||
+    /\bserious\s+paa\b/.test(lower);
+  const migraineOrHeadache = /\b(?:migraine|headache|ti\s+(?:yaw|yare)|ti\s+yɛ\s+me\s+yaw)\b/;
+  if (seriousFollowUp && hasHistoryTopic(input.history, migraineOrHeadache)) {
+    return {
+      reply:
+        input.replyLang === "en"
+          ? "If the migraine is that severe, please get checked at a clinic or hospital today. Go urgently if it started suddenly, your vision changes, you feel weak on one side, you are confused, fever comes with neck stiffness, or you are pregnant."
+          : "Sɛ migraine no yɛ den saa a, kɔ clinic anaa hospital nnɛ ma wɔnhwɛ wo. Kɔ ntɛm paa sɛ ɛfirii ase prɛko pɛ, w'ani so resesa, wo fã baako ayɛ mmerɛ, wo tirim ayɛ wo basaa, fever ne kɔn mu den ka ho, anaa woyɛ nyinsɛn.",
+      severity: "HIGH" as const,
+      escalate: true,
+    };
+  }
+
   return null;
 }
 
@@ -319,6 +388,7 @@ function fallbackReply(input: {
   focus: "health" | "commerce";
   commerce?: CommerceUnderstanding;
   transcript?: TranscriptQualityInput;
+  history?: { role: "user" | "assistant"; content: string }[];
 }) {
   const baseIntent = input.focus === "commerce" ? "ECOMMERCE" : "HEALTH";
   const safety = dangerOverride(input.text);
@@ -355,6 +425,20 @@ function fallbackReply(input: {
       intent: "ECOMMERCE" as const,
       severity: "LOW" as const,
       escalate: false,
+    };
+  }
+
+  const override = healthReplyOverride({
+    text: input.text,
+    replyLang: input.replyLang,
+    history: input.history,
+  });
+  if (override) {
+    return {
+      reply: override.reply,
+      intent: "HEALTH" as const,
+      severity: override.severity,
+      escalate: override.escalate,
     };
   }
 
@@ -419,6 +503,7 @@ function fallbackUnderstanding(input: {
   focus: "health" | "commerce";
   commerce?: CommerceUnderstanding;
   transcript?: TranscriptQualityInput;
+  history?: { role: "user" | "assistant"; content: string }[];
   retrieveMeta: UnderstandResult["retrieve"];
 }): UnderstandResult {
   const fallback = fallbackReply(input);
@@ -610,6 +695,7 @@ export async function understandUtterance(input: {
       commerce,
       transcript: input.transcript,
       retrieveMeta,
+      history: input.history,
     });
   }
 
@@ -658,6 +744,7 @@ export async function understandUtterance(input: {
       commerce,
       transcript: input.transcript,
       retrieveMeta,
+      history: input.history,
     });
   }
 
@@ -695,6 +782,7 @@ export async function understandUtterance(input: {
       commerce,
       transcript: input.transcript,
       retrieveMeta,
+      history: input.history,
     });
   }
 
@@ -711,12 +799,24 @@ export async function understandUtterance(input: {
     severity: reviewed.severity,
     escalate: reviewed.escalate,
   });
+  const healthOverride =
+    intentChecked.intent === "HEALTH"
+      ? healthReplyOverride({ text: input.text, replyLang, history: input.history })
+      : null;
+  const responseChecked = healthOverride
+    ? {
+        ...intentChecked,
+        reply: healthOverride.reply,
+        severity: healthOverride.severity,
+        escalate: healthOverride.escalate,
+      }
+    : intentChecked;
   const final = applySafetyOverride({
     text: input.text,
-    reply: intentChecked.reply.trim(),
-    intent: intentChecked.intent,
-    severity: intentChecked.severity,
-    escalate: intentChecked.escalate,
+    reply: responseChecked.reply.trim(),
+    intent: responseChecked.intent,
+    severity: responseChecked.severity,
+    escalate: responseChecked.escalate,
     replyLang,
   });
   const health =

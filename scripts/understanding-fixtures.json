@@ -37,6 +37,64 @@
     "expectedHealth": {}
   },
   {
+    "id": "tw-health-eye-pain-not-emergency",
+    "focus": "health",
+    "language": "tw",
+    "text": "mani kum paa",
+    "transcript": { "language": "tw", "languageProbability": 0.9, "duration": 2.2, "rms": 0.05 },
+    "expectedIntent": "HEALTH",
+    "expectedSeverity": "MEDIUM",
+    "expectedEscalate": false,
+    "expectedReplyLanguage": "tw",
+    "expectedReplyIncludesAny": ["ani", "clinic"],
+    "expectedHealth": {
+      "planStatus": "clinic_recommended",
+      "nextAction": "recommend_clinic",
+      "urgency": "soon"
+    },
+    "forbiddenTerms": ["woka sɛ", "wopɛ mmoa"]
+  },
+  {
+    "id": "tw-health-hospital-choice-asks-location",
+    "focus": "health",
+    "language": "tw",
+    "text": "yɛsɛ yɛhospital bɛn na menkɔ",
+    "transcript": { "language": "tw", "languageProbability": 0.91, "duration": 2.5, "rms": 0.05 },
+    "expectedIntent": "HEALTH",
+    "expectedSeverity": "MEDIUM",
+    "expectedEscalate": false,
+    "expectedReplyLanguage": "tw",
+    "expectedReplyIncludesAny": ["town", "area", "symptom"],
+    "expectedHealth": {
+      "planStatus": "clinic_recommended",
+      "nextAction": "recommend_clinic",
+      "urgency": "soon"
+    },
+    "forbiddenTerms": ["Sɛ wopɛ a"]
+  },
+  {
+    "id": "tw-health-migraine-serious-followup",
+    "focus": "health",
+    "language": "tw",
+    "text": "3y3 serius paa",
+    "history": [
+      { "role": "user", "content": "migraine dabi aaa" },
+      { "role": "assistant", "content": "Sɛ migraine no yɛ den a, ɛbɛyɛ papa sɛ doctor hwɛ wo." }
+    ],
+    "transcript": { "language": "tw", "languageProbability": 0.88, "duration": 2.1, "rms": 0.05 },
+    "expectedIntent": "HEALTH",
+    "expectedSeverity": "HIGH",
+    "expectedEscalate": true,
+    "expectedReplyLanguage": "tw",
+    "expectedReplyIncludesAny": ["migraine", "hospital", "clinic"],
+    "expectedHealth": {
+      "planStatus": "clinic_recommended",
+      "nextAction": "recommend_clinic",
+      "urgency": "urgent"
+    },
+    "forbiddenTerms": ["Wopɛ sɛ woka ho asɛm bio", "kyerɛ me nsɛm"]
+  },
+  {
     "id": "tw-commerce-tomatoes",
     "focus": "commerce",
     "language": "tw",

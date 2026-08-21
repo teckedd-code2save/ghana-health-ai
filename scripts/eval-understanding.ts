@@ -10,6 +10,7 @@ type Fixture = {
   language: LanguageCode;
   text: string;
   memory?: unknown;
+  history?: { role: "user" | "assistant"; content: string }[];
   transcript?: {
     language?: string;
     languageProbability?: number;
@@ -30,6 +31,8 @@ type Fixture = {
     urgency?: "routine" | "soon" | "urgent" | "emergency";
   };
   expectedShoppingIntent?: string;
+  expectedReplyLanguage?: "tw" | "en";
+  expectedReplyIncludesAny?: string[];
   expectedCommerce?: {
     action?: "buy" | "order" | "find" | "price" | "availability" | "unknown";
     itemIncludes?: string;
@@ -85,6 +88,7 @@ async function main() {
         language: fixture.language,
         focus: fixture.focus,
         memory: fixture.memory,
+        history: fixture.history,
         transcript: {
           mode: "asr",
           language: fixture.transcript?.language,
@@ -104,6 +108,19 @@ async function main() {
       }
       assertOk(result.retrieve?.engine === "none", `${fixture.id}: retrieval should be disabled`);
       assertOk(result.reply.trim().length > 6, `${fixture.id}: empty reply`);
+      if (fixture.expectedReplyLanguage) {
+        assertOk(
+          result.replyLanguage === fixture.expectedReplyLanguage,
+          `${fixture.id}: expected reply language ${fixture.expectedReplyLanguage}, got ${result.replyLanguage}`,
+        );
+      }
+      if (fixture.expectedReplyIncludesAny?.length) {
+        const lowerReply = result.reply.toLowerCase();
+        assertOk(
+          fixture.expectedReplyIncludesAny.some((term) => lowerReply.includes(term.toLowerCase())),
+          `${fixture.id}: reply did not include any expected term: ${fixture.expectedReplyIncludesAny.join(", ")}`,
+        );
+      }
 
       if (fixture.expectedIntent) {
         assertOk(

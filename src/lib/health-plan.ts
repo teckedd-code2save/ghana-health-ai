@@ -38,7 +38,7 @@ export function buildHealthUnderstanding(input: {
     };
   }
 
-  if (input.escalate || input.severity === "EMERGENCY") {
+  if (input.severity === "EMERGENCY") {
     return {
       source: "deterministic",
       plan: {
@@ -51,7 +51,7 @@ export function buildHealthUnderstanding(input: {
     };
   }
 
-  if (input.severity === "HIGH") {
+  if (input.severity === "HIGH" || input.escalate) {
     return {
       source: "deterministic",
       plan: {
