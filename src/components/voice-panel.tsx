@@ -55,6 +55,24 @@ type StoredMessage = {
   content: string;
 };
 
+type VoiceMessage = {
+  id: string;
+  role: "USER" | "ASSISTANT";
+  content: string;
+};
+
+function upsertVoiceMessage(messages: VoiceMessage[], next: VoiceMessage, replaceId?: string) {
+  let replaced = false;
+  const updated = messages.map((message) => {
+    if (message.id === next.id || (replaceId && message.id === replaceId)) {
+      replaced = true;
+      return next;
+    }
+    return message;
+  });
+  return replaced ? updated : [...updated, next];
+}
+
 function friendlyVoiceError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error || "");
   if (
@@ -225,6 +243,7 @@ export function VoicePanel() {
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [heard, setHeard] = useState<string | null>(null);
   const [reply, setReply] = useState<string | null>(null);
+  const [messages, setMessages] = useState<VoiceMessage[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [ttsB64, setTtsB64] = useState<string | null>(null);
   const [pipelineStage, setPipelineStage] = useState<string | null>(null);
@@ -238,7 +257,7 @@ export function VoicePanel() {
   const [commerceStatus, setCommerceStatus] = useState<string | null>(null);
   const [confirmingCommerce, setConfirmingCommerce] = useState(false);
   // A/B: Whisper v6 (default, production) vs DONDO CTC (research endpoint)
-  const [asrModel] = useAsrModel();
+  const [asrModel, changeAsrModel] = useAsrModel();
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastAudioBlobRef = useRef<Blob | null>(null);
@@ -280,6 +299,7 @@ export function VoicePanel() {
       setConversationId(storedConversationId ?? undefined);
       setHeard(null);
       setReply(null);
+      setMessages([]);
       setStatus(null);
       setTtsB64(null);
       setUserMessageId(undefined);
@@ -300,6 +320,13 @@ export function VoicePanel() {
         if (cancelled) return;
         const lastUser = [...messages].reverse().find((message) => message.role === "USER");
         const lastAssistant = [...messages].reverse().find((message) => message.role === "ASSISTANT");
+        setMessages(
+          messages.flatMap((message) =>
+            message.role === "USER" || message.role === "ASSISTANT"
+              ? [{ id: message.id, role: message.role, content: message.content }]
+              : [],
+          ),
+        );
         setHeard(lastUser?.content ?? null);
         setCorrectionText(lastUser?.content ?? "");
         setUserMessageId(lastUser?.id);
@@ -308,6 +335,7 @@ export function VoicePanel() {
         if (cancelled) return;
         window.localStorage.removeItem(homeSessionKey);
         setConversationId(undefined);
+        setMessages([]);
       }
     };
 
@@ -444,16 +472,28 @@ export function VoicePanel() {
       if (!res.ok) throw new Error("Couldn’t start voice turn");
 
       let streamedReply = "";
+      const localUserId = crypto.randomUUID();
+      const localAssistantId = crypto.randomUUID();
       const data = await readVoiceStream(
         res,
         (text) => {
           setHeard(text);
+          setMessages((current) =>
+            upsertVoiceMessage(current, { id: localUserId, role: "USER", content: text }),
+          );
           setPipelineStage("understanding");
         },
         (chunk) => {
           setPipelineStage("assistant_message");
           streamedReply += chunk;
           setReply(streamedReply);
+          setMessages((current) =>
+            upsertVoiceMessage(current, {
+              id: localAssistantId,
+              role: "ASSISTANT",
+              content: streamedReply,
+            }),
+          );
         },
         (stage) => setPipelineStage(stage.name),
       );
@@ -471,6 +511,21 @@ export function VoicePanel() {
       setCorrectionText(text);
       const finalReply = data.message?.content ?? data.understanding?.reply ?? streamedReply;
       setReply(finalReply);
+      setMessages((current) => {
+        let next = upsertVoiceMessage(
+          current,
+          { id: data.userMessage?.id ?? localUserId, role: "USER", content: text },
+          localUserId,
+        );
+        if (finalReply.trim()) {
+          next = upsertVoiceMessage(
+            next,
+            { id: data.message?.id ?? localAssistantId, role: "ASSISTANT", content: finalReply },
+            localAssistantId,
+          );
+        }
+        return next;
+      });
       setCommerceExecution(data.understanding?.commerceExecution ?? null);
       if (data.tts?.audioBase64) {
         setTtsB64(data.tts.audioBase64);
@@ -534,6 +589,11 @@ export function VoicePanel() {
       }
       if (!res.ok) throw new Error("Correction failed");
       setHeard(corrected);
+      setMessages((current) =>
+        current.map((message) =>
+          message.id === userMessageId ? { ...message, content: corrected } : message,
+        ),
+      );
       setCorrectionOpen(false);
       setFeedbackSent(true);
       setFeedbackStatus("Saved");
@@ -543,11 +603,12 @@ export function VoicePanel() {
     }
   }
 
-  const showListening = recording && !heard && !reply && !status;
-  const showTranscribing = busy && !heard && !reply && !status;
+  const latestAssistantId = [...messages].reverse().find((message) => message.role === "ASSISTANT")?.id;
+  const showListening = recording && !status;
+  const showTranscribing = busy && !heard && !status;
   const showThinking = busy && Boolean(heard) && !reply && !status;
   const showConversation =
-    showListening || showTranscribing || showThinking || heard || reply || status;
+    showListening || showTranscribing || showThinking || messages.length > 0 || heard || reply || status;
   const statusLabel = status || localizedStageLabel(pipelineStage, lang) || localizedModeLabel(orbMode, lang, vadState);
 
   return (
@@ -564,6 +625,7 @@ export function VoicePanel() {
               setFocus(item);
               setHeard(null);
               setReply(null);
+              setMessages([]);
               setStatus(null);
               setPipelineStage(null);
               setUserMessageId(undefined);
@@ -604,89 +666,99 @@ export function VoicePanel() {
 
       {showConversation && (
         <div className="live-conversation" aria-live="polite">
-          {heard && (
-            <div className="live-heard-wrap">
-              {correctionOpen ? (
-                <form
-                  className="transcript-correction"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void submitTranscriptCorrection();
-                  }}
-                >
-                  <input
-                    value={correctionText}
-                    onChange={(event) => setCorrectionText(event.target.value)}
-                    aria-label="Correct transcript"
-                    autoFocus
-                  />
-                  <button type="submit" className="mini-action" aria-label="Save correction">
-                    <Check className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    className="mini-action"
-                    aria-label="Cancel correction"
-                    onClick={() => {
-                      setCorrectionOpen(false);
-                      setCorrectionText(heard);
-                      setFeedbackStatus(null);
-                      setShareAudioConsent(false);
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                  <label className="transcript-correction__consent">
-                    <input
-                      type="checkbox"
-                      checked={shareAudioConsent}
-                      onChange={(event) => setShareAudioConsent(event.target.checked)}
-                    />
-                    {lang === "en"
-                      ? "Share this recording to improve the model"
-                      : "Ma yɛmfa nne a wokae no nsiɛ model no"}
-                  </label>
-                </form>
-              ) : (
-                <>
-                  <p className="live-heard">{heard}</p>
-                  {!feedbackSent && (
+          <div className="live-thread">
+            {messages.map((message) => {
+              const isCurrentUser = message.role === "USER" && message.id === userMessageId;
+              if (message.role === "USER") {
+                return (
+                  <div key={message.id} className="live-heard-wrap">
+                    {isCurrentUser && correctionOpen ? (
+                      <form
+                        className="transcript-correction"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void submitTranscriptCorrection();
+                        }}
+                      >
+                        <input
+                          value={correctionText}
+                          onChange={(event) => setCorrectionText(event.target.value)}
+                          aria-label="Correct transcript"
+                          autoFocus
+                        />
+                        <button type="submit" className="mini-action" aria-label="Save correction">
+                          <Check className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          className="mini-action"
+                          aria-label="Cancel correction"
+                          onClick={() => {
+                            setCorrectionOpen(false);
+                            setCorrectionText(heard ?? message.content);
+                            setFeedbackStatus(null);
+                            setShareAudioConsent(false);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                        <label className="transcript-correction__consent">
+                          <input
+                            type="checkbox"
+                            checked={shareAudioConsent}
+                            onChange={(event) => setShareAudioConsent(event.target.checked)}
+                          />
+                          {lang === "en"
+                            ? "Share this recording to improve the model"
+                            : "Ma yɛmfa nne a wokae no nsiɛ model no"}
+                        </label>
+                      </form>
+                    ) : (
+                      <>
+                        <p className="live-heard">{message.content}</p>
+                        {isCurrentUser && !feedbackSent && (
+                          <button
+                            type="button"
+                            className="transcript-correct-button"
+                            onClick={() => {
+                              setCorrectionText(message.content);
+                              setCorrectionOpen(true);
+                              setFeedbackStatus(null);
+                            }}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Correct
+                          </button>
+                        )}
+                        {isCurrentUser && feedbackStatus && (
+                          <span className="transcript-feedback">{feedbackStatus}</span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <div key={message.id} className="live-reply-wrap">
+                  <p className="live-reply">{message.content}</p>
+                  {ttsB64 && message.id === latestAssistantId && (
                     <button
                       type="button"
-                      className="transcript-correct-button"
-                      onClick={() => {
-                        setCorrectionText(heard);
-                        setCorrectionOpen(true);
-                        setFeedbackStatus(null);
-                      }}
+                      className="icon-action"
+                      aria-label="Play again"
+                      onClick={() => playWav(ttsB64)}
                     >
-                      <Pencil className="h-3.5 w-3.5" />
-                      Correct
+                      <Volume2 className="h-4 w-4" />
                     </button>
                   )}
-                  {feedbackStatus && <span className="transcript-feedback">{feedbackStatus}</span>}
-                </>
-              )}
-            </div>
-          )}
-          {showListening && <ThinkingDots label="Listening" />}
-          {showTranscribing && <ThinkingDots label={localizedStageLabel(pipelineStage, lang) || (lang === "tw" ? "Meretwerɛ nea wotee" : "Transcribing")} />}
-          {showThinking && <ThinkingDots label={localizedStageLabel(pipelineStage, lang) || (lang === "tw" ? "Meredwene" : "Thinking")} />}
-          {reply && (
-            <>
-              <div className="live-reply-wrap">
-                <p className="live-reply">{reply}</p>
-                {ttsB64 && (
-                  <button
-                    type="button"
-                    className="icon-action"
-                    aria-label="Play again"
-                    onClick={() => playWav(ttsB64)}
-                  >
-                    <Volume2 className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
+                </div>
+              );
+            })}
+            {showListening && <ThinkingDots label="Listening" />}
+            {showTranscribing && <ThinkingDots label={localizedStageLabel(pipelineStage, lang) || (lang === "tw" ? "Meretwerɛ nea wotee" : "Transcribing")} />}
+            {showThinking && <ThinkingDots label={localizedStageLabel(pipelineStage, lang) || (lang === "tw" ? "Meredwene" : "Thinking")} />}
+            {reply && (
               <CommerceAction
                 execution={commerceExecution}
                 lang={lang}
@@ -715,10 +787,17 @@ export function VoicePanel() {
                   }
                 }}
               />
-            </>
-          )}
+            )}
+          </div>
           {status && !reply && <p className="live-error">{status}</p>}
           <div className="live-action-row">
+            <label className="voice-model-picker" aria-label="Speech model">
+              <span>ASR</span>
+              <select value={asrModel} onChange={(event) => changeAsrModel(event.target.value as typeof asrModel)}>
+                <option value="dondo">DONDO</option>
+                <option value="v6">v6</option>
+              </select>
+            </label>
             <button
               type="button"
               className={recording ? "icon-action chat-mic-action chat-mic-action--live" : "icon-action chat-mic-action"}

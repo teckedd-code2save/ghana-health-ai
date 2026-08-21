@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Mic, Send } from "lucide-react";
 import { useLang } from "@/components/lang-provider";
-import { readAsrModel } from "@/lib/asr-model-store";
+import { useAsrModel } from "@/lib/asr-model-store";
 import { enqueueOffline } from "@/lib/offline-queue";
 import { recordUntilSilence } from "@/lib/browser-audio";
 import { VoiceOrb, modeLabel, type OrbMode } from "@/components/voice-orb";
@@ -125,6 +125,7 @@ export function ChatPanel() {
   const [vadState, setVadState] = useState<string | null>(null);
   const [pipeline, setPipeline] = useState<string[]>([]);
   const [online, setOnline] = useState(true);
+  const [asrModel, changeAsrModel] = useAsrModel();
   const bottomRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recordAbortRef = useRef<AbortController | null>(null);
@@ -351,7 +352,7 @@ export function ChatPanel() {
       const form = new FormData();
       form.append("audio", blob, "chat-utterance.webm");
       form.append("language", lang);
-      if (readAsrModel() === "dondo") {
+      if (asrModel === "dondo") {
         form.append("asrModel", "dondo");
       }
 
@@ -490,6 +491,13 @@ export function ChatPanel() {
             className="field min-h-11 flex-1"
             disabled={recording}
           />
+          <label className="voice-model-picker voice-model-picker--compact" aria-label="Speech model">
+            <span>ASR</span>
+            <select value={asrModel} onChange={(event) => changeAsrModel(event.target.value as typeof asrModel)}>
+              <option value="dondo">DONDO</option>
+              <option value="v6">v6</option>
+            </select>
+          </label>
           <button
             type="button"
             disabled={loading || voicePending || speaking}
