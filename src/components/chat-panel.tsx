@@ -127,15 +127,15 @@ export function ChatPanel() {
   const [asrModel, changeAsrModel] = useAsrModel();
   const bottomRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioSafetyTimerRef = useRef<number | null>(null);
   const recordAbortRef = useRef<AbortController | null>(null);
 
   const orbMode: OrbMode = recording
     ? "listening"
-    : speaking || voicePending
-      ? "speaking"
-      : loading
+    : loading || voicePending
         ? "thinking"
         : "idle";
+  const compactOrb = threadScrolled || messages.length > 0;
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading, speaking]);
@@ -144,6 +144,11 @@ export function ChatPanel() {
     const updateCompactHeader = () => setThreadScrolled(window.scrollY > 18);
     window.addEventListener("scroll", updateCompactHeader, { passive: true });
     return () => window.removeEventListener("scroll", updateCompactHeader);
+  }, []);
+
+  useEffect(() => () => {
+    if (audioSafetyTimerRef.current) window.clearTimeout(audioSafetyTimerRef.current);
+    audioRef.current?.pause();
   }, []);
 
   useEffect(() => {
@@ -200,12 +205,19 @@ export function ChatPanel() {
 
   function playTts(b64: string) {
     audioRef.current?.pause();
+    if (audioSafetyTimerRef.current) window.clearTimeout(audioSafetyTimerRef.current);
     const audio = new Audio(`data:audio/wav;base64,${b64}`);
     audioRef.current = audio;
     setSpeaking(true);
-    audio.onended = () => setSpeaking(false);
-    audio.onerror = () => setSpeaking(false);
-    void audio.play().catch(() => setSpeaking(false));
+    const finish = () => {
+      if (audioSafetyTimerRef.current) window.clearTimeout(audioSafetyTimerRef.current);
+      audioSafetyTimerRef.current = null;
+      setSpeaking(false);
+    };
+    audio.onended = finish;
+    audio.onerror = finish;
+    audioSafetyTimerRef.current = window.setTimeout(finish, 45_000);
+    void audio.play().catch(finish);
   }
 
   async function send(text: string) {
@@ -407,7 +419,7 @@ export function ChatPanel() {
 
   return (
     <div className="chat-panel fade-up">
-      <div className={`chat-orb-header ${threadScrolled ? "chat-orb-header--compact" : ""}`}>
+      <div className={`chat-orb-header ${compactOrb ? "chat-orb-header--compact" : ""}`}>
         <VoiceOrb
           mode={orbMode}
           level={level}
