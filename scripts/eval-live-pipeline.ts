@@ -31,6 +31,7 @@ type ChatResponse = {
     engine?: string;
     severity?: string;
     escalate?: boolean;
+    comprehension?: { understood?: boolean } | null;
     commerceExecution?: {
       mode?: string;
       status?: string;
@@ -229,8 +230,11 @@ async function main() {
       const content = data.message?.content?.trim() || "";
       assertOk(content.length >= 8, `${fx.id}: empty/short model response`);
       assertOk(data.stage?.llm === true, `${fx.id}: did not use live LLM stage`);
-      assertOk(data.stage?.review === true, `${fx.id}: did not use model review stage`);
       assertOk(data.understanding?.engine !== "fallback", `${fx.id}: fallback engine used`);
+      assertOk(
+        data.understanding?.comprehension?.understood === true,
+        `${fx.id}: transcript did not pass the comprehension gate`,
+      );
       assertOk(!looksLikeOldTemplate(content), `${fx.id}: old template response detected`);
       if (fx.expectedIntent) {
         assertOk(

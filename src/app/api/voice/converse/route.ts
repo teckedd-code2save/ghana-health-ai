@@ -5,6 +5,7 @@ import { jsonError, jsonOk } from "@/lib/api";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import type { LanguageCode } from "@prisma/client";
 import { runConversationTurn } from "@/lib/conversation-turn";
+import { publicFailure, unclearRecording } from "@/lib/public-errors";
 
 function languageFromAsr(
   asr: Awaited<ReturnType<typeof modalTranscribe>>,
@@ -82,7 +83,12 @@ export async function POST(req: Request) {
       asrModel,
     });
     if (asr.error || !asr.text?.trim()) {
-      return jsonError(asr.error || "Empty transcription", 422, { asr });
+      console.error("[voice/converse:asr]", {
+        error: asr.error || "Empty transcription",
+        model: asr.model,
+        route: asr.route?.name,
+      });
+      return jsonError(unclearRecording.message, unclearRecording.status);
     }
     const replyLanguage = languageFromAsr(asr, language);
 
@@ -144,6 +150,8 @@ export async function POST(req: Request) {
         commerce: turn.understanding.commerce ?? null,
         commerceExecution: turn.commerceExecution ?? null,
         review: turn.understanding.review ?? null,
+        synthesis: turn.understanding.synthesis ?? null,
+        comprehension: turn.understanding.comprehension ?? null,
       },
       userMessage: {
         id: turn.userMessageId,
@@ -159,12 +167,7 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     console.error("[voice/converse]", e);
-    if (
-      e instanceof Error &&
-      (e.message.includes("ECONNREFUSED") || e.message.includes("Can't reach database"))
-    ) {
-      return jsonError("Service is starting — database is not reachable yet", 503);
-    }
-    return jsonError(e instanceof Error ? e.message : "Converse failed", 500);
+    const failure = publicFailure(e, "voice");
+    return jsonError(failure.message, failure.status);
   }
 }

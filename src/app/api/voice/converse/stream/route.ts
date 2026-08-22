@@ -4,6 +4,7 @@ import { isModalAsrConfigured, modalTranscribe } from "@/lib/modal-asr";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { runConversationTurn } from "@/lib/conversation-turn";
 import type { LanguageCode } from "@prisma/client";
+import { publicFailure, unclearRecording } from "@/lib/public-errors";
 
 function languageFromAsr(
   asr: Awaited<ReturnType<typeof modalTranscribe>>,
@@ -61,6 +62,8 @@ function publicVoicePayload(input: {
       commerce: turn.understanding.commerce ?? null,
       commerceExecution: turn.commerceExecution ?? null,
       review: turn.understanding.review ?? null,
+      synthesis: turn.understanding.synthesis ?? null,
+      comprehension: turn.understanding.comprehension ?? null,
     },
     userMessage: {
       id: turn.userMessageId,
@@ -164,7 +167,12 @@ export async function POST(req: Request) {
             asrModel,
           });
           if (asr.error || !asr.text?.trim()) {
-            send("error", { error: asr.error || "Empty transcription", status: 422, asr });
+            console.error("[voice/converse/stream:asr]", {
+              error: asr.error || "Empty transcription",
+              model: asr.model,
+              route: asr.route?.name,
+            });
+            send("error", { error: unclearRecording.message, status: unclearRecording.status });
             return;
           }
           send("asr", {
@@ -227,17 +235,8 @@ export async function POST(req: Request) {
           send("final", publicVoicePayload({ turn, asr, started }));
         } catch (e) {
           console.error("[voice/converse/stream]", e);
-          if (
-            e instanceof Error &&
-            (e.message.includes("ECONNREFUSED") || e.message.includes("Can't reach database"))
-          ) {
-            send("error", {
-              error: "Service is starting — database is not reachable yet",
-              status: 503,
-            });
-          } else {
-            send("error", { error: e instanceof Error ? e.message : "Converse failed", status: 500 });
-          }
+          const failure = publicFailure(e, "voice");
+          send("error", { error: failure.message, status: failure.status });
         } finally {
           if (!closed) {
             closed = true;

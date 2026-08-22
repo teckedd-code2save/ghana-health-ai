@@ -6,6 +6,11 @@ import { useLang } from "@/components/lang-provider";
 import { useAsrModel } from "@/lib/asr-model-store";
 import { recordUntilSilence } from "@/lib/browser-audio";
 import { VoiceOrb, localizedModeLabel, type OrbMode } from "@/components/voice-orb";
+import {
+  CONVERSATION_EVENT,
+  registerConversation,
+  type ConversationChange,
+} from "@/lib/conversation-store";
 
 type VoiceFocus = "health" | "commerce";
 
@@ -15,6 +20,7 @@ type VoiceTurnData = {
   understanding?: {
     reply?: string;
     commerceExecution?: CommerceExecution;
+    synthesis?: { mode?: "live_model" | "degraded_fallback"; model?: string };
   };
   userMessage?: { id?: string; content?: string };
   message?: { id?: string; content?: string };
@@ -82,9 +88,10 @@ function friendlyVoiceError(error: unknown) {
     message.includes("Can't reach database") ||
     message.includes("database is not reachable")
   ) {
-    return "Service is starting. Try again in a moment.";
+    return "The service is still getting ready. Please try again in a moment.";
   }
-  return message || "Try again";
+  if (message && !/Error:|Prisma|MODAL_|ECONN|HTTP \d|failed$/i.test(message)) return message;
+  return "I couldn’t process that recording. Please try again a little closer to the microphone.";
 }
 
 async function readVoiceStream(
@@ -318,6 +325,7 @@ export function VoicePanel() {
         if (!res.ok) throw new Error(data.error || "Could not load session");
         const messages = data.messages as StoredMessage[];
         if (cancelled) return;
+        registerConversation(storedConversationId);
         const lastUser = [...messages].reverse().find((message) => message.role === "USER");
         const lastAssistant = [...messages].reverse().find((message) => message.role === "ASSISTANT");
         setMessages(
@@ -345,6 +353,21 @@ export function VoicePanel() {
       cancelled = true;
     };
   }, [homeSessionKey]);
+
+  useEffect(() => {
+    const onConversationChange = (event: Event) => {
+      const detail = (event as CustomEvent<ConversationChange>).detail;
+      if (detail?.type === "new" || (detail?.type === "delete" && detail.conversationId === conversationId)) {
+        setConversationId(undefined);
+        setMessages([]);
+        setHeard(null);
+        setReply(null);
+        setStatus(null);
+      }
+    };
+    window.addEventListener(CONVERSATION_EVENT, onConversationChange);
+    return () => window.removeEventListener(CONVERSATION_EVENT, onConversationChange);
+  }, [conversationId]);
 
   function stopPlaybackMeter() {
     if (playbackFrameRef.current != null) {
@@ -504,7 +527,7 @@ export function VoicePanel() {
       setConversationId(data.conversationId);
       if (data.conversationId) {
         window.localStorage.setItem(homeSessionKey, data.conversationId);
-        window.localStorage.setItem("gha:active-conversation", data.conversationId);
+        registerConversation(data.conversationId);
       }
       setUserMessageId(data.userMessage?.id);
       setHeard(text);

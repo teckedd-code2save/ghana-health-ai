@@ -1,5 +1,31 @@
 # Continue here — Ghana Health AI
 
+## 2026-08-21 session controls and response synthesis correction
+
+- The app menu now contains a responsive recent-chat workspace with New chat,
+  conversation selection, per-chat context actions, and confirmed deletion.
+- Browser guests retain a local registry of their conversation IDs; signed-in
+  users receive their server-side conversation list.
+- Text responses expose `Live model` versus `Safety fallback` provenance so a
+  degraded runtime cannot masquerade as model intelligence.
+- Comprehension and answering are now separate calls. The first call sees only
+  transcript evidence, recent dialogue, and memory and must either state a
+  faithful English meaning or return `understood=false`; it cannot answer.
+- Answer generation runs only after the comprehension gate passes and receives
+  the accepted meaning, not the raw transcript.
+- Hard-coded eye-pain, hospital-choice, migraine, rest/fluids, and generic
+  clinic responses have been removed. Deterministic enforcement remains only
+  for explicit emergency patterns.
+
+Response path:
+
+`transcript + recent history + scoped memory + ASR evidence -> understood/not-understood gate -> natural answer from accepted meaning -> deterministic emergency enforcement -> stored/streamed response -> optional TTS`
+
+Retrieval remains disabled, so current intelligence comes from the configured
+LLM plus conversational context, not an evidence-grounded health knowledge
+source. Grounded retrieval is the next response-quality layer after live
+model/fallback behavior is verified.
+
 **Last session focus:** Voice-first runtime cleanup, schema-first understanding, agent memory, and DONDO ASR training path.  
 **North star:** [`docs/research-stack.md`](./research-stack.md)  
 **Training roadmap:** [`docs/model-training-roadmap.md`](./model-training-roadmap.md)

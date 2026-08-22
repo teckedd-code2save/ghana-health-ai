@@ -7,6 +7,11 @@ import { useAsrModel } from "@/lib/asr-model-store";
 import { enqueueOffline } from "@/lib/offline-queue";
 import { recordUntilSilence } from "@/lib/browser-audio";
 import { VoiceOrb, modeLabel, type OrbMode } from "@/components/voice-orb";
+import {
+  CONVERSATION_EVENT,
+  registerConversation,
+  type ConversationChange,
+} from "@/lib/conversation-store";
 
 type ChatMessage = {
   id: string;
@@ -19,6 +24,9 @@ type ChatMessage = {
     retrieve?: string;
     reviewed?: boolean;
     latencyMs?: number;
+    synthesisMode?: "live_model" | "degraded_fallback";
+    model?: string;
+    understood?: boolean;
   };
 };
 
@@ -43,6 +51,11 @@ type ChatTurnData = {
     reply?: string;
     intent?: string;
     engine?: string;
+    synthesis?: {
+      mode?: "live_model" | "degraded_fallback";
+      model?: string;
+    };
+    comprehension?: { understood?: boolean };
   };
   tts?: {
     audioBase64?: string;
@@ -53,6 +66,7 @@ type ChatTurnData = {
     totalLatencyMs?: number;
   };
   error?: string;
+  totalLatencyMs?: number;
 };
 
 function pipelineLabel(name?: string, detail?: string) {
@@ -60,10 +74,11 @@ function pipelineLabel(name?: string, detail?: string) {
   if (name === "conversation") return "Conversation";
   if (name === "user_message") return "Saved";
   if (name === "understanding") {
-    if (detail && detail !== "started") return `Retrieved with ${detail}`;
-    return "Retrieving";
+    if (detail === "understood") return "Meaning understood";
+    if (detail === "not_understood") return "Meaning unclear";
+    return "Checking understanding";
   }
-  if (name === "assistant_message") return "Reviewed by model";
+  if (name === "assistant_message") return "Answer generated";
   if (name === "tts") return detail === "started" ? "Preparing voice" : "Speech ready";
   if (name === "audit") return "Answered";
   return name || "Working";
@@ -167,6 +182,7 @@ export function ChatPanel() {
       .then((storedMessages) => {
         if (cancelled) return;
         setConversationId(storedConversationId);
+        registerConversation(storedConversationId);
         setMessages(
           storedMessages
             .filter((message) => message.role === "USER" || message.role === "ASSISTANT")
@@ -185,6 +201,26 @@ export function ChatPanel() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const onConversationChange = (event: Event) => {
+      const detail = (event as CustomEvent<ConversationChange>).detail;
+      if (detail?.type === "new") {
+        setConversationId(undefined);
+        setMessages([]);
+        setPipeline([]);
+        setInput("");
+      }
+      if (detail?.type === "select") window.location.reload();
+      if (detail?.type === "delete" && detail.conversationId === conversationId) {
+        setConversationId(undefined);
+        setMessages([]);
+        setPipeline([]);
+      }
+    };
+    window.addEventListener(CONVERSATION_EVENT, onConversationChange);
+    return () => window.removeEventListener(CONVERSATION_EVENT, onConversationChange);
+  }, [conversationId]);
 
   useEffect(() => {
     const sync = () => setOnline(navigator.onLine);
@@ -217,7 +253,7 @@ export function ChatPanel() {
     ]);
     setLoading(true);
     setVoicePending(false);
-    setPipeline(["Sending", "Retrieving", "Reviewing"]);
+    setPipeline(["Sending", "Checking understanding"]);
     const payload = { message: trimmed, conversationId, language: lang };
     try {
       if (!navigator.onLine) {
@@ -273,7 +309,7 @@ export function ChatPanel() {
       const messageContent = data.message?.content ?? data.understanding?.reply ?? "";
       if (!messageContent.trim()) throw new Error("No model response");
       setConversationId(data.conversationId);
-      if (data.conversationId) window.localStorage.setItem("gha:active-conversation", data.conversationId);
+      registerConversation(data.conversationId);
       setMessages((m) => {
         const finalMessage: ChatMessage = {
           id: messageId,
@@ -285,6 +321,9 @@ export function ChatPanel() {
             retrieve: data.stage?.retrieveEngine,
             reviewed: data.stage?.review,
             latencyMs: data.stage?.totalLatencyMs,
+            synthesisMode: data.understanding?.synthesis?.mode,
+            model: data.understanding?.synthesis?.model,
+            understood: data.understanding?.comprehension?.understood,
           },
         };
         return m.some((msg) => msg.id === assistantDraftId)
@@ -294,8 +333,8 @@ export function ChatPanel() {
       if (data.tts?.audioBase64) playTts(data.tts.audioBase64);
       setVoicePending(false);
       setPipeline([
-        `Retrieved with ${data.stage?.retrieveEngine || "model context"}`,
-        data.stage?.review ? "Reviewed by model" : "Model review",
+        data.understanding?.comprehension?.understood ? "Meaning understood" : "Meaning unclear",
+        "Answer generated",
         data.tts?.audioBase64 ? "Speaking" : "Answered",
       ]);
     } catch (e) {
@@ -369,12 +408,12 @@ export function ChatPanel() {
       if (!text) throw new Error("No speech heard — try again");
 
       setConversationId(data.conversationId);
-      if (data.conversationId) window.localStorage.setItem("gha:active-conversation", data.conversationId);
+      registerConversation(data.conversationId);
       setInput("");
       setPipeline([
         "Transcribed",
-        `Retrieved with ${data.stage?.retrieveEngine || "model context"}`,
-        data.stage?.review ? "Reviewed by model" : "Model review",
+        data.understanding?.comprehension?.understood ? "Meaning understood" : "Meaning unclear",
+        "Answer generated",
         data.tts?.audioBase64 ? "Speaking" : "Answered",
       ]);
       setMessages((m) => [
@@ -394,6 +433,9 @@ export function ChatPanel() {
             retrieve: data.stage?.retrieveEngine,
             reviewed: data.stage?.review,
             latencyMs: data.stage?.totalLatencyMs ?? data.totalLatencyMs,
+            synthesisMode: data.understanding?.synthesis?.mode,
+            model: data.understanding?.synthesis?.model,
+            understood: data.understanding?.comprehension?.understood,
           },
         },
       ]);
@@ -469,6 +511,18 @@ export function ChatPanel() {
                 }`}
               >
                 {m.content}
+                {!isUser && m.meta?.synthesisMode && (
+                  <span
+                    className={`response-provenance response-provenance--${m.meta.synthesisMode}`}
+                    title={m.meta.model ? `Generated with ${m.meta.model}; deterministic safety checks applied` : undefined}
+                  >
+                    {m.meta.understood === false
+                      ? "Not understood"
+                      : m.meta.synthesisMode === "live_model"
+                        ? "Live model"
+                        : "Safety fallback"}
+                  </span>
+                )}
               </div>
             </div>
           );

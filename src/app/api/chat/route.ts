@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { jsonError, jsonOk } from "@/lib/api";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { runConversationTurn } from "@/lib/conversation-turn";
+import { publicFailure } from "@/lib/public-errors";
 
 const schema = z.object({
   message: z.string().min(1).max(4000),
@@ -54,11 +55,13 @@ export async function POST(req: Request) {
           escalate: turn.understanding.escalate,
           engine: turn.understanding.engine,
           replyLanguage: turn.understanding.replyLanguage,
+          comprehension: turn.understanding.comprehension ?? null,
           health: turn.understanding.health ?? null,
           commerce: turn.understanding.commerce ?? null,
           commerceExecution: turn.commerceExecution ?? null,
           retrieve: turn.understanding.retrieve ?? null,
           review: turn.understanding.review ?? null,
+          synthesis: turn.understanding.synthesis ?? null,
         },
       },
       understanding: {
@@ -69,28 +72,46 @@ export async function POST(req: Request) {
         health: turn.understanding.health ?? null,
         commerce: turn.understanding.commerce ?? null,
         commerceExecution: turn.commerceExecution ?? null,
+        synthesis: turn.understanding.synthesis ?? null,
+        comprehension: turn.understanding.comprehension ?? null,
       },
       tts: turn.tts,
       stage: turn.stage,
     });
   } catch (e) {
     if (e instanceof z.ZodError) return jsonError(e.issues[0]?.message ?? "Invalid input");
-    console.error(e);
-    if (
-      e instanceof Error &&
-      (e.message.includes("ECONNREFUSED") || e.message.includes("Can't reach database"))
-    ) {
-      return jsonError("Service is starting — database is not reachable yet", 503);
-    }
-    return jsonError("Chat failed", 500);
+    console.error("[chat]", e);
+    const failure = publicFailure(e, "chat");
+    return jsonError(failure.message, failure.status);
   }
 }
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const conversationId = searchParams.get("conversationId");
-  if (!conversationId) return jsonError("conversationId required");
   const user = await getSessionUser();
+  if (!conversationId) {
+    const ids = searchParams
+      .get("ids")
+      ?.split(",")
+      .filter((id) => z.string().uuid().safeParse(id).success)
+      .slice(0, 50) ?? [];
+    const conversations = await prisma.conversation.findMany({
+      where: user ? { userId: user.id } : { userId: null, id: { in: ids } },
+      orderBy: { updatedAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        title: true,
+        language: true,
+        intent: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: { select: { messages: true } },
+      },
+    });
+    return jsonOk({ conversations });
+  }
   const conversation = await prisma.conversation.findUnique({
     where: { id: conversationId },
     select: { id: true, userId: true },
@@ -104,4 +125,22 @@ export async function GET(req: Request) {
     orderBy: { createdAt: "asc" },
   });
   return jsonOk({ messages });
+}
+
+export async function DELETE(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const conversationId = searchParams.get("conversationId");
+  if (!conversationId || !z.string().uuid().safeParse(conversationId).success) {
+    return jsonError("Valid conversationId required");
+  }
+  const user = await getSessionUser();
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: { id: true, userId: true },
+  });
+  if (!conversation || (conversation.userId && conversation.userId !== user?.id)) {
+    return jsonError("Conversation not found", 404);
+  }
+  await prisma.conversation.delete({ where: { id: conversationId } });
+  return jsonOk({ deleted: true, conversationId });
 }

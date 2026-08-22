@@ -2,6 +2,7 @@ import { z } from "zod";
 import { getSessionUser } from "@/lib/auth";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { runConversationTurn } from "@/lib/conversation-turn";
+import { publicFailure } from "@/lib/public-errors";
 
 const schema = z.object({
   message: z.string().min(1).max(4000),
@@ -37,11 +38,13 @@ function publicTurnPayload(turn: Awaited<ReturnType<typeof runConversationTurn>>
         escalate: turn.understanding.escalate,
         engine: turn.understanding.engine,
         replyLanguage: turn.understanding.replyLanguage,
+        comprehension: turn.understanding.comprehension ?? null,
         health: turn.understanding.health ?? null,
         commerce: turn.understanding.commerce ?? null,
         commerceExecution: turn.commerceExecution ?? null,
         retrieve: turn.understanding.retrieve ?? null,
         review: turn.understanding.review ?? null,
+        synthesis: turn.understanding.synthesis ?? null,
       },
     },
     understanding: {
@@ -52,6 +55,8 @@ function publicTurnPayload(turn: Awaited<ReturnType<typeof runConversationTurn>>
       health: turn.understanding.health ?? null,
       commerce: turn.understanding.commerce ?? null,
       commerceExecution: turn.commerceExecution ?? null,
+      synthesis: turn.understanding.synthesis ?? null,
+      comprehension: turn.understanding.comprehension ?? null,
     },
     tts: turn.tts,
     stage: turn.stage,
@@ -103,16 +108,9 @@ export async function POST(req: Request) {
           console.error("[chat/stream]", e);
           if (e instanceof z.ZodError) {
             send("error", { error: e.issues[0]?.message ?? "Invalid input", status: 400 });
-          } else if (
-            e instanceof Error &&
-            (e.message.includes("ECONNREFUSED") || e.message.includes("Can't reach database"))
-          ) {
-            send("error", {
-              error: "Service is starting — database is not reachable yet",
-              status: 503,
-            });
           } else {
-            send("error", { error: "Chat failed", status: 500 });
+            const failure = publicFailure(e, "chat");
+            send("error", { error: failure.message, status: failure.status });
           }
         } finally {
           controller.close();

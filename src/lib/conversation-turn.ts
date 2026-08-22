@@ -163,7 +163,7 @@ export async function runConversationTurn(
   const understandLatencyMs = Date.now() - understandStartedAt;
   await input.onStage?.({
     name: "understanding",
-    detail: understanding.retrieve?.engine ?? understanding.engine,
+    detail: understanding.comprehension?.understood ? "understood" : "not_understood",
     at: Date.now(),
   });
 
@@ -194,8 +194,10 @@ export async function runConversationTurn(
     engine: understanding.engine,
     model: understanding.model,
     replyLanguage: understanding.replyLanguage,
+    comprehension: understanding.comprehension ?? null,
     retrieve: understanding.retrieve ?? null,
     review: understanding.review ?? null,
+    synthesis: understanding.synthesis ?? null,
     health: understanding.health ?? null,
     commerce: understanding.commerce ?? null,
     commerceExecution: commerceExecution ?? null,
@@ -274,7 +276,9 @@ export async function runConversationTurn(
       escalate: understanding.escalate,
       retrieve: understanding.retrieve ?? null,
       review: understanding.review ?? null,
+      synthesis: understanding.synthesis ?? null,
       health: understanding.health ?? null,
+      comprehension: understanding.comprehension ?? null,
       asrModel: input.transcript?.model,
       asrRoute: input.transcript?.route,
       commerce: understanding.commerce ?? null,
