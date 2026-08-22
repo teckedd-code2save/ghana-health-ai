@@ -3,13 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HeartPulse, History, Languages, Mic, User } from "lucide-react";
+import { HeartPulse, Languages, Mic, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLang, type AppLang } from "@/components/lang-provider";
 import { useAsrModel, type AsrModel } from "@/lib/asr-model-store";
+import { SessionDrawer } from "@/components/session-drawer";
 
 const menu = [
-  { href: "/chat", label: "Sessions", icon: History },
   { href: "/login", label: "Account", icon: User },
 ];
 
@@ -27,6 +27,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <Link href="/" className="app-mark" aria-label="Ghana Health home">
         <HeartPulse className="h-4 w-4" />
       </Link>
+      <span className="research-preview" title="Experimental language research; not medical care">
+        Research Preview
+      </span>
 
       <div className={cn("app-menu", open && "app-menu--open")}>
         <button
@@ -70,6 +73,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <option value="dondo">DONDO β (research)</option>
             </select>
           </div>
+
+          <SessionDrawer onNavigate={() => setOpen(false)} />
 
           {menu.map((item) => {
             const Icon = item.icon;

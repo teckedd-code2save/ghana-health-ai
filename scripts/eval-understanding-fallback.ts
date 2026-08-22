@@ -26,6 +26,8 @@ async function main() {
     assertOk(health.intent === "HEALTH", `expected HEALTH, got ${health.intent}`);
     assertOk(health.health, "expected health plan");
     assertOk(health.reply.trim().length > 12, "expected health fallback reply");
+    assertOk(health.comprehension?.understood === false, "fallback must be marked not understood");
+    assertOk(!/rest|drink fluids|gye w'ahome|nom nsuo/i.test(health.reply), "fallback must not simulate health advice");
     console.log(`ok fallback-health intent=${health.intent} plan=${health.health.plan.status}`);
 
     const weak = await understandUtterance({
@@ -55,6 +57,7 @@ async function main() {
     assertOk(commerceUnderstanding, "expected commerce understanding");
     assertOk(commerceUnderstanding.item?.toLowerCase().includes("tomatoes"), "expected commerce item");
     assertOk(commerceUnderstanding.plan, "expected commerce plan");
+    assertOk(commerce.comprehension?.understood === false, "fallback commerce must be marked not understood");
     console.log(
       `ok fallback-commerce action=${commerceUnderstanding.action} next=${commerceUnderstanding.plan.nextAction}`,
     );

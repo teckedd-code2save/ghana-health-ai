@@ -29,6 +29,15 @@ function resolveProvider(): {
   return null;
 }
 
+export function llmProviderInfo(): { provider: "groq" | "openai"; model: string } | null {
+  const resolved = resolveProvider();
+  if (!resolved) return null;
+  return {
+    provider: process.env.GROQ_API_KEY ? "groq" : "openai",
+    model: resolved.model,
+  };
+}
+
 export function isLlmConfigured(): boolean {
   return Boolean(resolveProvider());
 }

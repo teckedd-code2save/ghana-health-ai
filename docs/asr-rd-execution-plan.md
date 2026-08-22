@@ -2,6 +2,12 @@
 
 Last updated: 2026-08-21
 
+The next-level language-understanding and intelligent-data-agent direction is
+specified in
+[`GHANA_LANGUAGE_UNDERSTANDING_RESEARCH.md`](./GHANA_LANGUAGE_UNDERSTANDING_RESEARCH.md).
+The current product pass completes its Gate 0 only; it does not authorise broad
+audio retention or participant recruitment.
+
 ## North Star
 
 Deliver a voice pipeline that understands Twi health and commerce speech well
