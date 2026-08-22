@@ -780,10 +780,10 @@ select {
 
 .chat-panel {
   width: 100%;
-  height: min(78vh, 760px);
+  min-height: calc(100dvh - 8rem);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--line);
   border-radius: calc(var(--radius) + 6px);
   background: rgba(255, 255, 255, 0.72);
@@ -793,6 +793,9 @@ select {
 }
 
 .chat-orb-header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
   display: flex;
   flex: 0 0 auto;
   min-height: 10.5rem;
@@ -800,6 +803,10 @@ select {
   justify-content: center;
   overflow: hidden;
   border-bottom: 1px solid var(--line);
+  border-radius: calc(var(--radius) + 5px) calc(var(--radius) + 5px) 0 0;
+  background: rgba(250, 249, 245, 0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   padding: 1rem;
   transition: min-height 220ms ease, padding 220ms ease;
 }
@@ -883,7 +890,14 @@ select {
 }
 
 .chat-composer {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
   border-top: 1px solid var(--line);
+  border-radius: 0 0 calc(var(--radius) + 5px) calc(var(--radius) + 5px);
+  background: rgba(250, 249, 245, 0.9);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   padding: 0.75rem;
 }
 
@@ -1325,7 +1339,7 @@ select {
   }
 
   .chat-panel {
-    height: min(76vh, 680px);
+    min-height: calc(100dvh - 5.5rem);
   }
 
   .chat-orb-header {

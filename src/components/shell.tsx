@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HeartPulse, Languages, Mic, User } from "lucide-react";
@@ -17,11 +17,28 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { lang, setLang, labels } = useLang();
   const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   // A/B: Whisper v6 (default, production) vs DONDO CTC (research endpoint)
   const [asrModel, changeAsrModel] = useAsrModel();
 
+  useEffect(() => {
+    if (!open) return;
+    const dismiss = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", dismiss);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", dismiss);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden">
+    <div className="relative flex min-h-screen flex-col overflow-x-hidden">
       <div className="kente-bar" />
 
       <Link href="/" className="app-mark" aria-label="Ghana Health home">
@@ -31,7 +48,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         Research Preview
       </span>
 
-      <div className={cn("app-menu", open && "app-menu--open")}>
+      <div ref={menuRef} className={cn("app-menu", open && "app-menu--open")}>
         <button
           type="button"
           className="app-menu__button"
