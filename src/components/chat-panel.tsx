@@ -135,16 +135,10 @@ export function ChatPanel() {
     : loading || voicePending
         ? "thinking"
         : "idle";
-  const compactOrb = threadScrolled || messages.length > 0;
+  const compactOrb = threadScrolled;
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading, speaking]);
-
-  useEffect(() => {
-    const updateCompactHeader = () => setThreadScrolled(window.scrollY > 18);
-    window.addEventListener("scroll", updateCompactHeader, { passive: true });
-    return () => window.removeEventListener("scroll", updateCompactHeader);
-  }, []);
 
   useEffect(() => () => {
     if (audioSafetyTimerRef.current) window.clearTimeout(audioSafetyTimerRef.current);
@@ -419,52 +413,57 @@ export function ChatPanel() {
 
   return (
     <div className="chat-panel fade-up">
-      <div className={`chat-orb-header ${compactOrb ? "chat-orb-header--compact" : ""}`}>
-        <VoiceOrb
-          mode={orbMode}
-          level={level}
-          size="md"
-          disabled={(loading || voicePending) && !recording}
-          onClick={() => {
-            if (recording) {
-              recordAbortRef.current?.abort();
-              return;
-            }
-            if (!loading && !voicePending && !speaking) void startMic();
-          }}
-          label={voicePending ? "Preparing voice..." : modeLabel(orbMode, vadState)}
-          showLabel={false}
-        />
-      </div>
+      <div
+        className="chat-conversation-scroll"
+        onScroll={(event) => setThreadScrolled(event.currentTarget.scrollTop > 18)}
+      >
+        <div className={`chat-orb-header ${compactOrb ? "chat-orb-header--compact" : ""}`}>
+          <VoiceOrb
+            mode={orbMode}
+            level={level}
+            size="md"
+            disabled={(loading || voicePending) && !recording}
+            onClick={() => {
+              if (recording) {
+                recordAbortRef.current?.abort();
+                return;
+              }
+              if (!loading && !voicePending && !speaking) void startMic();
+            }}
+            label={voicePending ? "Preparing voice..." : modeLabel(orbMode, vadState)}
+            showLabel={false}
+          />
+        </div>
 
-      <div className="chat-scroll flex-1 space-y-3 px-4 py-5">
-        {messages.map((m) => {
-          const isUser = m.role === "USER" || m.role === "local-user";
-          return (
-            <div
-              key={m.id}
-              className={`flex ${isUser ? "justify-end" : "justify-start"}`}
-            >
+        <div className="chat-scroll space-y-3 px-4 py-5">
+          {messages.map((m) => {
+            const isUser = m.role === "USER" || m.role === "local-user";
+            return (
               <div
-                className={`chat-bubble ${
-                  isUser
-                    ? "chat-bubble--user"
-                    : m.phase === "error"
-                        ? "chat-bubble--error"
-                        : "chat-bubble--assistant"
-                }`}
+                key={m.id}
+                className={`flex ${isUser ? "justify-end" : "justify-start"}`}
               >
-                {m.content}
+                <div
+                  className={`chat-bubble ${
+                    isUser
+                      ? "chat-bubble--user"
+                      : m.phase === "error"
+                          ? "chat-bubble--error"
+                          : "chat-bubble--assistant"
+                  }`}
+                >
+                  {m.content}
+                </div>
               </div>
+            );
+          })}
+          {loading && (
+            <div className="chat-typing" aria-label="Responding">
+              <span className="typing-dots" aria-hidden="true"><span /><span /><span /></span>
             </div>
-          );
-        })}
-        {loading && (
-          <div className="chat-typing" aria-label="Responding">
-            <span className="typing-dots" aria-hidden="true"><span /><span /><span /></span>
-          </div>
-        )}
-        <div ref={bottomRef} />
+          )}
+          <div ref={bottomRef} />
+        </div>
       </div>
 
       <form

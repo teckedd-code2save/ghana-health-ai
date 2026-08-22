@@ -780,16 +780,25 @@ select {
 
 .chat-panel {
   width: 100%;
-  min-height: calc(100dvh - 8rem);
+  height: min(78vh, 760px);
   display: flex;
   flex-direction: column;
-  overflow: visible;
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: calc(var(--radius) + 6px);
   background: rgba(255, 255, 255, 0.72);
   box-shadow: var(--shadow-soft);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+}
+
+.chat-conversation-scroll {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(143, 168, 154, 0.3) transparent;
 }
 
 .chat-orb-header {
@@ -894,9 +903,9 @@ select {
 }
 
 .chat-composer {
-  position: sticky;
-  bottom: 0;
+  position: relative;
   z-index: 4;
+  flex: 0 0 auto;
   border-top: 1px solid var(--line);
   border-radius: 0 0 calc(var(--radius) + 5px) calc(var(--radius) + 5px);
   background: rgba(250, 249, 245, 0.9);
@@ -1343,7 +1352,7 @@ select {
   }
 
   .chat-panel {
-    min-height: calc(100dvh - 5.5rem);
+    height: min(76vh, 680px);
   }
 
   .chat-orb-header {

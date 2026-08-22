@@ -38,7 +38,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   }, [open]);
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-x-hidden">
+    <div className="relative flex min-h-screen flex-col overflow-hidden">
       <div className="kente-bar" />
 
       <Link href="/" className="app-mark" aria-label="Ghana Health home">
