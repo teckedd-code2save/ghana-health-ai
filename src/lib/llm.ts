@@ -23,7 +23,7 @@ function resolveProvider(): {
     return {
       apiKey: openai,
       baseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
-      model: process.env.LLM_MODEL || "gpt-4o-mini",
+      model: process.env.LLM_MODEL || "gpt-5.4-mini",
     };
   }
   return null;
