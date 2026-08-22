@@ -17,8 +17,8 @@ globalThis.fetch = (async (_url: string | URL | Request, init?: RequestInit) => 
   });
 }) as typeof fetch;
 
-const { chatComplete, llmProviderInfo } = await import("../src/lib/llm.ts");
-const { understandUtterance } = await import("../src/lib/understand.ts");
+const { chatComplete, llmProviderInfo } = await import("../src/lib/llm");
+const { understandUtterance } = await import("../src/lib/understand");
 
 assert.equal(llmProviderInfo()?.model, "gpt-5.4-mini");
 
