@@ -97,7 +97,7 @@ export function detectReplyLanguage(
   return resolveReplyLanguage(preferred);
 }
 
-const SYSTEM_DIRECT = `Understand and respond directly to the latest message in its conversation. Handle natural Twi/Akan, English, and code-switching without translating aloud or discussing the wording. Reply simply and naturally in the requested language. If the message is genuinely unclear, set understood=false and reply=null rather than guessing. For health, do not diagnose or prescribe dosage and treat explicit emergencies urgently. For commerce, do not invent prices, stores, or availability. Return JSON only:
+const SYSTEM_DIRECT = `Understand and respond directly to the latest message in its conversation. Handle natural Twi/Akan, English, and code-switching without translating aloud or discussing the wording. Treat ordinary spelling mistakes, omitted Twi diacritics, and informal keyboard substitutions such as 3 for ɛ as normal when the meaning remains clear. Reply simply and naturally in the requested language. If the message is genuinely unclear, set understood=false and reply=null rather than guessing. For health, do not diagnose or prescribe dosage and treat explicit emergencies urgently. For commerce, do not invent prices, stores, or availability. Return JSON only:
 {"understood":boolean,"understoodMeaning":"brief faithful English meaning for internal records or null","uncertaintyReason":"brief reason or null","reply":"direct response or null","intent":"HEALTH|ECOMMERCE|GENERAL|UNKNOWN","severity":"LOW|MEDIUM|HIGH|EMERGENCY","escalate":boolean}`;
 
 function dangerOverride(text: string) {
@@ -380,6 +380,16 @@ function honestNotUnderstood(replyLang: "tw" | "en") {
     : "Mante nea wokae no ase yie sɛ memmua. Mesrɛ wo, san ka no wɔ ɔkwan foforo so.";
 }
 
+function isFailureReply(content: string) {
+  const normalized = content.toLowerCase().replace(/\s+/g, " ").trim();
+  return (
+    normalized.includes("mante nea wokae no ase") ||
+    normalized.includes("i did not understand that clearly enough") ||
+    normalized.includes("service is temporarily unavailable") ||
+    normalized.includes("ntumi mmua wo seesei")
+  );
+}
+
 function engineFromRetrieve(
   retrieveEngine: string,
   hasLlm: boolean,
@@ -426,10 +436,13 @@ export async function understandUtterance(input: {
     });
   }
 
-  const history = (input.history ?? []).slice(-6).map((m) => ({
-    role: m.role === "user" ? ("user" as const) : ("assistant" as const),
-    content: m.content,
-  }));
+  const history = (input.history ?? [])
+    .filter((message) => message.role === "user" || !isFailureReply(message.content))
+    .slice(-6)
+    .map((m) => ({
+      role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+      content: m.content,
+    }));
 
   const directRaw = await chatComplete(
     [
@@ -459,7 +472,6 @@ export async function understandUtterance(input: {
   if (
     !direct.success ||
     !direct.data.understood ||
-    !direct.data.understoodMeaning ||
     !direct.data.reply
   ) {
     const uncertaintyReason = direct.success
@@ -530,7 +542,7 @@ export async function understandUtterance(input: {
     replyLanguage: replyLang,
     comprehension: {
       understood: true,
-      meaning: direct.data.understoodMeaning,
+      meaning: direct.data.understoodMeaning ?? null,
       uncertaintyReason: null,
     },
     retrieve: retrieveMeta,

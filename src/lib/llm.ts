@@ -9,6 +9,7 @@ function resolveProvider(): {
   apiKey: string;
   baseUrl: string;
   model: string;
+  fallbackModel?: string;
 } | null {
   const groq = process.env.GROQ_API_KEY;
   if (groq) {
@@ -20,10 +21,17 @@ function resolveProvider(): {
   }
   const openai = process.env.OPENAI_API_KEY;
   if (openai) {
+    const legacyModel = process.env.LLM_MODEL?.trim();
     return {
       apiKey: openai,
       baseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
-      model: process.env.LLM_MODEL || "gpt-5.4-mini",
+      // Keep the language model independent from the historical provider-wide
+      // override so an old gpt-4o-mini setting cannot silently pin this path.
+      model: process.env.OPENAI_LANGUAGE_MODEL?.trim() || "gpt-5.4-mini",
+      fallbackModel:
+        legacyModel && legacyModel !== "gpt-5.4-mini"
+          ? legacyModel
+          : "gpt-4o-mini",
     };
   }
   return null;
@@ -49,30 +57,42 @@ export async function chatComplete(
   const provider = resolveProvider();
   if (!provider) return null;
 
-  try {
-    const res = await fetch(`${provider.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${provider.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: provider.model,
-        messages,
-        temperature: opts?.temperature ?? 0.3,
-        max_tokens: opts?.maxTokens ?? 600,
-      }),
-    });
-    if (!res.ok) {
-      console.error("[llm]", res.status, await res.text());
-      return null;
+  const models = [provider.model, provider.fallbackModel].filter(
+    (model, index, all): model is string =>
+      Boolean(model) && all.indexOf(model) === index,
+  );
+  for (const model of models) {
+    try {
+      const isGpt5 = model.startsWith("gpt-5");
+      const res = await fetch(`${provider.baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${provider.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          ...(isGpt5
+            ? { max_completion_tokens: opts?.maxTokens ?? 600 }
+            : {
+                temperature: opts?.temperature ?? 0.3,
+                max_tokens: opts?.maxTokens ?? 600,
+              }),
+        }),
+      });
+      if (!res.ok) {
+        console.error("[llm]", model, res.status, await res.text());
+        continue;
+      }
+      const data = (await res.json()) as {
+        choices?: { message?: { content?: string } }[];
+      };
+      const content = data.choices?.[0]?.message?.content?.trim();
+      if (content) return content;
+    } catch (e) {
+      console.error("[llm]", model, e);
     }
-    const data = (await res.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    return data.choices?.[0]?.message?.content?.trim() || null;
-  } catch (e) {
-    console.error("[llm]", e);
-    return null;
   }
+  return null;
 }
