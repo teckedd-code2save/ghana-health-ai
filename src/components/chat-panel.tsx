@@ -141,6 +141,12 @@ export function ChatPanel() {
   }, [messages, loading, speaking]);
 
   useEffect(() => {
+    const updateCompactHeader = () => setThreadScrolled(window.scrollY > 18);
+    window.addEventListener("scroll", updateCompactHeader, { passive: true });
+    return () => window.removeEventListener("scroll", updateCompactHeader);
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     const storedConversationId = window.localStorage.getItem("gha:active-conversation");
     if (!storedConversationId) return;
@@ -419,10 +425,7 @@ export function ChatPanel() {
         />
       </div>
 
-      <div
-        className="chat-scroll flex-1 space-y-3 overflow-y-auto px-4 py-5"
-        onScroll={(event) => setThreadScrolled(event.currentTarget.scrollTop > 18)}
-      >
+      <div className="chat-scroll flex-1 space-y-3 px-4 py-5">
         {messages.map((m) => {
           const isUser = m.role === "USER" || m.role === "local-user";
           return (

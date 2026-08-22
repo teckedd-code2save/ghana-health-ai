@@ -83,6 +83,7 @@ export function SessionDrawer({ onNavigate }: { onNavigate: () => void }) {
       setSessions((current) => current.filter((item) => item.id !== deleteTarget.id));
       setDeleteTarget(null);
       setMenuId(null);
+      onNavigate();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not delete chat");
     } finally {
@@ -137,8 +138,18 @@ export function SessionDrawer({ onNavigate }: { onNavigate: () => void }) {
       </div>
 
       {deleteTarget && (
-        <div className="session-confirm-backdrop" role="presentation">
-          <div className="session-confirm" role="alertdialog" aria-modal="true" aria-labelledby="delete-chat-title">
+        <div
+          className="session-confirm-backdrop"
+          role="presentation"
+          onClick={() => !busy && setDeleteTarget(null)}
+        >
+          <div
+            className="session-confirm"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-chat-title"
+            onClick={(event) => event.stopPropagation()}
+          >
             <h2 id="delete-chat-title">Delete this chat?</h2>
             <p>This removes the conversation and its messages. This cannot be undone.</p>
             {error && <p className="session-confirm-error">{error}</p>}
