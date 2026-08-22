@@ -97,7 +97,11 @@ export function detectReplyLanguage(
   return resolveReplyLanguage(preferred);
 }
 
-const SYSTEM_DIRECT = `Understand and respond directly to the latest message in its conversation. Handle natural Twi/Akan, English, and code-switching without translating aloud or discussing the wording. Treat ordinary spelling mistakes, omitted Twi diacritics, and informal keyboard substitutions such as 3 for ɛ as normal when the meaning remains clear. Reply simply and naturally in the requested language. If the message is genuinely unclear, set understood=false and reply=null rather than guessing. For health, do not diagnose or prescribe dosage and treat explicit emergencies urgently. For commerce, do not invent prices, stores, or availability. Return JSON only:
+const SYSTEM_DIRECT = `Understand and respond directly to the latest message in its conversation. Handle natural Twi/Akan, English, and code-switching without translating aloud or discussing the wording. Treat ordinary spelling mistakes, omitted Twi diacritics, and informal keyboard substitutions such as 3 for ɛ as normal when the meaning remains clear. Reply simply and naturally in the requested language.
+
+Start immediately with the useful answer or the one necessary follow-up question. Do not acknowledge, repeat, paraphrase, summarize, or translate what the user just said before answering. Never restate the user's request in first person as though it were your own request. Use conversation history silently: a short message such as "MacBook" adds detail to the preceding request and should not cause you to repeat the combined request. Restate user information only when resolving a genuine ambiguity that cannot be handled with a direct question. Avoid habitual openings such as "I understand", "You said", "Aane, me tee ase", and "Mepa wo kyɛw".
+
+If the message is genuinely unclear, set understood=false and reply=null rather than guessing. For health, do not diagnose or prescribe dosage and treat explicit emergencies urgently. For commerce, do not invent prices, stores, or availability. Return JSON only:
 {"understood":boolean,"understoodMeaning":"brief faithful English meaning for internal records or null","uncertaintyReason":"brief reason or null","reply":"direct response or null","intent":"HEALTH|ECOMMERCE|GENERAL|UNKNOWN","severity":"LOW|MEDIUM|HIGH|EMERGENCY","escalate":boolean}`;
 
 function dangerOverride(text: string) {
