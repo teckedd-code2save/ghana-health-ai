@@ -73,18 +73,14 @@ type TranscriptQualityInput = {
   route?: string;
 };
 
-const interpretationSchema = z.object({
+const directTurnSchema = z.object({
   understood: z.boolean(),
   understoodMeaning: z.string().min(1).nullable(),
   uncertaintyReason: z.string().min(1).nullable(),
+  reply: z.string().min(1).nullable(),
   intent: z.enum(["HEALTH", "ECOMMERCE", "GENERAL", "UNKNOWN"]),
   severity: z.enum(["LOW", "MEDIUM", "HIGH", "EMERGENCY"]),
   escalate: z.boolean(),
-});
-
-const answerSchema = z.object({
-  reply: z.string().min(1),
-  naturalInTargetLanguage: z.boolean(),
 });
 
 const HOTLINE =
@@ -101,14 +97,8 @@ export function detectReplyLanguage(
   return resolveReplyLanguage(preferred);
 }
 
-const SYSTEM_INTERPRET = `Decide whether the latest Ghanaian-language or English transcript is understood from the transcript and recent conversation context. Do not answer the user. Do not guess, complete, medically advise, translate creatively, or use "if you mean" reasoning. A meaning is understood only when you can state it faithfully in English without adding facts. Preserve the speaker's conversational act: a greeting, question, request, correction, or statement must remain that act. State the direct meaning, never a description such as "the user is asking about the phrase...". ASR may be noisy. Return JSON only:
-{"understood":boolean,"understoodMeaning":"faithful English meaning or null","uncertaintyReason":"brief reason or null","intent":"HEALTH|ECOMMERCE|GENERAL|UNKNOWN","severity":"LOW|MEDIUM|HIGH|EMERGENCY","escalate":boolean}`;
-
-const SYSTEM_ANSWER = `Respond directly to the supplied conversational meaning in the requested language. Do not discuss, explain, quote, paraphrase, or conditionally restate the transcript. Use simple, idiomatic language and no canned pattern. Set naturalInTargetLanguage=false if you cannot produce a confident, natural response in that language. For health, do not diagnose or prescribe dosage; advise urgent care for explicit emergencies. For commerce, do not invent prices, stores, or availability. Return JSON only: {"reply":"...","naturalInTargetLanguage":boolean}`;
-
-function looksLikeTranscriptCommentary(reply: string) {
-  return /\b(if you mean|you said|the phrase|the transcript|are you asking|do you mean)\b/i.test(reply);
-}
+const SYSTEM_DIRECT = `Understand and respond directly to the latest message in its conversation. Handle natural Twi/Akan, English, and code-switching without translating aloud or discussing the wording. Reply simply and naturally in the requested language. If the message is genuinely unclear, set understood=false and reply=null rather than guessing. For health, do not diagnose or prescribe dosage and treat explicit emergencies urgently. For commerce, do not invent prices, stores, or availability. Return JSON only:
+{"understood":boolean,"understoodMeaning":"brief faithful English meaning for internal records or null","uncertaintyReason":"brief reason or null","reply":"direct response or null","intent":"HEALTH|ECOMMERCE|GENERAL|UNKNOWN","severity":"LOW|MEDIUM|HIGH|EMERGENCY","escalate":boolean}`;
 
 function dangerOverride(text: string) {
   const lower = normalizeHealthText(text);
@@ -441,36 +431,19 @@ export async function understandUtterance(input: {
     content: m.content,
   }));
 
-  const interpretationPayload = {
-    asr_transcript: input.text,
-    transcript_quality: input.transcript
-      ? {
-          mode: input.transcript.mode,
-          asr_model: input.transcript.model,
-          asr_language: input.transcript.language,
-          language_probability: input.transcript.languageProbability,
-          asr_route: input.transcript.route,
-          duration_seconds: input.transcript.duration,
-          rms: input.transcript.rms,
-          latency_ms: input.transcript.latencyMs,
-        }
-      : null,
-    recent_dialogue: history,
-    memory: input.memory ?? null,
-  };
-
-  const interpretationRaw = await chatComplete(
+  const directRaw = await chatComplete(
     [
-      { role: "system", content: SYSTEM_INTERPRET },
       {
-        role: "user",
-        content: JSON.stringify(interpretationPayload),
+        role: "system",
+        content: `${SYSTEM_DIRECT}\nRequested reply language: ${replyLang === "en" ? "English" : "Twi/Akan"}.`,
       },
+      ...history,
+      { role: "user", content: input.text },
     ],
-    { temperature: 0, maxTokens: 350 },
+    { temperature: 0.3, maxTokens: 650 },
   );
 
-  if (!interpretationRaw) {
+  if (!directRaw) {
     return fallbackUnderstanding({
       text: input.text,
       replyLang,
@@ -482,14 +455,19 @@ export async function understandUtterance(input: {
     });
   }
 
-  const interpreted = interpretationSchema.safeParse(parseJson(interpretationRaw));
-  if (!interpreted.success || !interpreted.data.understood || !interpreted.data.understoodMeaning) {
-    const uncertaintyReason = interpreted.success
-      ? interpreted.data.uncertaintyReason ?? "meaning_not_recovered"
+  const direct = directTurnSchema.safeParse(parseJson(directRaw));
+  if (
+    !direct.success ||
+    !direct.data.understood ||
+    !direct.data.understoodMeaning ||
+    !direct.data.reply
+  ) {
+    const uncertaintyReason = direct.success
+      ? direct.data.uncertaintyReason ?? "meaning_not_recovered"
       : "invalid_understanding_output";
     return {
       reply: honestNotUnderstood(replyLang),
-      intent: interpreted.success ? interpreted.data.intent : "UNKNOWN",
+      intent: direct.success ? direct.data.intent : "UNKNOWN",
       severity: "LOW",
       escalate: false,
       engine: "llm",
@@ -513,45 +491,13 @@ export async function understandUtterance(input: {
     };
   }
 
-  const answerRaw = await chatComplete(
-    [
-      { role: "system", content: SYSTEM_ANSWER },
-      {
-        role: "user",
-        content: JSON.stringify({
-          understood_meaning: interpreted.data.understoodMeaning,
-          intent: interpreted.data.intent,
-          target_language: replyLang === "en" ? "english" : "twi",
-          commerce_facts: commerce ?? null,
-        }),
-      },
-    ],
-    { temperature: 0.45, maxTokens: 500 },
-  );
-  const answered = answerRaw ? answerSchema.safeParse(parseJson(answerRaw)) : null;
-  if (
-    !answered?.success ||
-    !answered.data.naturalInTargetLanguage ||
-    looksLikeTranscriptCommentary(answered.data.reply)
-  ) {
-    return fallbackUnderstanding({
-      text: input.text,
-      replyLang,
-      focus,
-      commerce,
-      transcript: input.transcript,
-      retrieveMeta,
-      history: input.history,
-    });
-  }
-
   const intentChecked = applyIntentOverride({
     text: input.text,
     focus,
-    reply: answered.data.reply.trim(),
-    intent: interpreted.data.intent,
-    severity: interpreted.data.severity,
-    escalate: interpreted.data.escalate,
+    reply: direct.data.reply.trim(),
+    intent: direct.data.intent,
+    severity: direct.data.severity,
+    escalate: direct.data.escalate,
   });
   const final = applySafetyOverride({
     text: input.text,
@@ -584,7 +530,7 @@ export async function understandUtterance(input: {
     replyLanguage: replyLang,
     comprehension: {
       understood: true,
-      meaning: interpreted.data.understoodMeaning,
+      meaning: direct.data.understoodMeaning,
       uncertaintyReason: null,
     },
     retrieve: retrieveMeta,

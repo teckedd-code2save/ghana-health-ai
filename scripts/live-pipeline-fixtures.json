@@ -48,6 +48,20 @@
     "forbiddenTerms": ["community health worker", "feel free to ask"]
   },
   {
+    "id": "tw-health-severe-headache-direct",
+    "language": "tw",
+    "message": "Me ti yɛ me yaw paa.",
+    "expectedIntent": "HEALTH",
+    "forbiddenTerms": ["M'ani agye", "M’ani agye", "I'm very happy"]
+  },
+  {
+    "id": "tw-health-feeling-unwell-direct",
+    "language": "tw",
+    "message": "Me ho mfa me.",
+    "expectedIntent": "HEALTH",
+    "forbiddenTerms": ["Me nsa da", "my hand"]
+  },
+  {
     "id": "en-market-health-item",
     "language": "en",
     "message": "Do you have oral rehydration salts in the market?",
