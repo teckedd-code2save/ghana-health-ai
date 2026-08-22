@@ -826,6 +826,10 @@ select {
   transform: translateY(-0.05rem);
 }
 
+.chat-orb-header--compact .voice-orb--idle .voice-orb__blob {
+  animation-play-state: paused;
+}
+
 .chat-bubble {
   max-width: min(78%, 42rem);
   border-radius: 1.15rem;
