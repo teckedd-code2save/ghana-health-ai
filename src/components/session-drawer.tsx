@@ -39,13 +39,16 @@ export function SessionDrawer({ onNavigate }: { onNavigate: () => void }) {
   }, []);
 
   useEffect(() => {
-    void load();
+    const initialLoad = window.setTimeout(() => void load(), 0);
     const onChange = (event: Event) => {
       const detail = (event as CustomEvent<ConversationChange>).detail;
       if (detail?.type === "refresh" || detail?.type === "delete") void load();
     };
     window.addEventListener(CONVERSATION_EVENT, onChange);
-    return () => window.removeEventListener(CONVERSATION_EVENT, onChange);
+    return () => {
+      window.clearTimeout(initialLoad);
+      window.removeEventListener(CONVERSATION_EVENT, onChange);
+    };
   }, [load]);
 
   function createNew() {
