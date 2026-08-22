@@ -368,9 +368,10 @@ select {
 
 .session-context-menu {
   position: absolute;
-  z-index: 4;
-  top: calc(100% - 0.2rem);
-  right: 0.2rem;
+  z-index: 12;
+  top: 50%;
+  right: 2.15rem;
+  transform: translateY(-50%);
   padding: 0.3rem;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -874,6 +875,54 @@ select {
   color: #b83f34;
 }
 
+.chat-composer {
+  border-top: 1px solid var(--line);
+  padding: 0.75rem;
+}
+
+.chat-composer__surface {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.35rem 0.4rem 0.4rem 0.9rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 1.65rem;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 0.55rem 1.4rem rgba(49, 43, 28, 0.07);
+}
+
+.chat-composer__surface:focus-within {
+  border-color: rgba(78, 117, 255, 0.32);
+  box-shadow: 0 0 0 3px rgba(78, 117, 255, 0.08);
+}
+
+.chat-composer__input {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.45rem;
+  padding: 0.55rem 0.3rem 0.1rem;
+  border: 0;
+  outline: 0;
+  color: var(--fg);
+  background: transparent;
+  font-size: 1rem;
+}
+
+.chat-composer__input::placeholder {
+  color: var(--fg-subtle);
+}
+
+.chat-composer__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.chat-composer__spacer {
+  flex: 1;
+}
+
 
 .live-heard-wrap {
   align-self: flex-end;
@@ -1223,25 +1272,40 @@ select {
   }
 
   .chat-page {
-    max-width: 100%;
+    width: calc(100vw - 1rem);
+    max-width: none;
+    margin-inline: -0.5rem;
     padding-top: 3.75rem;
   }
 
   .voice-model-picker--compact {
-    width: 4.9rem;
-    gap: 0;
-    padding-left: 0.45rem;
+    width: auto;
+    min-height: 2.25rem;
+    gap: 0.35rem;
+    padding: 0.15rem 0.25rem 0.15rem 0.65rem;
+    box-shadow: none;
   }
 
   .voice-model-picker--compact span {
-    display: none;
+    display: inline;
+    font-size: 0.62rem;
   }
 
   .voice-model-picker--compact select {
-    width: 100%;
-    padding-left: 0.5rem;
-    padding-right: 1rem;
-    font-size: 0.72rem;
+    width: auto;
+    min-height: 1.75rem;
+    padding-left: 0.45rem;
+    padding-right: 1.25rem;
+    font-size: 0.68rem;
+  }
+
+  .chat-composer {
+    padding: 0.55rem;
+  }
+
+  .chat-composer .icon-action {
+    width: 2.3rem;
+    height: 2.3rem;
   }
 
   .auth-card,

@@ -531,50 +531,53 @@ export function ChatPanel() {
       </div>
 
       <form
-        className="border-t border-[var(--line)] p-3"
+        className="chat-composer"
         onSubmit={(e) => {
           e.preventDefault();
           void send(input);
         }}
       >
-        <div className="flex items-center gap-2">
+        <div className="chat-composer__surface">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type a message…"
-            className="field min-h-11 flex-1"
+            className="chat-composer__input"
             disabled={recording}
           />
-          <label className="voice-model-picker voice-model-picker--compact" aria-label="Speech model">
-            <span>ASR</span>
-            <select value={asrModel} onChange={(event) => changeAsrModel(event.target.value as typeof asrModel)}>
-              <option value="dondo">DONDO</option>
-              <option value="v6">v6</option>
-            </select>
-          </label>
-          <button
-            type="button"
-            disabled={loading || voicePending || speaking}
-            className={recording ? "icon-action chat-mic-action chat-mic-action--live" : "icon-action chat-mic-action"}
-            aria-label="Record voice"
-            onClick={() => {
-              if (recording) {
-                recordAbortRef.current?.abort();
-                return;
-              }
-              void startMic();
-            }}
-          >
-            <Mic className="h-4 w-4" />
-          </button>
-          <button
-            type="submit"
-            disabled={loading || recording || !input.trim()}
-            className="icon-action chat-send-action"
-            aria-label="Send"
-          >
-            <Send className="h-4 w-4" />
-          </button>
+          <div className="chat-composer__actions">
+            <label className="voice-model-picker voice-model-picker--compact" aria-label="Speech model">
+              <span>Voice</span>
+              <select value={asrModel} onChange={(event) => changeAsrModel(event.target.value as typeof asrModel)}>
+                <option value="dondo">DONDO</option>
+                <option value="v6">v6</option>
+              </select>
+            </label>
+            <span className="chat-composer__spacer" />
+            <button
+              type="button"
+              disabled={loading || voicePending || speaking}
+              className={recording ? "icon-action chat-mic-action chat-mic-action--live" : "icon-action chat-mic-action"}
+              aria-label="Record voice"
+              onClick={() => {
+                if (recording) {
+                  recordAbortRef.current?.abort();
+                  return;
+                }
+                void startMic();
+              }}
+            >
+              <Mic className="h-4 w-4" />
+            </button>
+            <button
+              type="submit"
+              disabled={loading || recording || !input.trim()}
+              className="icon-action chat-send-action"
+              aria-label="Send"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </form>
     </div>
