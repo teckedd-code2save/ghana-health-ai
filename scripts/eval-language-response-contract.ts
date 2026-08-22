@@ -105,6 +105,8 @@ const systemInstruction = sentMessages.find(
 assert(systemInstruction?.includes("Start immediately with the useful answer"));
 assert(systemInstruction?.includes("Never restate the user's request in first person"));
 assert(systemInstruction?.includes('a short message such as "MacBook" adds detail'));
+assert(systemInstruction?.includes("The first clause must add new information"));
+assert(systemInstruction?.includes('Do not open with "Okay"'));
 
 console.log("language response contract: ok");
 }
