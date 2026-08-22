@@ -82,7 +82,10 @@ const interpretationSchema = z.object({
   escalate: z.boolean(),
 });
 
-const answerSchema = z.object({ reply: z.string().min(1) });
+const answerSchema = z.object({
+  reply: z.string().min(1),
+  naturalInTargetLanguage: z.boolean(),
+});
 
 const HOTLINE =
   process.env.HEALTH_ESCALATION_HOTLINE || "112 or your nearest clinic / community health worker";
@@ -98,10 +101,14 @@ export function detectReplyLanguage(
   return resolveReplyLanguage(preferred);
 }
 
-const SYSTEM_INTERPRET = `Decide whether the latest Ghanaian-language or English transcript is understood from the transcript and recent conversation context. Do not answer the user. Do not guess, complete, medically advise, translate creatively, or use "if you mean" reasoning. A meaning is understood only when you can state it faithfully in English without adding facts. ASR may be noisy. Return JSON only:
+const SYSTEM_INTERPRET = `Decide whether the latest Ghanaian-language or English transcript is understood from the transcript and recent conversation context. Do not answer the user. Do not guess, complete, medically advise, translate creatively, or use "if you mean" reasoning. A meaning is understood only when you can state it faithfully in English without adding facts. Preserve the speaker's conversational act: a greeting, question, request, correction, or statement must remain that act. State the direct meaning, never a description such as "the user is asking about the phrase...". ASR may be noisy. Return JSON only:
 {"understood":boolean,"understoodMeaning":"faithful English meaning or null","uncertaintyReason":"brief reason or null","intent":"HEALTH|ECOMMERCE|GENERAL|UNKNOWN","severity":"LOW|MEDIUM|HIGH|EMERGENCY","escalate":boolean}`;
 
-const SYSTEM_ANSWER = `Answer the supplied understood meaning naturally in the requested language. The meaning has already passed a separate comprehension gate; do not reinterpret, quote, conditionally restate, or speculate about the original transcript. Do not use canned response patterns. For health, do not diagnose or prescribe dosage; advise urgent care for explicit emergencies. For commerce, do not invent prices, stores, or availability. Return JSON only: {"reply":"..."}`;
+const SYSTEM_ANSWER = `Respond directly to the supplied conversational meaning in the requested language. Do not discuss, explain, quote, paraphrase, or conditionally restate the transcript. Use simple, idiomatic language and no canned pattern. Set naturalInTargetLanguage=false if you cannot produce a confident, natural response in that language. For health, do not diagnose or prescribe dosage; advise urgent care for explicit emergencies. For commerce, do not invent prices, stores, or availability. Return JSON only: {"reply":"...","naturalInTargetLanguage":boolean}`;
+
+function looksLikeTranscriptCommentary(reply: string) {
+  return /\b(if you mean|you said|the phrase|the transcript|are you asking|do you mean)\b/i.test(reply);
+}
 
 function dangerOverride(text: string) {
   const lower = normalizeHealthText(text);
@@ -522,7 +529,11 @@ export async function understandUtterance(input: {
     { temperature: 0.45, maxTokens: 500 },
   );
   const answered = answerRaw ? answerSchema.safeParse(parseJson(answerRaw)) : null;
-  if (!answered?.success) {
+  if (
+    !answered?.success ||
+    !answered.data.naturalInTargetLanguage ||
+    looksLikeTranscriptCommentary(answered.data.reply)
+  ) {
     return fallbackUnderstanding({
       text: input.text,
       replyLang,

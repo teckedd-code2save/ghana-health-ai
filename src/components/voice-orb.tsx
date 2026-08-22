@@ -13,6 +13,7 @@ type Props = {
   label?: string;
   className?: string;
   size?: "md" | "lg";
+  showLabel?: boolean;
 };
 
 export function VoiceOrb({
@@ -23,6 +24,7 @@ export function VoiceOrb({
   label,
   className,
   size = "md",
+  showLabel = true,
 }: Props) {
   const energy = Math.max(0.08, Math.min(1, level * 18));
   const speed = `${Math.max(4, 12 - energy * 7).toFixed(2)}s`;
@@ -59,7 +61,7 @@ export function VoiceOrb({
           <span className="voice-orb__highlight" />
         </span>
       </button>
-      {label && (
+      {label && showLabel && (
         <p className="max-w-[16rem] text-center text-sm text-[var(--fg-muted)]">{label}</p>
       )}
     </div>
