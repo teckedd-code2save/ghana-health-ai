@@ -5,7 +5,7 @@ import { Check, Mic, Pencil, ShoppingCart, Volume2, X } from "lucide-react";
 import { useLang } from "@/components/lang-provider";
 import { useAsrModel } from "@/lib/asr-model-store";
 import { recordUntilSilence } from "@/lib/browser-audio";
-import { VoiceOrb, localizedModeLabel, type OrbMode } from "@/components/voice-orb";
+import { VoiceOrb, type OrbMode } from "@/components/voice-orb";
 import {
   CONVERSATION_EVENT,
   registerConversation,
@@ -146,10 +146,9 @@ function focusInstruction(focus: VoiceFocus) {
   return "Health mode: answer as Ghana Health AI with safe health guidance. Do not diagnose or give drug dosage.";
 }
 
-function ThinkingDots({ label }: { label: string }) {
+function ThinkingDots() {
   return (
-    <div className="live-thinking" aria-live="polite">
-      <span className="live-thinking__label">{label}</span>
+    <div className="live-thinking" aria-label="Working" aria-live="polite">
       <span className="typing-dots" aria-hidden="true">
         <span />
         <span />
@@ -157,35 +156,6 @@ function ThinkingDots({ label }: { label: string }) {
       </span>
     </div>
   );
-}
-
-function stageLabel(stage: string | null) {
-  switch (stage) {
-    case "accepted":
-    case "asr_started":
-      return "Transcribing";
-    case "asr_final":
-    case "conversation":
-    case "user_message":
-    case "understanding":
-      return "Thinking";
-    case "assistant_message":
-      return "Responding";
-    case "tts":
-      return "Preparing voice";
-    default:
-      return null;
-  }
-}
-
-function localizedStageLabel(stage: string | null, lang: string) {
-  const label = stageLabel(stage);
-  if (!label || lang !== "tw") return label;
-  if (label === "Transcribing") return "Merekyerɛw nea metee";
-  if (label === "Thinking") return "Meredwene";
-  if (label === "Responding") return "Merebua";
-  if (label === "Preparing voice") return "Meresiesie nne";
-  return label;
 }
 
 function CommerceAction({
@@ -246,14 +216,13 @@ export function VoicePanel() {
   const [busy, setBusy] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [level, setLevel] = useState(0);
-  const [vadState, setVadState] = useState<string | null>(null);
+  const [, setVadState] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [heard, setHeard] = useState<string | null>(null);
   const [reply, setReply] = useState<string | null>(null);
   const [messages, setMessages] = useState<VoiceMessage[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [ttsB64, setTtsB64] = useState<string | null>(null);
-  const [pipelineStage, setPipelineStage] = useState<string | null>(null);
   const [userMessageId, setUserMessageId] = useState<string | undefined>();
   const [correctionOpen, setCorrectionOpen] = useState(false);
   const [correctionText, setCorrectionText] = useState("");
@@ -444,7 +413,6 @@ export function VoicePanel() {
     setHeard(null);
     setReply(null);
     setTtsB64(null);
-    setPipelineStage(null);
     setUserMessageId(undefined);
     setCorrectionOpen(false);
     setCorrectionText("");
@@ -480,7 +448,6 @@ export function VoicePanel() {
       lastAudioBlobRef.current = blob;
 
       setBusy(true);
-      setPipelineStage("asr_started");
 
       const form = new FormData();
       form.append("audio", blob, "utterance.webm");
@@ -504,10 +471,8 @@ export function VoicePanel() {
           setMessages((current) =>
             upsertVoiceMessage(current, { id: localUserId, role: "USER", content: text }),
           );
-          setPipelineStage("understanding");
         },
         (chunk) => {
-          setPipelineStage("assistant_message");
           streamedReply += chunk;
           setReply(streamedReply);
           setMessages((current) =>
@@ -518,7 +483,7 @@ export function VoicePanel() {
             }),
           );
         },
-        (stage) => setPipelineStage(stage.name),
+        () => {},
       );
 
       const text = data.asr?.text?.trim();
@@ -562,7 +527,6 @@ export function VoicePanel() {
       setRecording(false);
       setVadState(null);
       setLevel(0);
-      setPipelineStage(null);
     }
   }
 
@@ -632,7 +596,6 @@ export function VoicePanel() {
   const showThinking = busy && Boolean(heard) && !reply && !status;
   const showConversation =
     showListening || showTranscribing || showThinking || messages.length > 0 || heard || reply || status;
-  const statusLabel = status || localizedStageLabel(pipelineStage, lang) || localizedModeLabel(orbMode, lang, vadState);
 
   return (
     <section className={`live-shell fade-up ${showConversation ? "live-shell--active" : ""}`}>
@@ -650,7 +613,6 @@ export function VoicePanel() {
               setReply(null);
               setMessages([]);
               setStatus(null);
-              setPipelineStage(null);
               setUserMessageId(undefined);
               setCorrectionOpen(false);
               setCorrectionText("");
@@ -683,7 +645,8 @@ export function VoicePanel() {
             }
             if (!busy) void listenAndRespond();
           }}
-          label={statusLabel}
+          label="Speak"
+          showLabel={false}
         />
       </div>
 
@@ -778,9 +741,9 @@ export function VoicePanel() {
                 </div>
               );
             })}
-            {showListening && <ThinkingDots label="Listening" />}
-            {showTranscribing && <ThinkingDots label={localizedStageLabel(pipelineStage, lang) || (lang === "tw" ? "Meretwerɛ nea wotee" : "Transcribing")} />}
-            {showThinking && <ThinkingDots label={localizedStageLabel(pipelineStage, lang) || (lang === "tw" ? "Meredwene" : "Thinking")} />}
+            {showListening && <ThinkingDots />}
+            {showTranscribing && <ThinkingDots />}
+            {showThinking && <ThinkingDots />}
             {reply && (
               <CommerceAction
                 execution={commerceExecution}

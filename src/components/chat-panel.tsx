@@ -69,21 +69,6 @@ type ChatTurnData = {
   totalLatencyMs?: number;
 };
 
-function pipelineLabel(name?: string, detail?: string) {
-  if (name === "accepted") return "Accepted";
-  if (name === "conversation") return "Conversation";
-  if (name === "user_message") return "Saved";
-  if (name === "understanding") {
-    if (detail === "understood") return "Meaning understood";
-    if (detail === "not_understood") return "Meaning unclear";
-    return "Checking understanding";
-  }
-  if (name === "assistant_message") return "Answer generated";
-  if (name === "tts") return detail === "started" ? "Preparing voice" : "Speech ready";
-  if (name === "audit") return "Answered";
-  return name || "Working";
-}
-
 async function readChatStream(
   res: Response,
   onStage: (stage: { name?: string; detail?: string }) => void,
@@ -136,10 +121,9 @@ export function ChatPanel() {
   const [voicePending, setVoicePending] = useState(false);
   const [recording, setRecording] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [threadScrolled, setThreadScrolled] = useState(false);
   const [level, setLevel] = useState(0);
   const [vadState, setVadState] = useState<string | null>(null);
-  const [pipeline, setPipeline] = useState<string[]>([]);
-  const [online, setOnline] = useState(true);
   const [asrModel, changeAsrModel] = useAsrModel();
   const bottomRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -152,18 +136,6 @@ export function ChatPanel() {
       : loading
         ? "thinking"
         : "idle";
-  const statusLabel = recording
-    ? "Listening"
-    : voicePending
-      ? "Preparing voice"
-      : speaking
-        ? "Speaking"
-        : loading
-          ? "Thinking"
-          : online
-            ? "Ready"
-            : "Offline";
-
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading, speaking]);
@@ -208,30 +180,17 @@ export function ChatPanel() {
       if (detail?.type === "new") {
         setConversationId(undefined);
         setMessages([]);
-        setPipeline([]);
         setInput("");
       }
       if (detail?.type === "select") window.location.reload();
       if (detail?.type === "delete" && detail.conversationId === conversationId) {
         setConversationId(undefined);
         setMessages([]);
-        setPipeline([]);
       }
     };
     window.addEventListener(CONVERSATION_EVENT, onConversationChange);
     return () => window.removeEventListener(CONVERSATION_EVENT, onConversationChange);
   }, [conversationId]);
-
-  useEffect(() => {
-    const sync = () => setOnline(navigator.onLine);
-    sync();
-    window.addEventListener("online", sync);
-    window.addEventListener("offline", sync);
-    return () => {
-      window.removeEventListener("online", sync);
-      window.removeEventListener("offline", sync);
-    };
-  }, []);
 
   function playTts(b64: string) {
     audioRef.current?.pause();
@@ -253,7 +212,6 @@ export function ChatPanel() {
     ]);
     setLoading(true);
     setVoicePending(false);
-    setPipeline(["Sending", "Checking understanding"]);
     const payload = { message: trimmed, conversationId, language: lang };
     try {
       if (!navigator.onLine) {
@@ -281,10 +239,6 @@ export function ChatPanel() {
             setLoading(false);
             setVoicePending(true);
           }
-          setPipeline((steps) => {
-            const next = pipelineLabel(stage.name, stage.detail);
-            return steps[steps.length - 1] === next ? steps : [...steps.slice(-4), next];
-          });
       }, (chunk) => {
         setMessages((m) => {
           const existing = m.find((msg) => msg.id === assistantDraftId);
@@ -332,11 +286,6 @@ export function ChatPanel() {
       });
       if (data.tts?.audioBase64) playTts(data.tts.audioBase64);
       setVoicePending(false);
-      setPipeline([
-        data.understanding?.comprehension?.understood ? "Meaning understood" : "Meaning unclear",
-        "Answer generated",
-        data.tts?.audioBase64 ? "Speaking" : "Answered",
-      ]);
     } catch (e) {
       enqueueOffline("chat", payload);
       setMessages((m) => [
@@ -348,7 +297,6 @@ export function ChatPanel() {
           phase: "error",
         },
       ]);
-      setPipeline([]);
     } finally {
       setLoading(false);
       setVoicePending(false);
@@ -360,7 +308,6 @@ export function ChatPanel() {
     setRecording(true);
     setVoicePending(false);
     setVadState("listening");
-    setPipeline(["Listening"]);
     const aborter = new AbortController();
     recordAbortRef.current = aborter;
     try {
@@ -376,10 +323,8 @@ export function ChatPanel() {
       setRecording(false);
       setVadState(null);
       setLevel(0);
-      setPipeline(["Heard speech", "Transcribing"]);
 
       if (!speechDetected) {
-        setPipeline([]);
         return;
       }
       if (blob.size < 400 || peakLevel < 0.01) {
@@ -410,12 +355,6 @@ export function ChatPanel() {
       setConversationId(data.conversationId);
       registerConversation(data.conversationId);
       setInput("");
-      setPipeline([
-        "Transcribed",
-        data.understanding?.comprehension?.understood ? "Meaning understood" : "Meaning unclear",
-        "Answer generated",
-        data.tts?.audioBase64 ? "Speaking" : "Answered",
-      ]);
       setMessages((m) => [
         ...m,
         {
@@ -450,7 +389,6 @@ export function ChatPanel() {
           phase: "error",
         },
       ]);
-      setPipeline([]);
     } finally {
       recordAbortRef.current = null;
       setLoading(false);
@@ -463,7 +401,7 @@ export function ChatPanel() {
 
   return (
     <div className="chat-panel fade-up">
-      <div className="flex flex-col items-center gap-3 border-b border-[var(--line)] px-4 py-6">
+      <div className={`chat-orb-header ${threadScrolled ? "chat-orb-header--compact" : ""}`}>
         <VoiceOrb
           mode={orbMode}
           level={level}
@@ -477,23 +415,14 @@ export function ChatPanel() {
             if (!loading && !voicePending && !speaking) void startMic();
           }}
           label={voicePending ? "Preparing voice..." : modeLabel(orbMode, vadState)}
+          showLabel={false}
         />
-        <span
-          className={
-            recording
-              ? "status-dot status-dot--live"
-              : speaking || voicePending
-                ? "status-dot status-dot--speak"
-                : "status-dot status-dot--ok"
-          }
-        >
-          {statusLabel}
-        </span>
       </div>
 
-      {pipeline.length > 0 && <div className="chat-activity">{pipeline[pipeline.length - 1]}</div>}
-
-      <div className="chat-scroll flex-1 space-y-3 overflow-y-auto px-4 py-5">
+      <div
+        className="chat-scroll flex-1 space-y-3 overflow-y-auto px-4 py-5"
+        onScroll={(event) => setThreadScrolled(event.currentTarget.scrollTop > 18)}
+      >
         {messages.map((m) => {
           const isUser = m.role === "USER" || m.role === "local-user";
           return (
@@ -511,22 +440,15 @@ export function ChatPanel() {
                 }`}
               >
                 {m.content}
-                {!isUser && m.meta?.synthesisMode && (
-                  <span
-                    className={`response-provenance response-provenance--${m.meta.synthesisMode}`}
-                    title={m.meta.model ? `Generated with ${m.meta.model}; deterministic safety checks applied` : undefined}
-                  >
-                    {m.meta.understood === false
-                      ? "Not understood"
-                      : m.meta.synthesisMode === "live_model"
-                        ? "Live model"
-                        : "Safety fallback"}
-                  </span>
-                )}
               </div>
             </div>
           );
         })}
+        {loading && (
+          <div className="chat-typing" aria-label="Responding">
+            <span className="typing-dots" aria-hidden="true"><span /><span /><span /></span>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 
