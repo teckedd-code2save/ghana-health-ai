@@ -799,6 +799,7 @@ select {
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: rgba(143, 168, 154, 0.3) transparent;
+  scroll-padding-top: 3.6rem;
 }
 
 .chat-orb-header {

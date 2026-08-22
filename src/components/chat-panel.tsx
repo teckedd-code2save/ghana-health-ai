@@ -43,6 +43,11 @@ type StreamEvent = {
 
 type ChatTurnData = {
   conversationId?: string;
+  asr?: { text?: string };
+  userMessage?: {
+    id?: string;
+    content?: string;
+  };
   message?: {
     id?: string;
     content?: string;
@@ -73,6 +78,7 @@ async function readChatStream(
   res: Response,
   onStage: (stage: { name?: string; detail?: string }) => void,
   onReplyDelta: (chunk: string) => void,
+  onAsr: (text: string) => void = () => {},
 ): Promise<ChatTurnData> {
   const reader = res.body?.getReader();
   if (!reader) throw new Error("No response stream");
@@ -96,6 +102,9 @@ async function readChatStream(
       };
       if (parsed.event === "stage") {
         onStage(parsed.data as { name?: string; detail?: string });
+      } else if (parsed.event === "asr") {
+        const asr = parsed.data as { text?: string };
+        if (asr.text?.trim()) onAsr(asr.text.trim());
       } else if (parsed.event === "reply_delta") {
         const delta = parsed.data as { chunk?: string };
         if (delta.chunk) onReplyDelta(delta.chunk);
@@ -355,29 +364,54 @@ export function ChatPanel() {
       if (conversationId) form.append("conversationId", conversationId);
       form.append("speak", "true");
 
-      const res = await fetch("/api/voice/converse", { method: "POST", body: form });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Voice turn failed");
-      }
+      const res = await fetch("/api/voice/converse/stream", { method: "POST", body: form });
+      if (!res.ok) throw new Error("Couldn’t start voice turn");
 
-      const text = (data.asr?.text as string | undefined)?.trim();
+      const localUserId = crypto.randomUUID();
+      const localAssistantId = crypto.randomUUID();
+      let streamedTranscript = "";
+      let streamedReply = "";
+      const data = await readChatStream(
+        res,
+        () => {},
+        (chunk) => {
+          streamedReply += chunk;
+          setMessages((current) => {
+            const existing = current.some((message) => message.id === localAssistantId);
+            const assistant = {
+              id: localAssistantId,
+              role: "ASSISTANT" as const,
+              content: streamedReply,
+            };
+            return existing
+              ? current.map((message) => message.id === localAssistantId ? assistant : message)
+              : [...current, assistant];
+          });
+        },
+        (transcript) => {
+          streamedTranscript = transcript;
+          setMessages((current) => current.some((message) => message.id === localUserId)
+            ? current
+            : [...current, { id: localUserId, role: "local-user", content: transcript }]);
+        },
+      );
+
+      const text = data.asr?.text?.trim() || streamedTranscript;
       if (!text) throw new Error("No speech heard — try again");
 
       setConversationId(data.conversationId);
       registerConversation(data.conversationId);
       setInput("");
-      setMessages((m) => [
-        ...m,
-        {
-          id: crypto.randomUUID(),
+      setMessages((current) => {
+        const finalUser: ChatMessage = {
+          id: data.userMessage?.id ?? localUserId,
           role: "local-user",
           content: text,
-        },
-        {
-          id: data.message?.id ?? crypto.randomUUID(),
+        };
+        const finalAssistant: ChatMessage = {
+          id: data.message?.id ?? localAssistantId,
           role: "ASSISTANT",
-          content: data.message?.content ?? data.understanding?.reply ?? "",
+          content: data.message?.content ?? data.understanding?.reply ?? streamedReply,
           meta: {
             intent: data.understanding?.intent,
             engine: data.understanding?.engine,
@@ -388,8 +422,12 @@ export function ChatPanel() {
             model: data.understanding?.synthesis?.model,
             understood: data.understanding?.comprehension?.understood,
           },
-        },
-      ]);
+        };
+        const withoutDrafts = current.filter(
+          (message) => message.id !== localUserId && message.id !== localAssistantId,
+        );
+        return [...withoutDrafts, finalUser, finalAssistant];
+      });
       if (data.tts?.audioBase64) playTts(data.tts.audioBase64);
     } catch (e) {
       setMessages((m) => [
