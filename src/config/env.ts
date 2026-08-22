@@ -19,6 +19,7 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_BASE_URL: z.string().optional(),
   LLM_MODEL: z.string().optional(),
+  OPENAI_LANGUAGE_MODEL: z.string().optional(),
   PAYSTACK_SECRET_KEY: z.string().optional(),
   PAYSTACK_PUBLIC_KEY: z.string().optional(),
   NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY: z.string().optional(),

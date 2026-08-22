@@ -17,6 +17,7 @@
     "eval:understanding": "node --import tsx scripts/eval-understanding.ts",
     "eval:understanding:fallback": "node --import tsx scripts/eval-understanding-fallback.ts",
     "eval:conversation:fallback": "node --import tsx scripts/eval-conversation-fallback-contract.ts",
+    "eval:language-response": "node --import tsx scripts/eval-language-response-contract.ts",
     "eval:health-plan": "node --import tsx scripts/eval-health-plan.ts",
     "eval:commerce-plan": "node --import tsx scripts/eval-commerce-plan.ts",
     "eval:commerce-execute": "node --import tsx scripts/eval-commerce-execute.ts",
