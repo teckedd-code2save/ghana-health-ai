@@ -17,6 +17,7 @@ globalThis.fetch = (async (_url: string | URL | Request, init?: RequestInit) => 
   });
 }) as typeof fetch;
 
+async function main() {
 const { chatComplete, llmProviderInfo } = await import("../src/lib/llm");
 const { understandUtterance } = await import("../src/lib/understand");
 
@@ -98,5 +99,17 @@ assert(
   ),
 );
 assert.equal(sentMessages.at(-1)?.content, "Me ti y3 me yaw paa");
+const systemInstruction = sentMessages.find(
+  (message) => message.role === "system",
+)?.content;
+assert(systemInstruction?.includes("Start immediately with the useful answer"));
+assert(systemInstruction?.includes("Never restate the user's request in first person"));
+assert(systemInstruction?.includes('a short message such as "MacBook" adds detail'));
 
 console.log("language response contract: ok");
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
