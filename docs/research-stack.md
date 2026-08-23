@@ -2,6 +2,8 @@
 
 **Product goal:** A working voice-first health companion that **listens, understands, and speaks Twi** for maternal and everyday health in Ghana — English only when the user asks for it.
 
+**Research data and model programme:** [`research-data-agent.md`](./research-data-agent.md)
+
 This document is the technical north star. Implementation follows published work and public assets, not hand-written banks or English prompt tricks.
 
 ---
