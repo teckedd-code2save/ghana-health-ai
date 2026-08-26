@@ -310,8 +310,8 @@ function fallbackReply(input: {
   return {
     reply:
       input.replyLang === "en"
-        ? "The language understanding model is unavailable right now, so I will not guess what you meant. Please try again shortly."
-        : "Language understanding model no nni hɔ seesei, enti merensusu nea wokyerɛe. Mesrɛ wo, san sɔ hwɛ akyiri yi.",
+        ? "The language understanding model is unavailable right now, so I will not guess what you meant. Please say it again in different words shortly."
+        : "Language understanding model no nni hɔ seesei, enti merensusu nea wokyerɛe. Mesrɛ wo, san ka nea wohia no wɔ ɔkwan foforo so akyiri yi.",
     intent: baseIntent as "HEALTH" | "ECOMMERCE",
     severity: "LOW" as const,
     escalate: false,
