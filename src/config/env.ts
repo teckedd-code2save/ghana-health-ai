@@ -33,6 +33,10 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((v) => v !== "false"),
+  RESEARCH_REVIEW_ENABLED: z
+    .string()
+    .optional()
+    .transform((v) => v === "true"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });
 

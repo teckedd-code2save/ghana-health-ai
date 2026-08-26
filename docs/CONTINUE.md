@@ -1,5 +1,47 @@
 # Continue here — Ghana Health AI
 
+## 2026-08-26 understanding corpus workspace
+
+The understanding research direction is **not** to train from the 50 synthetic
+benchmark rows. Those rows remain a small probe set for comparing model
+behaviour and latency.
+
+New internal workspace:
+
+- `/research/ase`
+- API: `/api/research/understanding`
+- Local review writes: `tmp/understanding-review/reviews.v0.jsonl`
+- Access: open in local development; in production requires an admin/researcher
+  account or `RESEARCH_REVIEW_ENABLED=true`
+
+The workspace now separates:
+
+1. **Sources:** GhanaNLP parallel, WAXAL, Common Voice, local recordings,
+   opt-in product contributions, and reviewed synthetic TTS.
+2. **Storage decisions:** public datasets stay referenced by pinned revisions;
+   private audio belongs in private object storage; Postgres stores references,
+   hashes, reviews, and experiment metadata.
+3. **Benchmark:** the 50 synthetic probes are explicitly labelled as
+   non-training, non-gold model-comparison rows.
+4. **Review:** native-speaker review can add normalized Twi, faithful English
+   meaning, literal gloss, intent, entities, ambiguity, decision, and notes.
+
+Validation run:
+
+```bash
+pnpm lint
+pnpm build
+```
+
+Next research step is Gate 1, not a shortcut:
+
+1. Create the import/audit layer for dataset-derived corpus candidates.
+2. Catalogue source IDs, licences, revisions, splits, hashes, speaker metadata,
+   and consent scope.
+3. Generate model proposals only as drafts.
+4. Use `/research/ase` for human review and export only eligible reviewed
+   records.
+
 ## 2026-08-26 pull/deploy update
 
 Pulled the latest main branch through `9eca525`, then added one safety-path fix
