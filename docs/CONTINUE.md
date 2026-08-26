@@ -1,5 +1,73 @@
 # Continue here — Ghana Health AI
 
+## 2026-08-26 pull/deploy update
+
+Pulled the latest main branch through `9eca525`, then added one safety-path fix
+and deployed production via the direct VPS route.
+
+Current live deploy:
+
+- Commit: `32ec6f71df7ed0493d8d386a8d38a73508ec3d98`
+- Web image: `ghcr.io/teckedd-code2save/ghana-health-ai:32ec6f71df7ed0493d8d386a8d38a73508ec3d98`
+- Deploy path: `bin/deploy-direct`
+- Prisma migrations: no pending migrations
+- Production readiness: `ready`
+
+Pulled work since the prior handoff:
+
+- Research Preview / Gate 0 cleanup.
+- Responsive recent-chat/session drawer.
+- Guest conversation registry and server-side conversation loading/deletion.
+- Conversation continuity fixes for streamed voice/text.
+- Direct response synthesis from the original language.
+- Provenance labels for `Live model` versus `Safety fallback`.
+- New language-response contract:
+  `pnpm eval:language-response`.
+- Research direction document:
+  `docs/GHANA_LANGUAGE_UNDERSTANDING_RESEARCH.md`.
+
+Local fix added after pull:
+
+- `fix(understanding): ask clearly during fallback outage`
+- The no-LLM fallback now asks the user to say the request again in different
+  words instead of only saying the model is unavailable.
+
+Validation run:
+
+```bash
+pnpm eval:language-response
+pnpm eval:understanding:fallback
+pnpm lint
+pnpm build
+pnpm eval:product-readiness:prod
+```
+
+Production endpoint checks:
+
+- `/api/config` reports Twi TTS as `stable-twi` /
+  `ghananlpcommunity/stable-twi-tts`.
+- `/api/tts` with Twi text returned WAV audio, sample rate `22050`, about
+  `97k` base64 chars, and about `1.7s` TTS latency.
+
+One local contract still needs a local database or secrets-backed DB before it
+can be rerun:
+
+```bash
+pnpm eval:conversation:fallback
+```
+
+It failed locally with database connection refused, not with an assertion
+failure. Production readiness confirms the production DB path is healthy.
+
+Next useful step:
+
+1. Exercise the live UI on production: session drawer, new chat, delete chat,
+   streamed transcript preservation, and Twi response style.
+2. If UI feels stable, continue Gate 1: canonical research data schema/import
+   audit for the Ghana language understanding programme.
+3. Keep DONDO v3 spend blocked until the corpus audit shows enough
+   speaker-diverse held-out product data.
+
 ## 2026-08-21 session controls and response synthesis correction
 
 - The app menu now contains a responsive recent-chat workspace with New chat,
