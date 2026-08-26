@@ -1,0 +1,50 @@
+{"id":"health-headache-severe","category":"health","text":"Me ti yɛ me yaw paa.","review_status":"unverified"}
+{"id":"health-unwell","category":"health","text":"Me ho mfa me.","review_status":"unverified"}
+{"id":"health-pregnancy-swelling","category":"health","text":"Me nyinsɛn na me ti yɛ me yaw paa, m'anim nso ahonhon.","review_status":"unverified"}
+{"id":"health-fever","category":"health","text":"Me ho yɛ hyew na awɔ nso de me.","review_status":"unverified"}
+{"id":"health-child-fever","category":"health","text":"Me ba no ho yɛ hyew fi nnora.","review_status":"unverified"}
+{"id":"health-diarrhea-ors","category":"health","text":"Me ba no yam retu no bebree. ORS bɛboa anaa?","review_status":"unverified"}
+{"id":"health-stomach-pain","category":"health","text":"Me yafunu mu yɛ me yaw.","review_status":"unverified"}
+{"id":"health-chest-pain","category":"health","text":"Me koko mu yɛ me yaw na mehome yɛ den.","review_status":"unverified"}
+{"id":"health-eye-pain","category":"health","text":"M'ani kum paa.","review_status":"unverified"}
+{"id":"health-cough-duration","category":"health","text":"Makɔ so abɔ waw nnafua mmiɛnsa.","review_status":"unverified"}
+{"id":"health-medicine-negation","category":"health","text":"Minnom aduru biara nnɛ.","review_status":"unverified"}
+{"id":"health-allergy","category":"health","text":"Sɛ menom aduru no a, me honam ani hye me.","review_status":"unverified"}
+{"id":"health-dizziness","category":"health","text":"M'ani so yɛ me kusuu bere a mesɔre gyina hɔ.","review_status":"unverified"}
+{"id":"health-location-ambiguity","category":"health","text":"Me kɔn yɛ me yaw.","review_status":"unverified"}
+{"id":"health-duration","category":"health","text":"Me ti yɛ me yaw fi nnora.","review_status":"unverified"}
+{"id":"commerce-charger","category":"commerce","text":"Mepɛ charger atɔ.","review_status":"unverified"}
+{"id":"commerce-macbook-charger","category":"commerce","text":"Mepɛ charger ama MacBook Pro.","review_status":"unverified"}
+{"id":"commerce-tomatoes","category":"commerce","text":"Mepɛ sɛ metɔ tomatoes ma stew.","review_status":"unverified"}
+{"id":"commerce-quantity-delivery","category":"commerce","text":"Mepɛ sɛ metɔ tomato 2 kg, fa brɛ me wɔ Adenta.","review_status":"unverified"}
+{"id":"commerce-location","category":"commerce","text":"Hwehwɛ tomatoes a ɛbɛn Madina ma me.","review_status":"unverified"}
+{"id":"commerce-price-rice","category":"commerce","text":"Bayerɛ kotoku baako bo yɛ sɛn wɔ Kejetia?","review_status":"unverified"}
+{"id":"commerce-out-of-stock","category":"commerce","text":"Sɛ ade no nni hɔ a, mma me nto foforo.","review_status":"unverified"}
+{"id":"commerce-budget","category":"commerce","text":"Mewɔ Ghana cedis ɔha pɛ.","review_status":"unverified"}
+{"id":"commerce-size","category":"commerce","text":"Mepɛ mpaboa tuntum, size aduanan mmienu.","review_status":"unverified"}
+{"id":"commerce-comparison","category":"commerce","text":"Nea ɛwɔ ha ne nea ɛwɔ Madina no mu deɛ, emu deɛ ɛwɔ he na ne bo yɛ fo?","review_status":"unverified"}
+{"id":"commerce-past","category":"commerce","text":"Metɔɔ phone no nnawɔtwe a etwaam.","review_status":"unverified"}
+{"id":"commerce-future","category":"commerce","text":"Ɔkyena mɛkɔtɔ laptop foforo.","review_status":"unverified"}
+{"id":"negation-not-hungry","category":"negation","text":"Ɛkɔm nne me.","review_status":"unverified"}
+{"id":"negation-did-not-go","category":"negation","text":"Mankɔ adwuma nnora.","review_status":"unverified"}
+{"id":"tense-present","category":"tense","text":"Merekɔ sukuu seesei.","review_status":"unverified"}
+{"id":"tense-past","category":"tense","text":"Mekɔɔ sukuu anɔpa yi.","review_status":"unverified"}
+{"id":"tense-future","category":"tense","text":"Mɛkɔ sukuu ɔkyena.","review_status":"unverified"}
+{"id":"question-why","category":"question","text":"Adɛn nti na anyinam ahoɔden no adum?","review_status":"unverified"}
+{"id":"question-where","category":"question","text":"Ɛhe na metumi anya nsuo pa anom?","review_status":"unverified"}
+{"id":"instruction-call","category":"instruction","text":"Frɛ me bere a wodu hɔ.","review_status":"unverified"}
+{"id":"informal-leetspeak","category":"informal","text":"Me ti y3 me yaw paa.","review_status":"unverified"}
+{"id":"informal-code-switch","category":"code_switch","text":"Me laptop no charger no ayera.","review_status":"unverified"}
+{"id":"code-switch-clinic","category":"code_switch","text":"Doctor no kaa sɛ menkɔ clinic no Monday.","review_status":"unverified"}
+{"id":"pronoun-reference","category":"context_required","text":"Ɛno na mepɛ, na ɛnyɛ nea edi kan no.","review_status":"unverified"}
+{"id":"short-followup-model","category":"context_required","text":"MacBook.","review_status":"unverified"}
+{"id":"short-followup-quantity","category":"context_required","text":"Mmienu pɛ.","review_status":"unverified"}
+{"id":"ambiguity-bank","category":"ambiguity","text":"Merekɔ bank no.","review_status":"unverified"}
+{"id":"polite-request","category":"general","text":"Mepa wo kyɛw, boa me ma menhwehwɛ kwan no.","review_status":"unverified"}
+{"id":"family","category":"general","text":"Me nua barima no ne ne mma bɛba fie anwummere yi.","review_status":"unverified"}
+{"id":"weather","category":"general","text":"Osu retɔ denneennen wɔ ha.","review_status":"unverified"}
+{"id":"time","category":"general","text":"Yɛhyia anɔpa nnɔn nkron.","review_status":"unverified"}
+{"id":"quantity","category":"general","text":"Fa nsuo toa mmiɛnsa brɛ me.","review_status":"unverified"}
+{"id":"conditional","category":"reasoning","text":"Sɛ osu tɔ a, yɛrenkɔ gua.","review_status":"unverified"}
+{"id":"comparison","category":"reasoning","text":"Kofi ware sen Kwame, nanso Kwame tu mmirika ntɛm.","review_status":"unverified"}
+{"id":"unclear-fragment","category":"unclear","text":"Ɛɛɛ me... mm asɛm no... hmm.","review_status":"unverified"}

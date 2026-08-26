@@ -42,6 +42,8 @@
     "eval:asr-corpus:strict": "node --import tsx scripts/audit-asr-corpus.ts --strict",
     "eval:asr-ladder": "python modal/train/benchmark_asr_ladder.py",
     "eval:asr-ladder:modal": "python modal/train/benchmark_asr_ladder.py --execute --no-wait",
+    "eval:understanding:model": "modal run modal/train/benchmark_understanding.py",
+    "eval:understanding:results": "rm -rf tmp/understanding-results && mkdir -p tmp/understanding-results && modal volume get --force ghana-health-understanding-results / tmp/understanding-results",
     "eval:model-card": "python modal/train/validate_model_card.py",
     "eval:hf-model-cards": "node --import tsx scripts/eval-hf-model-cards.ts",
     "train:dondo:smoke": "modal run modal/train/train_dondo_asr.py --smoke",
