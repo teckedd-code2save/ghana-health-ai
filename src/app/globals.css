@@ -472,16 +472,18 @@ select {
 
   .app-menu__panel {
     position: fixed;
-    top: 5rem;
+    top: 1.25rem;
     right: 1.25rem;
-    width: 12.75rem;
-    min-height: calc(100vh - 6.25rem);
+    width: 18rem;
+    min-height: calc(100vh - 2.5rem);
+    max-height: calc(100vh - 2.5rem);
     padding: 0.75rem;
     border-radius: 24px;
-    opacity: 1;
-    pointer-events: auto;
-    transform: none;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(calc(100% + 2rem));
     overflow: hidden;
+    transition: opacity 0.18s ease, transform 0.22s ease;
   }
 
   .app-menu__language,
@@ -501,7 +503,9 @@ select {
   }
 
   .app-menu--open .app-menu__panel {
-    width: 18rem;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
   }
 
   .app-menu--open .app-menu__language select,
