@@ -8,6 +8,7 @@ import {
   Database,
   FileCheck2,
   Layers3,
+  ListChecks,
   Save,
   ShieldCheck,
 } from "lucide-react";
@@ -27,10 +28,29 @@ type Review = {
 };
 
 type BenchmarkRow = {
+  kind: "benchmark" | "corpus";
   id: string;
   category: string;
   text: string;
   review_status: string;
+  source?: string;
+  sourceRecordId?: string;
+  split?: string;
+  language?: string;
+  speakerId?: string | null;
+  audioArtifactId?: string | null;
+  consentScope?: string;
+  modelProposal?: {
+    normalized_twi: string;
+    natural_english: string;
+    literal_english: string;
+    intent: string;
+    entities: string;
+    ambiguities: string;
+    requires_clarification: boolean;
+    model: string;
+    status: "not_requested" | "draft";
+  };
   review: Review | null;
 };
 
@@ -55,16 +75,23 @@ type WorkbenchPayload = {
     needsSecondReview: number;
     excluded: number;
   };
+  candidates: {
+    rows: BenchmarkRow[];
+    total: number;
+    completed: number;
+    withAudio: number;
+    draftAnnotated: number;
+  };
 };
 
 const emptyReview = (row?: BenchmarkRow): Review => ({
   id: row?.id ?? "",
-  normalizedTwi: "",
-  naturalEnglish: "",
-  literalEnglish: "",
-  intent: "",
-  entities: "",
-  ambiguities: "",
+  normalizedTwi: row?.modelProposal?.normalized_twi ?? "",
+  naturalEnglish: row?.modelProposal?.natural_english ?? "",
+  literalEnglish: row?.modelProposal?.literal_english ?? "",
+  intent: row?.modelProposal?.intent ?? "",
+  entities: row?.modelProposal?.entities ?? "",
+  ambiguities: row?.modelProposal?.ambiguities ?? "",
   decision: "unreviewed",
   notes: "",
 });
@@ -74,7 +101,8 @@ export function UnderstandingWorkbench() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState<"sources" | "benchmark" | "review">("sources");
+  const [tab, setTab] = useState<"sources" | "benchmark" | "corpus" | "review">("sources");
+  const [reviewMode, setReviewMode] = useState<"benchmark" | "corpus">("corpus");
 
   async function load() {
     const res = await fetch("/api/research/understanding", { cache: "no-store" });
@@ -104,17 +132,22 @@ export function UnderstandingWorkbench() {
     };
   }, []);
 
-  const rows = useMemo(() => payload?.benchmark.rows ?? [], [payload]);
+  const rows = useMemo(
+    () => (reviewMode === "corpus" ? payload?.candidates.rows ?? [] : payload?.benchmark.rows ?? []),
+    [payload, reviewMode],
+  );
   const selected = rows[selectedIndex];
   const progress = payload
     ? Math.round((payload.benchmark.completed / Math.max(payload.benchmark.total, 1)) * 100)
     : 0;
 
-  const categoryCounts = useMemo(() => {
+  const benchmarkCategoryCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    rows.forEach((row) => counts.set(row.category, (counts.get(row.category) ?? 0) + 1));
+    (payload?.benchmark.rows ?? []).forEach((row) =>
+      counts.set(row.category, (counts.get(row.category) ?? 0) + 1),
+    );
     return Array.from(counts.entries());
-  }, [rows]);
+  }, [payload]);
 
   async function save(review: Review, nextIndex?: number) {
     if (!selected) return;
@@ -160,6 +193,10 @@ export function UnderstandingWorkbench() {
         <button className={tab === "benchmark" ? "is-active" : ""} onClick={() => setTab("benchmark")}>
           <Layers3 className="h-4 w-4" />
           Benchmark
+        </button>
+        <button className={tab === "corpus" ? "is-active" : ""} onClick={() => setTab("corpus")}>
+          <ListChecks className="h-4 w-4" />
+          Corpus
         </button>
         <button className={tab === "review" ? "is-active" : ""} onClick={() => setTab("review")}>
           <FileCheck2 className="h-4 w-4" />
@@ -231,10 +268,49 @@ export function UnderstandingWorkbench() {
             <span>{payload.benchmark.excluded} excluded</span>
           </div>
           <div className="research-ase__categories">
-            {categoryCounts.map(([category, count]) => (
+            {benchmarkCategoryCounts.map(([category, count]) => (
               <span key={category}>
                 {category} <strong>{count}</strong>
               </span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {tab === "corpus" && payload && (
+        <section className="research-ase__panel">
+          <div className="research-ase__panel-head">
+            <ListChecks className="h-5 w-5" />
+            <div>
+              <h2>Corpus candidates</h2>
+              <p>
+                These are dataset-derived and consent-scoped candidates. Model-populated fields are
+                drafts until you review and correct them.
+              </p>
+            </div>
+          </div>
+          <div className="research-ase__metrics">
+            <span>{payload.candidates.total} candidate rows</span>
+            <span>{payload.candidates.withAudio} with audio references</span>
+            <span>{payload.candidates.draftAnnotated} with draft annotations</span>
+            <span>{payload.candidates.completed} reviewed</span>
+          </div>
+          <div className="research-ase__candidate-list">
+            {payload.candidates.rows.slice(0, 24).map((row, index) => (
+              <button
+                key={row.id}
+                type="button"
+                onClick={() => {
+                  setReviewMode("corpus");
+                  setSelectedIndex(index);
+                  setTab("review");
+                }}
+              >
+                <strong>{row.text}</strong>
+                <span>
+                  {row.category} · {row.split ?? "unknown split"} · {row.modelProposal?.status ?? "no draft"}
+                </span>
+              </button>
             ))}
           </div>
         </section>
@@ -246,6 +322,10 @@ export function UnderstandingWorkbench() {
           rows={rows}
           selected={selected}
           selectedIndex={selectedIndex}
+          reviewMode={reviewMode}
+          setReviewMode={setReviewMode}
+          benchmarkTotal={payload.benchmark.total}
+          corpusTotal={payload.candidates.total}
           saving={saving}
           setSelectedIndex={setSelectedIndex}
           save={save}
@@ -259,6 +339,10 @@ function ReviewEditor({
   rows,
   selected,
   selectedIndex,
+  reviewMode,
+  setReviewMode,
+  benchmarkTotal,
+  corpusTotal,
   saving,
   setSelectedIndex,
   save,
@@ -266,6 +350,10 @@ function ReviewEditor({
   rows: BenchmarkRow[];
   selected: BenchmarkRow;
   selectedIndex: number;
+  reviewMode: "benchmark" | "corpus";
+  setReviewMode: Dispatch<SetStateAction<"benchmark" | "corpus">>;
+  benchmarkTotal: number;
+  corpusTotal: number;
   saving: boolean;
   setSelectedIndex: Dispatch<SetStateAction<number>>;
   save: (review: Review, nextIndex?: number) => Promise<void>;
@@ -274,6 +362,28 @@ function ReviewEditor({
 
   return (
     <section className="research-ase__review">
+          <div className="research-ase__review-switch">
+            <button
+              type="button"
+              className={reviewMode === "corpus" ? "is-active" : ""}
+              onClick={() => {
+                setReviewMode("corpus");
+                setSelectedIndex(0);
+              }}
+            >
+              Corpus candidates <span>{corpusTotal}</span>
+            </button>
+            <button
+              type="button"
+              className={reviewMode === "benchmark" ? "is-active" : ""}
+              onClick={() => {
+                setReviewMode("benchmark");
+                setSelectedIndex(0);
+              }}
+            >
+              Benchmark probes <span>{benchmarkTotal}</span>
+            </button>
+          </div>
           <aside className="research-ase__queue" aria-label="Benchmark row queue">
             {rows.map((row, index) => (
               <button
@@ -282,7 +392,7 @@ function ReviewEditor({
                 onClick={() => setSelectedIndex(index)}
               >
                 <span>{row.id}</span>
-                <small>{row.review?.decision ?? "unreviewed"}</small>
+                <small>{row.review?.decision ?? row.modelProposal?.status ?? "unreviewed"}</small>
               </button>
             ))}
           </aside>
@@ -291,6 +401,11 @@ function ReviewEditor({
             <div className="research-ase__prompt">
               <span>{selected.category}</span>
               <p>{selected.text}</p>
+              <small>
+                {selected.kind === "corpus"
+                  ? `${selected.sourceRecordId ?? selected.id} · ${selected.consentScope ?? "unknown consent"}`
+                  : "Synthetic benchmark probe"}
+              </small>
               <button
                 type="button"
                 onClick={() => setForm((value) => ({ ...value, normalizedTwi: selected.text }))}

@@ -2,10 +2,26 @@ import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { z } from "zod";
 
-const root = process.cwd();
-const seedPath = path.join(root, "data", "understanding-benchmark", "seed.v0.jsonl");
-const reviewDir = path.join(root, "tmp", "understanding-review");
+const seedPath = path.join(
+  /* turbopackIgnore: true */ process.cwd(),
+  "data",
+  "understanding-benchmark",
+  "seed.v0.jsonl",
+);
+const reviewDir = path.join(/* turbopackIgnore: true */ process.cwd(), "tmp", "understanding-review");
 const reviewPath = path.join(reviewDir, "reviews.v0.jsonl");
+const candidatePath = path.join(
+  /* turbopackIgnore: true */ process.cwd(),
+  "tmp",
+  "understanding-corpus",
+  "candidates.v0.jsonl",
+);
+const committedCandidatePath = path.join(
+  /* turbopackIgnore: true */ process.cwd(),
+  "data",
+  "understanding-corpus",
+  "candidates.v0.jsonl",
+);
 
 export const sourceInventory = [
   {
@@ -102,6 +118,52 @@ const benchmarkSeedSchema = z.object({
   review_status: z.string().default("unverified"),
 });
 
+const corpusCandidateSchema = z.object({
+  id: z.string().min(1),
+  record_id: z.string().min(1),
+  source: z.string().min(1),
+  source_record_id: z.string().min(1),
+  source_path: z.string().min(1),
+  language: z.string().min(1),
+  dialect: z.string().default("unknown"),
+  domain: z.string().min(1),
+  split: z.string().default("unknown"),
+  text: z.string().min(1),
+  normalized_text: z.string().default(""),
+  audio_artifact_id: z.string().nullable().default(null),
+  speaker_id: z.string().nullable().default(null),
+  duration_seconds: z.number().nullable().default(null),
+  consent_scope: z.string().min(1),
+  source_hash: z.string().min(1),
+  duplicate_key: z.string().min(1),
+  review_status: z.string().default("needs_review"),
+  eligible_for_training: z.boolean().default(false),
+  eligible_for_final_evaluation: z.boolean().default(false),
+  model_proposal: z
+    .object({
+      normalized_twi: z.string().default(""),
+      natural_english: z.string().default(""),
+      literal_english: z.string().default(""),
+      intent: z.string().default(""),
+      entities: z.string().default(""),
+      ambiguities: z.string().default(""),
+      requires_clarification: z.boolean().default(false),
+      model: z.string().default("none"),
+      status: z.enum(["not_requested", "draft"]).default("not_requested"),
+    })
+    .default({
+      normalized_twi: "",
+      natural_english: "",
+      literal_english: "",
+      intent: "",
+      entities: "",
+      ambiguities: "",
+      requires_clarification: false,
+      model: "none",
+      status: "not_requested",
+    }),
+});
+
 const reviewSchema = z.object({
   id: z.string().min(1),
   normalizedTwi: z.string().max(1500).default(""),
@@ -118,6 +180,7 @@ const reviewSchema = z.object({
 });
 
 export type BenchmarkSeed = z.infer<typeof benchmarkSeedSchema>;
+export type CorpusCandidate = z.infer<typeof corpusCandidateSchema>;
 export type UnderstandingReview = z.infer<typeof reviewSchema>;
 
 export const understandingReviewInputSchema = reviewSchema.omit({
@@ -139,6 +202,18 @@ export async function readBenchmarkSeeds(): Promise<BenchmarkSeed[]> {
   return parseJsonl(raw, (value) => benchmarkSeedSchema.parse(value));
 }
 
+export async function readCorpusCandidates(): Promise<CorpusCandidate[]> {
+  for (const filePath of [candidatePath, committedCandidatePath]) {
+    try {
+      const raw = await readFile(filePath, "utf8");
+      return parseJsonl(raw, (value) => corpusCandidateSchema.parse(value));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
+  return [];
+}
+
 export async function readUnderstandingReviews(): Promise<UnderstandingReview[]> {
   try {
     const raw = await readFile(reviewPath, "utf8");
@@ -153,9 +228,12 @@ export async function saveUnderstandingReview(
   input: z.infer<typeof understandingReviewInputSchema>,
   reviewer: string,
 ) {
-  const seeds = await readBenchmarkSeeds();
-  if (!seeds.some((seed) => seed.id === input.id)) {
-    throw new Error("Unknown benchmark row");
+  const [seeds, candidates] = await Promise.all([readBenchmarkSeeds(), readCorpusCandidates()]);
+  const known =
+    seeds.some((seed) => seed.id === input.id) ||
+    candidates.some((candidate) => candidate.id === input.id);
+  if (!known) {
+    throw new Error("Unknown research row");
   }
 
   const now = new Date().toISOString();

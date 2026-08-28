@@ -85,7 +85,9 @@ def _language_id(tokenizer: Any, candidates: tuple[str, ...]) -> tuple[str, int]
 )
 def benchmark(
     model_id: str = "ninte/twi-en-nllb-v2",
+    tokenizer_id: str = "facebook/nllb-200-distilled-600M",
     revision: str = "main",
+    tokenizer_revision: str = "main",
     limit: int = 0,
     batch_size: int = 8,
 ) -> dict[str, Any]:
@@ -113,7 +115,12 @@ def benchmark(
     api = HfApi(token=token)
     resolved_revision = api.model_info(model_id, revision=revision).sha
     tokenizer = AutoTokenizer.from_pretrained(
-        model_id, revision=resolved_revision, cache_dir=cache, token=token
+        tokenizer_id,
+        revision=tokenizer_revision,
+        cache_dir=cache,
+        token=token,
+        src_lang="twi_Latn",
+        tgt_lang="eng_Latn",
     )
     source_code, _ = _language_id(tokenizer, ("twi_Latn", "aka_Latn"))
     target_code, target_id = _language_id(tokenizer, ("eng_Latn",))
@@ -164,7 +171,9 @@ def benchmark(
         "schema_version": 1,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "model_id": model_id,
+        "tokenizer_id": tokenizer_id,
         "requested_revision": revision,
+        "requested_tokenizer_revision": tokenizer_revision,
         "resolved_revision": resolved_revision,
         "source_language": source_code,
         "target_language": target_code,
@@ -188,6 +197,7 @@ def benchmark(
         "status": "complete",
         "output_path": output_path,
         "model_id": model_id,
+        "tokenizer_id": tokenizer_id,
         "resolved_revision": resolved_revision,
         "case_count": len(predictions),
         "elapsed_seconds": result["elapsed_seconds"],
@@ -197,13 +207,17 @@ def benchmark(
 @app.local_entrypoint()
 def main(
     model_id: str = "ninte/twi-en-nllb-v2",
+    tokenizer_id: str = "facebook/nllb-200-distilled-600M",
     revision: str = "main",
+    tokenizer_revision: str = "main",
     limit: int = 0,
     batch_size: int = 8,
 ) -> None:
     result = benchmark.remote(
         model_id=model_id,
+        tokenizer_id=tokenizer_id,
         revision=revision,
+        tokenizer_revision=tokenizer_revision,
         limit=limit,
         batch_size=batch_size,
     )

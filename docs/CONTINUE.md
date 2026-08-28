@@ -1,5 +1,43 @@
 # Continue here — Ghana Health AI
 
+## 2026-08-28 understanding research checkpoint
+
+Current checkpoint:
+
+- Production is live and ready at `https://ghanahealth.serendepify.com`.
+- Research workspace: `/research/ase`.
+- Latest pushed commit before this checkpoint: `8da6061`.
+- New local work adds the first corpus candidate builder and candidate review
+  queue; commit/deploy after validation.
+
+Important correction:
+
+- The 50 synthetic benchmark rows are **only** for model comparison.
+- The actual corpus comes from licensed datasets, local recordings, opt-in
+  contributions, and reviewed synthetic augmentation.
+- Models may populate draft transcript/meaning/entity fields, but the project
+  must train only from reviewed/finalized exports.
+
+Completed in this pass:
+
+- Fixed Modal NLLB benchmark runner by loading the base NLLB tokenizer against
+  the fine-tuned `ninte/twi-en-nllb-v2` weights.
+- Ran the 50-row Modal benchmark successfully.
+- Built `data/understanding-corpus/candidates.v0.jsonl` with 80 review-ready
+  candidates:
+  - 30 local-recording rows
+  - 50 curated prompt rows
+  - 80 draft model annotations
+- Added `scripts/build-understanding-corpus-candidates.ts`.
+- Added `scripts/summarize-understanding-research.ts`.
+- Added report: `docs/understanding-research-report-2026-08-28.md`.
+
+Key result:
+
+- NLLB is fast but not safe as a sole health meaning annotator. It mistranslated
+  multiple meaning-critical benchmark rows, including unwellness, pregnancy
+  symptoms, eye pain, body-part location, and commerce budget.
+
 ## 2026-08-26 understanding corpus workspace
 
 The understanding research direction is **not** to train from the 50 synthetic

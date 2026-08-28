@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import {
   corpusStages,
   readBenchmarkSeeds,
+  readCorpusCandidates,
   readUnderstandingReviews,
   saveUnderstandingReview,
   sourceInventory,
@@ -31,15 +32,37 @@ export async function GET() {
   const reviewer = await getReviewer();
   if (!reviewer) return jsonError("Research review access is not enabled for this account.", 403);
 
-  const [seeds, reviews] = await Promise.all([readBenchmarkSeeds(), readUnderstandingReviews()]);
+  const [seeds, candidates, reviews] = await Promise.all([
+    readBenchmarkSeeds(),
+    readCorpusCandidates(),
+    readUnderstandingReviews(),
+  ]);
   const reviewById = new Map(reviews.map((review) => [review.id, review]));
   const rows = seeds.map((seed) => ({
+    kind: "benchmark" as const,
     ...seed,
     review: reviewById.get(seed.id) ?? null,
+  }));
+  const corpusRows = candidates.map((candidate) => ({
+    kind: "corpus" as const,
+    id: candidate.id,
+    category: `${candidate.domain}/${candidate.source}`,
+    text: candidate.text,
+    review_status: candidate.review_status,
+    source: candidate.source,
+    sourceRecordId: candidate.source_record_id,
+    split: candidate.split,
+    language: candidate.language,
+    speakerId: candidate.speaker_id,
+    audioArtifactId: candidate.audio_artifact_id,
+    consentScope: candidate.consent_scope,
+    modelProposal: candidate.model_proposal,
+    review: reviewById.get(candidate.id) ?? null,
   }));
   const completed = rows.filter((row) => row.review?.decision === "reviewed").length;
   const needsSecondReview = rows.filter((row) => row.review?.decision === "needs_second_review").length;
   const excluded = rows.filter((row) => row.review?.decision === "exclude").length;
+  const corpusCompleted = corpusRows.filter((row) => row.review?.decision === "reviewed").length;
 
   return jsonOk({
     reviewer,
@@ -54,6 +77,13 @@ export async function GET() {
       completed,
       needsSecondReview,
       excluded,
+    },
+    candidates: {
+      rows: corpusRows,
+      total: corpusRows.length,
+      completed: corpusCompleted,
+      withAudio: corpusRows.filter((row) => row.audioArtifactId).length,
+      draftAnnotated: corpusRows.filter((row) => row.modelProposal.status === "draft").length,
     },
   });
 }
