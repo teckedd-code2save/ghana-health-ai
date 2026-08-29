@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
+import { prisma } from "@/db/prisma";
 import { z } from "zod";
 
 const seedPath = path.join(
@@ -259,6 +260,30 @@ export async function readCorpusCandidates(): Promise<CorpusCandidate[]> {
 
 export async function readUnderstandingReviews(): Promise<UnderstandingReview[]> {
   try {
+    const rows = await prisma.researchUnderstandingReview.findMany({
+      orderBy: { rowId: "asc" },
+    });
+    return rows.map((row) =>
+      reviewSchema.parse({
+        id: row.rowId,
+        normalizedTwi: row.normalizedTwi,
+        naturalEnglish: row.naturalEnglish,
+        literalEnglish: row.literalEnglish,
+        intent: row.intent,
+        entities: row.entities,
+        ambiguities: row.ambiguities,
+        decision: row.decision,
+        notes: row.notes,
+        reviewer: row.reviewer,
+        createdAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+      }),
+    );
+  } catch (error) {
+    console.error("[research-understanding] falling back to file reviews", error);
+  }
+
+  try {
     const raw = await readFile(reviewPath, "utf8");
     return parseJsonl(raw, (value) => reviewSchema.parse(value));
   } catch (error) {
@@ -300,6 +325,41 @@ export async function saveUnderstandingReview(
     createdAt: prior?.createdAt ?? now,
     updatedAt: now,
   });
+
+  try {
+    await prisma.researchUnderstandingReview.upsert({
+      where: { rowId: input.id },
+      update: {
+        rowKind: seeds.some((seed) => seed.id === input.id) ? "benchmark" : "corpus",
+        normalizedTwi: next.normalizedTwi,
+        naturalEnglish: next.naturalEnglish,
+        literalEnglish: next.literalEnglish,
+        intent: next.intent,
+        entities: next.entities,
+        ambiguities: next.ambiguities,
+        decision: next.decision,
+        notes: next.notes,
+        reviewer,
+      },
+      create: {
+        rowId: input.id,
+        rowKind: seeds.some((seed) => seed.id === input.id) ? "benchmark" : "corpus",
+        normalizedTwi: next.normalizedTwi,
+        naturalEnglish: next.naturalEnglish,
+        literalEnglish: next.literalEnglish,
+        intent: next.intent,
+        entities: next.entities,
+        ambiguities: next.ambiguities,
+        decision: next.decision,
+        notes: next.notes,
+        reviewer,
+      },
+    });
+    return next;
+  } catch (error) {
+    console.error("[research-understanding] falling back to file review save", error);
+  }
+
   const merged = [...existing.filter((review) => review.id !== input.id), next].sort((a, b) =>
     a.id.localeCompare(b.id),
   );

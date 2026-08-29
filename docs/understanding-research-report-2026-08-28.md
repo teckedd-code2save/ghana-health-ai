@@ -115,6 +115,10 @@ It writes manifests under `tmp/understanding-corpus/exports/v0/` only for rows
 with saved human reviews marked `decision=reviewed` and non-empty normalized
 Twi, faithful English meaning, and intent.
 
+Review decisions are stored in Postgres table
+`research_understanding_reviews`; JSONL review storage remains only as a local
+fallback for offline development.
+
 Current export state:
 
 | Metric | Count |

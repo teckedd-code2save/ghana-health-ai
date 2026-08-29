@@ -391,6 +391,27 @@ model TranscriptSession {
   @@map("transcript_sessions")
 }
 
+model ResearchUnderstandingReview {
+  id             String   @id @default(uuid()) @db.Uuid
+  rowId          String   @unique @map("row_id")
+  rowKind        String?  @map("row_kind")
+  normalizedTwi  String   @default("") @map("normalized_twi") @db.Text
+  naturalEnglish String   @default("") @map("natural_english") @db.Text
+  literalEnglish String   @default("") @map("literal_english") @db.Text
+  intent         String   @default("")
+  entities       String   @default("") @db.Text
+  ambiguities    String   @default("") @db.Text
+  decision       String   @default("unreviewed")
+  notes          String   @default("") @db.Text
+  reviewer       String   @default("local_reviewer")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([decision])
+  @@index([updatedAt])
+  @@map("research_understanding_reviews")
+}
+
 model AuditLog {
   id         String   @id @default(uuid()) @db.Uuid
   action     String

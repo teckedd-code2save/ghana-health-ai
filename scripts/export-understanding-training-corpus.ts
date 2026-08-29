@@ -1,5 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import "../src/config/load-env";
+import { prisma } from "../src/db/prisma";
 
 type Candidate = {
   id: string;
@@ -88,9 +90,29 @@ async function main() {
   const candidates = parseJsonl<Candidate>(await fs.readFile(candidatePath, "utf8"));
   let reviews: Review[] = [];
   try {
-    reviews = parseJsonl<Review>(await fs.readFile(reviewPath, "utf8"));
+    const dbRows = await prisma.researchUnderstandingReview.findMany({
+      orderBy: { rowId: "asc" },
+    });
+    reviews = dbRows.map((row) => ({
+      id: row.rowId,
+      normalizedTwi: row.normalizedTwi,
+      naturalEnglish: row.naturalEnglish,
+      literalEnglish: row.literalEnglish,
+      intent: row.intent,
+      entities: row.entities,
+      ambiguities: row.ambiguities,
+      decision: row.decision as Review["decision"],
+      notes: row.notes,
+      reviewer: row.reviewer,
+      updatedAt: row.updatedAt.toISOString(),
+    }));
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    console.error("[understanding-export] falling back to file reviews", error);
+    try {
+      reviews = parseJsonl<Review>(await fs.readFile(reviewPath, "utf8"));
+    } catch (fileError) {
+      if ((fileError as NodeJS.ErrnoException).code !== "ENOENT") throw fileError;
+    }
   }
 
   const candidateById = new Map(candidates.map((candidate) => [candidate.id, candidate]));

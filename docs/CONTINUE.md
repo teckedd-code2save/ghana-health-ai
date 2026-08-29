@@ -764,6 +764,9 @@ Corpus state:
 - `30` reference local audio artifacts.
 - `0` saved human reviews exist in the local review file.
 - `0` rows are currently training-eligible.
+- Review decisions now persist in Postgres through
+  `research_understanding_reviews`; the JSONL review file is only a local
+  fallback.
 
 The research workbench now exposes the benchmark scorecard in `/research/ase`.
 The corpus is ready for review, not training. The next real step is to review
