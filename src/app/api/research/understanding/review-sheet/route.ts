@@ -29,8 +29,12 @@ export async function GET(request: Request) {
   }
 
   const scope = new URL(request.url).searchParams.get("scope");
+  const prefill = new URL(request.url).searchParams.get("prefill");
   const reviewScope = scope === "minimum-training" ? "minimum-training" : "all";
-  const csv = await buildUnderstandingReviewSheetCsv(reviewScope);
+  const csv = await buildUnderstandingReviewSheetCsv({
+    scope: reviewScope,
+    prefillDrafts: prefill === "draft",
+  });
   return new Response(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

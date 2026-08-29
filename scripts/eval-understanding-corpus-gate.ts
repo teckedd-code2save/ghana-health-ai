@@ -1,7 +1,9 @@
 import "../src/config/load-env";
 import {
+  buildUnderstandingReviewSheetCsvFromReviews,
   buildUnderstandingTrainingExportFromReviews,
   getCandidateTrainingSplit,
+  parseUnderstandingReviewSheetCsv,
   readCorpusCandidates,
   selectMinimumTrainingReviewCandidates,
   type CorpusCandidate,
@@ -46,6 +48,14 @@ async function main() {
   assert(minimumSplits.test > 0, "Minimum review pack should include test rows.");
   assert(minimumDomains.has("health"), "Minimum review pack should include health rows.");
   assert(minimumDomains.has("commerce"), "Minimum review pack should include commerce rows.");
+  const assistedCsv = buildUnderstandingReviewSheetCsvFromReviews(minimumPack, [], {
+    prefillDrafts: true,
+  });
+  const untouchedAssisted = parseUnderstandingReviewSheetCsv(assistedCsv, "gate_check");
+  assert(
+    untouchedAssisted.reviews.length === 0,
+    "Untouched assisted review pack must not import unreviewed draft labels.",
+  );
 
   const empty = buildUnderstandingTrainingExportFromReviews(candidates, []);
   assert(!empty.readiness.ready, "Empty review export must not pass the readiness gate.");
@@ -71,6 +81,7 @@ async function main() {
           rows: minimumPack.length,
           splits: minimumSplits,
           domains: Array.from(minimumDomains).sort(),
+          untouched_imports: untouchedAssisted.reviews.length,
         },
         reviewed: {
           accepted: full.accepted,

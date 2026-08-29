@@ -500,6 +500,14 @@ export function UnderstandingWorkbench() {
             >
               Download 20-row training pack
             </a>
+            <a
+              className="research-ase__export-link"
+              href="/api/research/understanding/review-sheet?scope=minimum-training&prefill=draft"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Download assisted pack
+            </a>
             <label className="research-ase__upload">
               <Upload className="h-4 w-4" />
               {uploading ? "Importing..." : "Upload reviewed CSV"}

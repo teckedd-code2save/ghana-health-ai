@@ -262,6 +262,10 @@ export type UnderstandingReadinessCheck = {
   severity: "required" | "warning";
 };
 export type UnderstandingReviewSheetScope = "all" | "minimum-training";
+export type UnderstandingReviewSheetOptions = {
+  scope?: UnderstandingReviewSheetScope;
+  prefillDrafts?: boolean;
+};
 
 const reviewSheetColumns = [
   "id",
@@ -351,18 +355,6 @@ function rowValue(row: Record<string, string>, key: string) {
   return row[key]?.trim() ?? "";
 }
 
-function hasReviewSheetValues(row: Record<string, string>) {
-  return (
-    rowValue(row, "review_normalized_twi").length > 0 ||
-    rowValue(row, "review_natural_english").length > 0 ||
-    rowValue(row, "review_literal_english").length > 0 ||
-    rowValue(row, "review_intent").length > 0 ||
-    rowValue(row, "review_entities").length > 0 ||
-    rowValue(row, "review_ambiguities").length > 0 ||
-    rowValue(row, "review_notes").length > 0
-  );
-}
-
 export function parseUnderstandingReviewSheetCsv(raw: string, fallbackReviewer: string) {
   const [header, ...lines] = parseCsv(raw);
   if (!header) throw new Error("Review sheet is empty.");
@@ -386,7 +378,7 @@ export function parseUnderstandingReviewSheetCsv(raw: string, fallbackReviewer: 
       continue;
     }
 
-    if (decision === "unreviewed" && !hasReviewSheetValues(row)) {
+    if (decision === "unreviewed") {
       skipped.push(id);
       continue;
     }
@@ -647,21 +639,23 @@ function csvLine(values: readonly unknown[]) {
   return `${values.map(csvCell).join(",")}\n`;
 }
 
-export async function buildUnderstandingReviewSheetCsv(scope: UnderstandingReviewSheetScope = "all") {
+export async function buildUnderstandingReviewSheetCsv(options: UnderstandingReviewSheetOptions = {}) {
   const [candidates, reviews] = await Promise.all([
     readCorpusCandidates(),
     readUnderstandingReviews(),
   ]);
+  const scope = options.scope ?? "all";
   const scopedCandidates =
     scope === "minimum-training"
       ? selectMinimumTrainingReviewCandidates(candidates, reviews)
       : candidates;
-  return buildUnderstandingReviewSheetCsvFromReviews(scopedCandidates, reviews);
+  return buildUnderstandingReviewSheetCsvFromReviews(scopedCandidates, reviews, options);
 }
 
 export function buildUnderstandingReviewSheetCsvFromReviews(
   candidates: CorpusCandidate[],
   reviews: UnderstandingReview[],
+  options: Pick<UnderstandingReviewSheetOptions, "prefillDrafts"> = {},
 ) {
   const reviewById = new Map(reviews.map((review) => [review.id, review]));
   let csv = csvLine(reviewSheetColumns);
@@ -686,12 +680,12 @@ export function buildUnderstandingReviewSheetCsvFromReviews(
       candidate.model_proposal.intent,
       candidate.model_proposal.entities,
       candidate.model_proposal.ambiguities,
-      review?.normalizedTwi ?? "",
-      review?.naturalEnglish ?? "",
-      review?.literalEnglish ?? "",
-      review?.intent ?? "",
-      review?.entities ?? "",
-      review?.ambiguities ?? "",
+      review?.normalizedTwi ?? (options.prefillDrafts ? candidate.model_proposal.normalized_twi : ""),
+      review?.naturalEnglish ?? (options.prefillDrafts ? candidate.model_proposal.natural_english : ""),
+      review?.literalEnglish ?? (options.prefillDrafts ? candidate.model_proposal.literal_english : ""),
+      review?.intent ?? (options.prefillDrafts ? candidate.model_proposal.intent : ""),
+      review?.entities ?? (options.prefillDrafts ? candidate.model_proposal.entities : ""),
+      review?.ambiguities ?? (options.prefillDrafts ? candidate.model_proposal.ambiguities : ""),
       review?.decision ?? "unreviewed",
       review?.notes ?? "",
       review?.reviewer ?? "",

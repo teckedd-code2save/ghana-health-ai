@@ -91,6 +91,17 @@ training pack** in the workbench or run:
 pnpm corpus:understanding:review-sheet -- --scope minimum-training --out tmp/understanding-corpus/minimum-training-review.v0.csv
 ```
 
+To prefill the review columns from the model draft and only correct the fields
+that are wrong, add `--prefill draft`:
+
+```bash
+pnpm corpus:understanding:review-sheet -- --scope minimum-training --prefill draft --out tmp/understanding-corpus/minimum-training-assisted.v0.csv
+```
+
+Rows still import as training data only when `decision` is changed to
+`reviewed`. Leaving a row as `unreviewed` skips it, even if draft text is
+present in the review columns.
+
 That pack is selected to cover the minimum row count, train/dev/test splits,
 health rows, and commerce rows before falling back to the rest of the queue.
 

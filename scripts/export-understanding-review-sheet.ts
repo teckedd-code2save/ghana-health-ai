@@ -24,9 +24,13 @@ async function main() {
   const out = argValue("--out", defaultOut);
   const reviewSource = argValue("--review-source", "file");
   const scope = argValue("--scope", "all");
+  const prefill = argValue("--prefill", "");
   const csv = await (async () => {
     if (reviewSource !== "file") {
-      return buildUnderstandingReviewSheetCsv(scope === "minimum-training" ? "minimum-training" : "all");
+      return buildUnderstandingReviewSheetCsv({
+        scope: scope === "minimum-training" ? "minimum-training" : "all",
+        prefillDrafts: prefill === "draft",
+      });
     }
     const [candidates, reviews] = await Promise.all([
       readCorpusCandidates(),
@@ -36,7 +40,9 @@ async function main() {
       scope === "minimum-training"
         ? selectMinimumTrainingReviewCandidates(candidates, reviews)
         : candidates;
-    return buildUnderstandingReviewSheetCsvFromReviews(scopedCandidates, reviews);
+    return buildUnderstandingReviewSheetCsvFromReviews(scopedCandidates, reviews, {
+      prefillDrafts: prefill === "draft",
+    });
   })();
   await fs.mkdir(path.dirname(out), { recursive: true });
   await fs.writeFile(out, csv, "utf8");

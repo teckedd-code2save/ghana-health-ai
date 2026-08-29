@@ -787,11 +787,14 @@ follow without blocking the first health-focused run.
 For faster offline review, use the workbench **Download 20-row training pack**
 action or run
 `pnpm corpus:understanding:review-sheet -- --scope minimum-training --out tmp/understanding-corpus/minimum-training-review.v0.csv`.
-That pack is selected to cover row count, train/dev/test, health, and commerce
-before the remaining queue. Fill the `review_*`, `decision`, `review_notes`,
-and `reviewer` columns, and preserve `proposed_split`. Then upload the
-corrected CSV through the workbench **Upload reviewed CSV** action. Production
-uploads persist to Postgres and immediately update the export readiness gate.
-For local fallback work, import with
+Use **Download assisted pack** or add `--prefill draft` to prefill review
+columns from model drafts without approving them. Rows still import for
+training only when `decision` is changed to `reviewed`; untouched `unreviewed`
+rows are skipped. That pack is selected to cover row count, train/dev/test,
+health, and commerce before the remaining queue. Fill the `review_*`,
+`decision`, `review_notes`, and `reviewer` columns, and preserve
+`proposed_split`. Then upload the corrected CSV through the workbench **Upload
+reviewed CSV** action. Production uploads persist to Postgres and immediately
+update the export readiness gate. For local fallback work, import with
 `pnpm corpus:understanding:import-review-sheet -- --input <sheet.csv>`, then run
 the strict export gate.

@@ -139,7 +139,8 @@ Do not train from the 50 benchmark rows.
 
 Next useful model work:
 
-1. Review the 20-row minimum training pack from `/research/ase`, then continue
+1. Review the 20-row assisted training pack from `/research/ase`, correcting
+   draft fields and changing only accepted rows to `reviewed`; then continue
    through the remaining 80 corpus candidates after the first strict export
    passes.
 2. Export reviewed rows with `pnpm corpus:understanding:export:strict`.
