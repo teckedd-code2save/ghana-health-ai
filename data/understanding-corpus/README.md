@@ -44,3 +44,15 @@ pnpm corpus:understanding:export:strict
 
 Strict mode fails when no rows are eligible. That is intentional: model drafts
 and unreviewed corpus candidates are not training data.
+
+If the local database is not running and you intentionally want to export from
+the local JSONL fallback, use:
+
+```bash
+node --import tsx scripts/export-understanding-training-corpus.ts --review-source=file
+```
+
+In the review UI, use **Accept and next** only after checking/correcting the
+normalized Twi, faithful English meaning, and intent. Use **Second review** for
+ambiguous health/commerce rows and **Exclude** for bad, duplicate, or unusable
+records.

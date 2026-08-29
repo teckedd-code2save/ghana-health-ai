@@ -400,6 +400,11 @@ function ReviewEditor({
   save: (review: Review, nextIndex?: number) => Promise<void>;
 }) {
   const [form, setForm] = useState<Review>(selected.review ?? emptyReview(selected));
+  const canAccept =
+    form.normalizedTwi.trim().length > 0 &&
+    form.naturalEnglish.trim().length > 0 &&
+    form.intent.trim().length > 0;
+  const nextIndex = Math.min(rows.length - 1, selectedIndex + 1);
 
   return (
     <section className="research-ase__review">
@@ -534,12 +539,51 @@ function ReviewEditor({
               </button>
               <button
                 type="button"
-                className="research-ase__primary"
-                onClick={() => void save(form, selectedIndex + 1)}
+                onClick={() =>
+                  void save(
+                    {
+                      ...form,
+                      decision: "needs_second_review",
+                    },
+                    nextIndex,
+                  )
+                }
                 disabled={saving}
               >
+                Second review
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  void save(
+                    {
+                      ...form,
+                      decision: "exclude",
+                    },
+                    nextIndex,
+                  )
+                }
+                disabled={saving}
+              >
+                Exclude
+              </button>
+              <button
+                type="button"
+                className="research-ase__primary"
+                onClick={() =>
+                  void save(
+                    {
+                      ...form,
+                      decision: "reviewed",
+                    },
+                    nextIndex,
+                  )
+                }
+                disabled={saving || !canAccept}
+                title={canAccept ? "Mark reviewed and continue" : "Needs Twi, English meaning, and intent"}
+              >
                 <Check className="h-4 w-4" />
-                Save and next
+                Accept and next
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>

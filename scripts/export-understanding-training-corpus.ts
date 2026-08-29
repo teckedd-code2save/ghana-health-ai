@@ -85,29 +85,37 @@ async function main() {
   const candidatePath = argValue("--candidates", defaultCandidates);
   const reviewPath = argValue("--reviews", defaultReviews);
   const outDir = argValue("--out-dir", defaultOutDir);
+  const reviewSource = argValue("--review-source", "auto");
   const strict = process.argv.includes("--strict");
 
   const candidates = parseJsonl<Candidate>(await fs.readFile(candidatePath, "utf8"));
   let reviews: Review[] = [];
-  try {
-    const dbRows = await prisma.researchUnderstandingReview.findMany({
-      orderBy: { rowId: "asc" },
-    });
-    reviews = dbRows.map((row) => ({
-      id: row.rowId,
-      normalizedTwi: row.normalizedTwi,
-      naturalEnglish: row.naturalEnglish,
-      literalEnglish: row.literalEnglish,
-      intent: row.intent,
-      entities: row.entities,
-      ambiguities: row.ambiguities,
-      decision: row.decision as Review["decision"],
-      notes: row.notes,
-      reviewer: row.reviewer,
-      updatedAt: row.updatedAt.toISOString(),
-    }));
-  } catch (error) {
-    console.error("[understanding-export] falling back to file reviews", error);
+  let databaseAvailable = false;
+  if (reviewSource !== "file") {
+    try {
+      const dbRows = await prisma.researchUnderstandingReview.findMany({
+        orderBy: { rowId: "asc" },
+      });
+      databaseAvailable = true;
+      reviews = dbRows.map((row) => ({
+        id: row.rowId,
+        normalizedTwi: row.normalizedTwi,
+        naturalEnglish: row.naturalEnglish,
+        literalEnglish: row.literalEnglish,
+        intent: row.intent,
+        entities: row.entities,
+        ambiguities: row.ambiguities,
+        decision: row.decision as Review["decision"],
+        notes: row.notes,
+        reviewer: row.reviewer,
+        updatedAt: row.updatedAt.toISOString(),
+      }));
+    } catch (error) {
+      if (reviewSource === "db") throw error;
+      console.warn("[understanding-export] database unavailable; using local review file");
+    }
+  }
+  if (reviewSource === "file" || !databaseAvailable) {
     try {
       reviews = parseJsonl<Review>(await fs.readFile(reviewPath, "utf8"));
     } catch (fileError) {
