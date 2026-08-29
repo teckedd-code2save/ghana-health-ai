@@ -261,6 +261,7 @@ export type UnderstandingReadinessCheck = {
   required: number | string | boolean;
   severity: "required" | "warning";
 };
+export type UnderstandingReviewSheetScope = "all" | "minimum-training";
 
 const reviewSheetColumns = [
   "id",
@@ -568,6 +569,58 @@ export function getCandidateTrainingSplit(candidate: CorpusCandidate): "train" |
   return stableBucket(candidate.speaker_id || candidate.duplicate_key || candidate.id);
 }
 
+function candidateReviewPriority(candidate: CorpusCandidate) {
+  const split = getCandidateTrainingSplit(candidate);
+  const health = candidate.domain === "health" ? -40 : 0;
+  const commerce = candidate.domain === "commerce" ? -20 : 0;
+  const splitCoverage = split === "test" ? -30 : split === "dev" ? -25 : 0;
+  const audio = candidate.audio_artifact_id ? -10 : 0;
+  const local = candidate.source === "local_recording" ? -8 : 0;
+  const draft = candidate.model_proposal.status === "draft" ? -5 : 0;
+  return health + commerce + splitCoverage + audio + local + draft;
+}
+
+export function selectMinimumTrainingReviewCandidates(
+  candidates: CorpusCandidate[],
+  reviews: UnderstandingReview[] = [],
+  target = 20,
+) {
+  const reviewById = new Map(reviews.map((review) => [review.id, review]));
+  const existingTraining = buildUnderstandingTrainingExportFromReviews(candidates, reviews);
+  const selected = new Map<string, CorpusCandidate>();
+  const available = [...candidates]
+    .filter((candidate) => reviewById.get(candidate.id)?.decision !== "reviewed")
+    .filter((candidate) => reviewById.get(candidate.id)?.decision !== "exclude")
+    .sort(
+      (a, b) =>
+        candidateReviewPriority(a) - candidateReviewPriority(b) ||
+        a.source_record_id.localeCompare(b.source_record_id) ||
+        a.id.localeCompare(b.id),
+    );
+
+  const addFirst = (predicate: (candidate: CorpusCandidate) => boolean) => {
+    const candidate = available.find((row) => !selected.has(row.id) && predicate(row));
+    if (candidate) selected.set(candidate.id, candidate);
+  };
+
+  if (existingTraining.splits.train === 0) addFirst((candidate) => getCandidateTrainingSplit(candidate) === "train");
+  if (existingTraining.splits.dev === 0) addFirst((candidate) => getCandidateTrainingSplit(candidate) === "dev");
+  if (existingTraining.splits.test === 0) addFirst((candidate) => getCandidateTrainingSplit(candidate) === "test");
+  if (!existingTraining.rows.some((row) => row.domain === "health")) {
+    addFirst((candidate) => candidate.domain === "health");
+  }
+  if (!existingTraining.rows.some((row) => row.domain === "commerce")) {
+    addFirst((candidate) => candidate.domain === "commerce");
+  }
+
+  for (const candidate of available) {
+    if (selected.size >= target) break;
+    selected.set(candidate.id, candidate);
+  }
+
+  return Array.from(selected.values()).slice(0, target);
+}
+
 function hasRequiredReviewFields(review: UnderstandingReview) {
   return (
     review.normalizedTwi.trim().length > 0 &&
@@ -594,12 +647,16 @@ function csvLine(values: readonly unknown[]) {
   return `${values.map(csvCell).join(",")}\n`;
 }
 
-export async function buildUnderstandingReviewSheetCsv() {
+export async function buildUnderstandingReviewSheetCsv(scope: UnderstandingReviewSheetScope = "all") {
   const [candidates, reviews] = await Promise.all([
     readCorpusCandidates(),
     readUnderstandingReviews(),
   ]);
-  return buildUnderstandingReviewSheetCsvFromReviews(candidates, reviews);
+  const scopedCandidates =
+    scope === "minimum-training"
+      ? selectMinimumTrainingReviewCandidates(candidates, reviews)
+      : candidates;
+  return buildUnderstandingReviewSheetCsvFromReviews(scopedCandidates, reviews);
 }
 
 export function buildUnderstandingReviewSheetCsvFromReviews(

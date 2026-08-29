@@ -84,6 +84,16 @@ For spreadsheet review, download the sheet from the workbench or run:
 pnpm corpus:understanding:review-sheet
 ```
 
+For the fastest first pass toward a trainable corpus, download **Download 20-row
+training pack** in the workbench or run:
+
+```bash
+pnpm corpus:understanding:review-sheet -- --scope minimum-training --out tmp/understanding-corpus/minimum-training-review.v0.csv
+```
+
+That pack is selected to cover the minimum row count, train/dev/test splits,
+health rows, and commerce rows before falling back to the rest of the queue.
+
 Fill only the `review_*`, `decision`, `review_notes`, and `reviewer` columns.
 Keep `id`, `proposed_split`, source, consent, and draft columns unchanged so
 provenance and split assignment remain stable. To pass the training gate, the

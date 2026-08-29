@@ -23,16 +23,21 @@ async function getResearchReviewer() {
   return user?.email ?? user?.phone ?? user?.id ?? "local_reviewer";
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   if (!(await getResearchReviewer())) {
     return Response.json({ error: "Research review access is not enabled for this account." }, { status: 403 });
   }
 
-  const csv = await buildUnderstandingReviewSheetCsv();
+  const scope = new URL(request.url).searchParams.get("scope");
+  const reviewScope = scope === "minimum-training" ? "minimum-training" : "all";
+  const csv = await buildUnderstandingReviewSheetCsv(reviewScope);
   return new Response(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="understanding-review-sheet.v0.csv"',
+      "Content-Disposition":
+        reviewScope === "minimum-training"
+          ? 'attachment; filename="understanding-minimum-training-review.v0.csv"'
+          : 'attachment; filename="understanding-review-sheet.v0.csv"',
       "Cache-Control": "no-store",
     },
   });

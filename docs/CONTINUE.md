@@ -784,12 +784,14 @@ health-domain coverage, no duplicate meaning keys, and consent scope on every
 row. Commerce-domain coverage is visible as a warning so the product track can
 follow without blocking the first health-focused run.
 
-For faster offline review, use the workbench **Download review sheet** action
-or `pnpm corpus:understanding:review-sheet`, fill the `review_*`, `decision`,
-`review_notes`, and `reviewer` columns, and preserve `proposed_split`. Review
-at least one train, one dev, and one test row in the first accepted batch so
-the split gate can pass. Then upload the corrected CSV through the workbench
-**Upload reviewed CSV** action. Production uploads persist to Postgres and
-immediately update the export readiness gate. For local fallback work, import
-with `pnpm corpus:understanding:import-review-sheet -- --input <sheet.csv>`,
-then run the strict export gate.
+For faster offline review, use the workbench **Download 20-row training pack**
+action or run
+`pnpm corpus:understanding:review-sheet -- --scope minimum-training --out tmp/understanding-corpus/minimum-training-review.v0.csv`.
+That pack is selected to cover row count, train/dev/test, health, and commerce
+before the remaining queue. Fill the `review_*`, `decision`, `review_notes`,
+and `reviewer` columns, and preserve `proposed_split`. Then upload the
+corrected CSV through the workbench **Upload reviewed CSV** action. Production
+uploads persist to Postgres and immediately update the export readiness gate.
+For local fallback work, import with
+`pnpm corpus:understanding:import-review-sheet -- --input <sheet.csv>`, then run
+the strict export gate.
