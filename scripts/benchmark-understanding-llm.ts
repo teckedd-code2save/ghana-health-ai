@@ -49,6 +49,11 @@ function extractJson(value: string) {
 async function main() {
   const limit = Number(argValue("--limit", "0"));
   const outDir = argValue("--out-dir", defaultOutDir);
+  const modelOverride = argValue("--model", "");
+  if (modelOverride) {
+    process.env.OPENAI_LANGUAGE_MODEL = modelOverride;
+    process.env.LLM_MODEL = modelOverride;
+  }
   const provider = llmProviderInfo();
   if (!provider) throw new Error("No LLM provider configured.");
 

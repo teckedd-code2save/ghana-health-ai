@@ -20,6 +20,7 @@ type Prediction = {
 };
 
 type BenchmarkResult = {
+  created_at?: string;
   model_id: string;
   adapter_id?: string | null;
   tokenizer_id?: string;
@@ -117,11 +118,27 @@ async function main() {
   const out = argValue("--out", defaultOut);
   const rubric = JSON.parse(await fs.readFile(rubricPath, "utf8")) as Rubric;
   const resultFiles = await findJsonFiles(resultsDir);
-  const scorecards = [];
+  const resultByCandidate = new Map<string, { filePath: string; result: BenchmarkResult }>();
 
   for (const filePath of resultFiles) {
     const result = JSON.parse(await fs.readFile(filePath, "utf8")) as BenchmarkResult;
     if (!Array.isArray(result.predictions)) continue;
+    const key = candidateName(result);
+    const prior = resultByCandidate.get(key);
+    if (
+      prior &&
+      (prior.result.case_count > result.case_count ||
+        (prior.result.case_count === result.case_count &&
+          (prior.result.created_at ?? "") >= (result.created_at ?? "")))
+    ) {
+      continue;
+    }
+    resultByCandidate.set(key, { filePath, result });
+  }
+
+  const scorecards = [];
+
+  for (const { filePath, result } of resultByCandidate.values()) {
 
     const rows = result.predictions
       .filter((prediction) => rubric.cases[prediction.id])
