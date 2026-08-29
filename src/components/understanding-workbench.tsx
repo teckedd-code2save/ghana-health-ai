@@ -132,6 +132,20 @@ function reviewRank(row: BenchmarkRow) {
   return reviewed + excluded + secondReview + health + audio + local;
 }
 
+function fillFromDraft(row: BenchmarkRow, prior?: Review): Review {
+  return {
+    id: row.id,
+    normalizedTwi: row.modelProposal?.normalized_twi || prior?.normalizedTwi || row.text,
+    naturalEnglish: row.modelProposal?.natural_english || prior?.naturalEnglish || "",
+    literalEnglish: row.modelProposal?.literal_english || prior?.literalEnglish || "",
+    intent: row.modelProposal?.intent || prior?.intent || "",
+    entities: row.modelProposal?.entities || prior?.entities || "",
+    ambiguities: row.modelProposal?.ambiguities || prior?.ambiguities || "",
+    decision: prior?.decision ?? "unreviewed",
+    notes: prior?.notes ?? "",
+  };
+}
+
 export function UnderstandingWorkbench() {
   const [payload, setPayload] = useState<WorkbenchPayload | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -183,8 +197,24 @@ export function UnderstandingWorkbench() {
     [payload],
   );
   const selected = rows[selectedIndex];
+  const corpusReviewSummary = useMemo(() => {
+    const corpusRows = payload?.candidates.rows ?? [];
+    const accepted = corpusRows.filter((row) => row.review?.decision === "reviewed").length;
+    const secondReview = corpusRows.filter((row) => row.review?.decision === "needs_second_review").length;
+    const excluded = corpusRows.filter((row) => row.review?.decision === "exclude").length;
+    return {
+      accepted,
+      secondReview,
+      excluded,
+      unreviewed: Math.max(0, corpusRows.length - accepted - secondReview - excluded),
+    };
+  }, [payload]);
+  const nextCorpusReviewIndex = useMemo(() => {
+    const index = corpusReviewRows.findIndex((row) => !row.review || row.review.decision === "unreviewed");
+    return index >= 0 ? index : 0;
+  }, [corpusReviewRows]);
   const progress = payload
-    ? Math.round((payload.benchmark.completed / Math.max(payload.benchmark.total, 1)) * 100)
+    ? Math.round((payload.candidates.trainingReady / Math.max(payload.candidates.total, 1)) * 100)
     : 0;
 
   const benchmarkCategoryCounts = useMemo(() => {
@@ -227,7 +257,7 @@ export function UnderstandingWorkbench() {
         </div>
         <div className="research-ase__status">
           <span>{payload ? `${payload.benchmark.total} benchmark probes` : "Loading"}</span>
-          <strong>{payload ? `${progress}% reviewed` : "..."}</strong>
+          <strong>{payload ? `${progress}% training-ready` : "..."}</strong>
         </div>
       </header>
 
@@ -362,19 +392,32 @@ export function UnderstandingWorkbench() {
             <span>{payload.candidates.draftAnnotated} with draft annotations</span>
             <span>{payload.candidates.completed} reviewed</span>
             <span>{payload.candidates.trainingReady} training-ready</span>
+            <span>{corpusReviewSummary.unreviewed} left to review</span>
             <span>
               train/dev/test {payload.candidates.splits.train}/{payload.candidates.splits.dev}/
               {payload.candidates.splits.test}
             </span>
           </div>
-          <a
-            className="research-ase__export-link"
-            href="/api/research/understanding/export"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Open training export
-          </a>
+          <div className="research-ase__quick-actions">
+            <button
+              type="button"
+              onClick={() => {
+                setReviewMode("corpus");
+                setSelectedIndex(nextCorpusReviewIndex);
+                setTab("review");
+              }}
+            >
+              Review next training row
+            </button>
+            <a
+              className="research-ase__export-link"
+              href="/api/research/understanding/export"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open training export
+            </a>
+          </div>
           <div className="research-ase__candidate-list">
             {corpusReviewRows.slice(0, 24).map((row, index) => (
               <button
@@ -403,6 +446,8 @@ export function UnderstandingWorkbench() {
           selected={selected}
           selectedIndex={selectedIndex}
           reviewMode={reviewMode}
+          trainingReady={payload.candidates.trainingReady}
+          corpusReviewSummary={corpusReviewSummary}
           setReviewMode={setReviewMode}
           benchmarkTotal={payload.benchmark.total}
           corpusTotal={payload.candidates.total}
@@ -420,6 +465,8 @@ function ReviewEditor({
   selected,
   selectedIndex,
   reviewMode,
+  trainingReady,
+  corpusReviewSummary,
   setReviewMode,
   benchmarkTotal,
   corpusTotal,
@@ -431,6 +478,13 @@ function ReviewEditor({
   selected: BenchmarkRow;
   selectedIndex: number;
   reviewMode: "benchmark" | "corpus";
+  trainingReady: number;
+  corpusReviewSummary: {
+    accepted: number;
+    secondReview: number;
+    excluded: number;
+    unreviewed: number;
+  };
   setReviewMode: Dispatch<SetStateAction<"benchmark" | "corpus">>;
   benchmarkTotal: number;
   corpusTotal: number;
@@ -469,6 +523,15 @@ function ReviewEditor({
               Benchmark probes <span>{benchmarkTotal}</span>
             </button>
           </div>
+          <div className="research-ase__review-progress">
+            <span>
+              Row {selectedIndex + 1}/{rows.length}
+            </span>
+            <span>{trainingReady} training-ready</span>
+            <span>{corpusReviewSummary.unreviewed} unreviewed</span>
+            <span>{corpusReviewSummary.secondReview} second review</span>
+            <span>{corpusReviewSummary.excluded} excluded</span>
+          </div>
           <aside className="research-ase__queue" aria-label="Benchmark row queue">
             {rows.map((row, index) => (
               <button
@@ -488,15 +551,21 @@ function ReviewEditor({
               <p>{selected.text}</p>
               <small>
                 {selected.kind === "corpus"
-                  ? `${selected.sourceRecordId ?? selected.id} · ${selected.consentScope ?? "unknown consent"}`
+                  ? `${selected.sourceRecordId ?? selected.id} · ${selected.consentScope ?? "unknown consent"} · ${selected.speakerId ?? "unknown speaker"}`
                   : "Synthetic benchmark probe"}
               </small>
+              {selected.audioArtifactId && <small>{selected.audioArtifactId}</small>}
               <button
                 type="button"
                 onClick={() => setForm((value) => ({ ...value, normalizedTwi: selected.text }))}
               >
                 Use as normalized Twi
               </button>
+              {selected.modelProposal?.status === "draft" && (
+                <button type="button" onClick={() => setForm((value) => fillFromDraft(selected, value))}>
+                  Use model draft fields
+                </button>
+              )}
             </div>
 
             <label>

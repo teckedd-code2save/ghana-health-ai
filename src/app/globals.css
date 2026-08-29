@@ -1825,7 +1825,8 @@ select {
 
 .research-ase__tabs button,
 .research-ase__actions button,
-.research-ase__prompt button {
+.research-ase__prompt button,
+.research-ase__quick-actions button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1977,7 +1978,9 @@ select {
 
 .research-ase__metrics,
 .research-ase__categories,
-.research-ase__review-switch {
+.research-ase__review-switch,
+.research-ase__review-progress,
+.research-ase__quick-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.55rem;
@@ -1985,7 +1988,8 @@ select {
 }
 
 .research-ase__metrics span,
-.research-ase__categories span {
+.research-ase__categories span,
+.research-ase__review-progress span {
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 0.45rem 0.75rem;
@@ -2056,6 +2060,11 @@ select {
 .research-ase__review-switch {
   grid-column: 1 / -1;
   margin: 0;
+}
+
+.research-ase__review-progress {
+  grid-column: 1 / -1;
+  margin-top: -0.35rem;
 }
 
 .research-ase__review-switch button {
@@ -2229,6 +2238,20 @@ select {
   font-size: 0.86rem;
   font-weight: 800;
   text-decoration: none;
+}
+
+.research-ase__quick-actions {
+  align-items: center;
+}
+
+.research-ase__quick-actions button {
+  min-height: 2.5rem;
+  border-color: var(--line-strong);
+  padding: 0 0.95rem;
+  color: #f8fbf9;
+  background: #14241d;
+  font-size: 0.86rem;
+  font-weight: 850;
 }
 
 .research-ase__candidate-list button {
