@@ -289,6 +289,7 @@ const reviewSheetColumns = [
   "review_notes",
   "reviewer",
 ] as const;
+const reviewDecisions = ["unreviewed", "reviewed", "needs_second_review", "exclude"] as const;
 
 export const understandingReviewInputSchema = reviewSchema.omit({
   reviewer: true,
@@ -302,6 +303,118 @@ function parseJsonl<T>(raw: string, parse: (value: unknown) => T): T[] {
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => parse(JSON.parse(line)));
+}
+
+function parseCsv(raw: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let quoted = false;
+
+  for (let i = 0; i < raw.length; i += 1) {
+    const char = raw[i];
+    const next = raw[i + 1];
+    if (quoted) {
+      if (char === '"' && next === '"') {
+        field += '"';
+        i += 1;
+      } else if (char === '"') {
+        quoted = false;
+      } else {
+        field += char;
+      }
+    } else if (char === '"') {
+      quoted = true;
+    } else if (char === ",") {
+      row.push(field);
+      field = "";
+    } else if (char === "\n") {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+    } else if (char !== "\r") {
+      field += char;
+    }
+  }
+
+  if (field.length > 0 || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows.filter((line) => line.some((value) => value.trim().length > 0));
+}
+
+function rowValue(row: Record<string, string>, key: string) {
+  return row[key]?.trim() ?? "";
+}
+
+function hasReviewSheetValues(row: Record<string, string>) {
+  return (
+    rowValue(row, "review_normalized_twi").length > 0 ||
+    rowValue(row, "review_natural_english").length > 0 ||
+    rowValue(row, "review_literal_english").length > 0 ||
+    rowValue(row, "review_intent").length > 0 ||
+    rowValue(row, "review_entities").length > 0 ||
+    rowValue(row, "review_ambiguities").length > 0 ||
+    rowValue(row, "review_notes").length > 0
+  );
+}
+
+export function parseUnderstandingReviewSheetCsv(raw: string, fallbackReviewer: string) {
+  const [header, ...lines] = parseCsv(raw);
+  if (!header) throw new Error("Review sheet is empty.");
+
+  const reviews: UnderstandingReview[] = [];
+  const skipped: string[] = [];
+  const invalid: Array<{ id: string; reason: string }> = [];
+  const now = new Date().toISOString();
+
+  for (const line of lines) {
+    const row = Object.fromEntries(header.map((key, index) => [key, line[index] ?? ""]));
+    const id = rowValue(row, "id");
+    if (!id) {
+      skipped.push("missing_id");
+      continue;
+    }
+
+    const decision = rowValue(row, "decision") || "unreviewed";
+    if (!reviewDecisions.includes(decision as UnderstandingReview["decision"])) {
+      invalid.push({ id, reason: `invalid_decision:${decision}` });
+      continue;
+    }
+
+    if (decision === "unreviewed" && !hasReviewSheetValues(row)) {
+      skipped.push(id);
+      continue;
+    }
+
+    reviews.push(
+      reviewSchema.parse({
+        id,
+        normalizedTwi: rowValue(row, "review_normalized_twi"),
+        naturalEnglish: rowValue(row, "review_natural_english"),
+        literalEnglish: rowValue(row, "review_literal_english"),
+        intent: rowValue(row, "review_intent"),
+        entities: rowValue(row, "review_entities"),
+        ambiguities: rowValue(row, "review_ambiguities"),
+        decision,
+        notes: rowValue(row, "review_notes"),
+        reviewer: rowValue(row, "reviewer") || fallbackReviewer,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    );
+  }
+
+  if (invalid.length > 0) {
+    throw new Error(`Review sheet has invalid rows: ${invalid.map((row) => `${row.id} ${row.reason}`).join(", ")}`);
+  }
+
+  return {
+    reviews,
+    skipped: skipped.length,
+  };
 }
 
 export async function readBenchmarkSeeds(): Promise<BenchmarkSeed[]> {

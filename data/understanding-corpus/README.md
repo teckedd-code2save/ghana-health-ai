@@ -86,7 +86,11 @@ pnpm corpus:understanding:review-sheet
 
 Fill only the `review_*`, `decision`, `review_notes`, and `reviewer` columns.
 Keep `id`, source, consent, and draft columns unchanged so provenance remains
-stable. To import a completed local sheet into the JSONL review fallback:
+stable. In production, upload the corrected CSV through the workbench with
+**Upload reviewed CSV**; saved rows go to Postgres and immediately update the
+readiness gate.
+
+To import a completed local sheet into the JSONL review fallback:
 
 ```bash
 pnpm corpus:understanding:import-review-sheet -- --input tmp/understanding-corpus/review-sheet.v0.csv

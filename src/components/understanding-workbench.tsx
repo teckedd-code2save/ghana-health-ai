@@ -11,6 +11,7 @@ import {
   ListChecks,
   Save,
   ShieldCheck,
+  Upload,
 } from "lucide-react";
 
 type ReviewDecision = "unreviewed" | "reviewed" | "needs_second_review" | "exclude";
@@ -164,6 +165,8 @@ export function UnderstandingWorkbench() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
   const [tab, setTab] = useState<"sources" | "benchmark" | "corpus" | "review">("sources");
   const [reviewMode, setReviewMode] = useState<"benchmark" | "corpus">("corpus");
 
@@ -255,6 +258,29 @@ export function UnderstandingWorkbench() {
     }
     await load();
     if (typeof nextIndex === "number") setSelectedIndex(Math.max(0, Math.min(rows.length - 1, nextIndex)));
+  }
+
+  async function uploadReviewSheet(file: File | null) {
+    if (!file) return;
+    setUploading(true);
+    setUploadStatus("");
+    setError("");
+    const form = new FormData();
+    form.set("file", file);
+    const res = await fetch("/api/research/understanding/review-sheet", {
+      method: "POST",
+      body: form,
+    });
+    const data = await res.json();
+    setUploading(false);
+    if (!res.ok) {
+      setError(data.error ?? "Review sheet could not be imported.");
+      return;
+    }
+    setUploadStatus(
+      `Imported ${data.imported} rows, skipped ${data.skipped}, accepted ${data.accepted}. Readiness ${data.readiness.required_passed}/${data.readiness.required_total}.`,
+    );
+    await load();
   }
 
   return (
@@ -455,7 +481,22 @@ export function UnderstandingWorkbench() {
             >
               Download review sheet
             </a>
+            <label className="research-ase__upload">
+              <Upload className="h-4 w-4" />
+              {uploading ? "Importing..." : "Upload reviewed CSV"}
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                disabled={uploading}
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0] ?? null;
+                  void uploadReviewSheet(file);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </label>
           </div>
+          {uploadStatus && <p className="research-ase__success">{uploadStatus}</p>}
           <div className="research-ase__candidate-list">
             {corpusReviewRows.slice(0, 24).map((row, index) => (
               <button
