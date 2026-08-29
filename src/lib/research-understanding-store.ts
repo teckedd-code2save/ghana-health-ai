@@ -269,6 +269,7 @@ const reviewSheetColumns = [
   "source",
   "source_record_id",
   "source_path",
+  "proposed_split",
   "audio_artifact_id",
   "speaker_id",
   "consent_scope",
@@ -563,6 +564,10 @@ function stableBucket(id: string): "train" | "dev" | "test" {
   return "test";
 }
 
+export function getCandidateTrainingSplit(candidate: CorpusCandidate): "train" | "dev" | "test" {
+  return stableBucket(candidate.speaker_id || candidate.duplicate_key || candidate.id);
+}
+
 function hasRequiredReviewFields(review: UnderstandingReview) {
   return (
     review.normalizedTwi.trim().length > 0 &&
@@ -613,6 +618,7 @@ export function buildUnderstandingReviewSheetCsvFromReviews(
       candidate.source,
       candidate.source_record_id,
       candidate.source_path,
+      getCandidateTrainingSplit(candidate),
       candidate.audio_artifact_id ?? "",
       candidate.speaker_id ?? "",
       candidate.consent_scope,
@@ -747,7 +753,7 @@ export function buildUnderstandingTrainingExportFromReviews(
       continue;
     }
 
-    const split = stableBucket(candidate.speaker_id || candidate.duplicate_key || candidate.id);
+    const split = getCandidateTrainingSplit(candidate);
     rows.push({
       id: candidate.id,
       split,

@@ -786,8 +786,10 @@ follow without blocking the first health-focused run.
 
 For faster offline review, use the workbench **Download review sheet** action
 or `pnpm corpus:understanding:review-sheet`, fill the `review_*`, `decision`,
-`review_notes`, and `reviewer` columns, then upload the corrected CSV through
-the workbench **Upload reviewed CSV** action. Production uploads persist to
-Postgres and immediately update the export readiness gate. For local fallback
-work, import with `pnpm corpus:understanding:import-review-sheet -- --input
-<sheet.csv>`, then run the strict export gate.
+`review_notes`, and `reviewer` columns, and preserve `proposed_split`. Review
+at least one train, one dev, and one test row in the first accepted batch so
+the split gate can pass. Then upload the corrected CSV through the workbench
+**Upload reviewed CSV** action. Production uploads persist to Postgres and
+immediately update the export readiness gate. For local fallback work, import
+with `pnpm corpus:understanding:import-review-sheet -- --input <sheet.csv>`,
+then run the strict export gate.

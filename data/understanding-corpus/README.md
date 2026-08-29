@@ -85,10 +85,13 @@ pnpm corpus:understanding:review-sheet
 ```
 
 Fill only the `review_*`, `decision`, `review_notes`, and `reviewer` columns.
-Keep `id`, source, consent, and draft columns unchanged so provenance remains
-stable. In production, upload the corrected CSV through the workbench with
-**Upload reviewed CSV**; saved rows go to Postgres and immediately update the
-readiness gate.
+Keep `id`, `proposed_split`, source, consent, and draft columns unchanged so
+provenance and split assignment remain stable. To pass the training gate, the
+accepted rows must include at least one `train`, one `dev`, and one `test` row;
+use `proposed_split` to choose the first review batch intentionally. In
+production, upload the corrected CSV through the workbench with **Upload
+reviewed CSV**; saved rows go to Postgres and immediately update the readiness
+gate.
 
 To import a completed local sheet into the JSONL review fallback:
 

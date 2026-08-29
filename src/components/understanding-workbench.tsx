@@ -37,6 +37,7 @@ type BenchmarkRow = {
   source?: string;
   sourceRecordId?: string;
   split?: string;
+  trainingSplit?: "train" | "dev" | "test";
   language?: string;
   speakerId?: string | null;
   audioArtifactId?: string | null;
@@ -108,6 +109,11 @@ type WorkbenchPayload = {
       dev: number;
       test: number;
     };
+    candidateSplits: {
+      train: number;
+      dev: number;
+      test: number;
+    };
     readiness: {
       ready: boolean;
       required_passed: number;
@@ -143,7 +149,8 @@ function reviewRank(row: BenchmarkRow) {
   const health = row.category.includes("health") ? -20 : 0;
   const audio = row.audioArtifactId ? -10 : 0;
   const local = row.source === "local_recording" ? -8 : 0;
-  return reviewed + excluded + secondReview + health + audio + local;
+  const splitCoverage = row.trainingSplit === "test" ? -18 : row.trainingSplit === "dev" ? -16 : 0;
+  return reviewed + excluded + secondReview + health + audio + local + splitCoverage;
 }
 
 function fillFromDraft(row: BenchmarkRow, prior?: Review): Review {
@@ -440,6 +447,10 @@ export function UnderstandingWorkbench() {
               train/dev/test {payload.candidates.splits.train}/{payload.candidates.splits.dev}/
               {payload.candidates.splits.test}
             </span>
+            <span>
+              available {payload.candidates.candidateSplits.train}/
+              {payload.candidates.candidateSplits.dev}/{payload.candidates.candidateSplits.test}
+            </span>
           </div>
           <div className="research-ase__readiness">
             {payload.candidates.readiness.checks.map((check) => (
@@ -511,6 +522,7 @@ export function UnderstandingWorkbench() {
                 <strong>{row.text}</strong>
                 <span>
                   {row.category} · {row.split ?? "unknown split"} · {row.modelProposal?.status ?? "no draft"}
+                  {row.trainingSplit ? ` · ${row.trainingSplit}` : ""}
                 </span>
               </button>
             ))}
@@ -630,7 +642,7 @@ function ReviewEditor({
               <p>{selected.text}</p>
               <small>
                 {selected.kind === "corpus"
-                  ? `${selected.sourceRecordId ?? selected.id} · ${selected.consentScope ?? "unknown consent"} · ${selected.speakerId ?? "unknown speaker"}`
+                  ? `${selected.sourceRecordId ?? selected.id} · ${selected.consentScope ?? "unknown consent"} · ${selected.speakerId ?? "unknown speaker"} · ${selected.trainingSplit ?? "unknown split"}`
                   : "Synthetic benchmark probe"}
               </small>
               {selected.audioArtifactId && <small>{selected.audioArtifactId}</small>}

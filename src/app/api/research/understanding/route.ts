@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import {
   corpusStages,
   buildUnderstandingTrainingExport,
+  getCandidateTrainingSplit,
   readBenchmarkSeeds,
   readCorpusCandidates,
   readUnderstandingScorecard,
@@ -56,6 +57,7 @@ export async function GET() {
     source: candidate.source,
     sourceRecordId: candidate.source_record_id,
     split: candidate.split,
+    trainingSplit: getCandidateTrainingSplit(candidate),
     language: candidate.language,
     speakerId: candidate.speaker_id,
     audioArtifactId: candidate.audio_artifact_id,
@@ -67,6 +69,13 @@ export async function GET() {
   const needsSecondReview = rows.filter((row) => row.review?.decision === "needs_second_review").length;
   const excluded = rows.filter((row) => row.review?.decision === "exclude").length;
   const corpusCompleted = corpusRows.filter((row) => row.review?.decision === "reviewed").length;
+  const candidateSplits = corpusRows.reduce(
+    (acc, row) => {
+      if (row.trainingSplit) acc[row.trainingSplit] += 1;
+      return acc;
+    },
+    { train: 0, dev: 0, test: 0 },
+  );
 
   return jsonOk({
     reviewer,
@@ -91,6 +100,7 @@ export async function GET() {
       draftAnnotated: corpusRows.filter((row) => row.modelProposal.status === "draft").length,
       trainingReady: trainingExport.accepted,
       splits: trainingExport.splits,
+      candidateSplits,
       readiness: trainingExport.readiness,
     },
   });
