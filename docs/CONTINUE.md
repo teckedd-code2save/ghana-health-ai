@@ -710,6 +710,8 @@ See roadmap. TTS train script is still a skeleton.
 | `scripts/benchmark-understanding-llm.ts` | Scores structured LLM meaning extraction on the Twi benchmark |
 | `scripts/score-understanding-benchmark.ts` | Scores candidate benchmark artifacts against the project meaning rubric |
 | `scripts/export-understanding-training-corpus.ts` | Exports only reviewed understanding rows into train/dev/test manifests |
+| `scripts/export-understanding-review-sheet.ts` | Writes a CSV sheet for bulk human review of corpus candidates |
+| `scripts/import-understanding-review-sheet.ts` | Imports a corrected review CSV into the local JSONL review fallback |
 | `data/understanding-benchmark/rubric.v0.json` | Meaning-preservation rubric for the 50 synthetic benchmark probes |
 | `data/understanding-benchmark/scorecard.v0.json` | Current candidate ranking for the benchmark probes |
 | `data/understanding-corpus/candidates.v0.jsonl` | 80 draft corpus candidates for human review |
@@ -781,3 +783,9 @@ pass the readiness gate: at least 20 reviewed rows, train/dev/test coverage,
 health-domain coverage, no duplicate meaning keys, and consent scope on every
 row. Commerce-domain coverage is visible as a warning so the product track can
 follow without blocking the first health-focused run.
+
+For faster offline review, use the workbench **Download review sheet** action
+or `pnpm corpus:understanding:review-sheet`, fill the `review_*`, `decision`,
+`review_notes`, and `reviewer` columns, import locally with
+`pnpm corpus:understanding:import-review-sheet -- --input <sheet.csv>`, then
+run the strict export gate.

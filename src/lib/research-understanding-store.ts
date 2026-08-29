@@ -262,6 +262,34 @@ export type UnderstandingReadinessCheck = {
   severity: "required" | "warning";
 };
 
+const reviewSheetColumns = [
+  "id",
+  "domain",
+  "language",
+  "source",
+  "source_record_id",
+  "source_path",
+  "audio_artifact_id",
+  "speaker_id",
+  "consent_scope",
+  "original_text",
+  "draft_normalized_twi",
+  "draft_natural_english",
+  "draft_literal_english",
+  "draft_intent",
+  "draft_entities",
+  "draft_ambiguities",
+  "review_normalized_twi",
+  "review_natural_english",
+  "review_literal_english",
+  "review_intent",
+  "review_entities",
+  "review_ambiguities",
+  "decision",
+  "review_notes",
+  "reviewer",
+] as const;
+
 export const understandingReviewInputSchema = reviewSchema.omit({
   reviewer: true,
   createdAt: true,
@@ -437,6 +465,64 @@ function parseEntities(value: string): unknown {
   } catch {
     return value;
   }
+}
+
+function csvCell(value: unknown) {
+  const text = value == null ? "" : String(value);
+  return `"${text.replaceAll('"', '""')}"`;
+}
+
+function csvLine(values: readonly unknown[]) {
+  return `${values.map(csvCell).join(",")}\n`;
+}
+
+export async function buildUnderstandingReviewSheetCsv() {
+  const [candidates, reviews] = await Promise.all([
+    readCorpusCandidates(),
+    readUnderstandingReviews(),
+  ]);
+  return buildUnderstandingReviewSheetCsvFromReviews(candidates, reviews);
+}
+
+export function buildUnderstandingReviewSheetCsvFromReviews(
+  candidates: CorpusCandidate[],
+  reviews: UnderstandingReview[],
+) {
+  const reviewById = new Map(reviews.map((review) => [review.id, review]));
+  let csv = csvLine(reviewSheetColumns);
+
+  for (const candidate of candidates) {
+    const review = reviewById.get(candidate.id);
+    csv += csvLine([
+      candidate.id,
+      candidate.domain,
+      candidate.language,
+      candidate.source,
+      candidate.source_record_id,
+      candidate.source_path,
+      candidate.audio_artifact_id ?? "",
+      candidate.speaker_id ?? "",
+      candidate.consent_scope,
+      candidate.text,
+      candidate.model_proposal.normalized_twi,
+      candidate.model_proposal.natural_english,
+      candidate.model_proposal.literal_english,
+      candidate.model_proposal.intent,
+      candidate.model_proposal.entities,
+      candidate.model_proposal.ambiguities,
+      review?.normalizedTwi ?? "",
+      review?.naturalEnglish ?? "",
+      review?.literalEnglish ?? "",
+      review?.intent ?? "",
+      review?.entities ?? "",
+      review?.ambiguities ?? "",
+      review?.decision ?? "unreviewed",
+      review?.notes ?? "",
+      review?.reviewer ?? "",
+    ]);
+  }
+
+  return csv;
 }
 
 function buildReadinessChecks(rows: UnderstandingTrainingRow[]): UnderstandingReadinessCheck[] {

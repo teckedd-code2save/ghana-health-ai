@@ -75,3 +75,28 @@ In the review UI, use **Accept and next** only after checking/correcting the
 normalized Twi, faithful English meaning, and intent. Use **Second review** for
 ambiguous health/commerce rows and **Exclude** for bad, duplicate, or unusable
 records.
+
+## Bulk review sheet
+
+For spreadsheet review, download the sheet from the workbench or run:
+
+```bash
+pnpm corpus:understanding:review-sheet
+```
+
+Fill only the `review_*`, `decision`, `review_notes`, and `reviewer` columns.
+Keep `id`, source, consent, and draft columns unchanged so provenance remains
+stable. To import a completed local sheet into the JSONL review fallback:
+
+```bash
+pnpm corpus:understanding:import-review-sheet -- --input tmp/understanding-corpus/review-sheet.v0.csv
+```
+
+After import, run:
+
+```bash
+pnpm corpus:understanding:export:strict
+```
+
+If the gate fails, use the readiness checks in the output to decide which rows
+or splits still need review.

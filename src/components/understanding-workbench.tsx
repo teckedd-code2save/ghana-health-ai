@@ -447,6 +447,14 @@ export function UnderstandingWorkbench() {
             >
               Open training export
             </a>
+            <a
+              className="research-ase__export-link"
+              href="/api/research/understanding/review-sheet"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Download review sheet
+            </a>
           </div>
           <div className="research-ase__candidate-list">
             {corpusReviewRows.slice(0, 24).map((row, index) => (
