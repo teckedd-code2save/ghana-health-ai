@@ -52,8 +52,17 @@ The deployed review workspace also exposes the same gate at:
 ```
 
 That endpoint returns the current accepted row count, train/dev/test split
-counts, and grouped rows. It should show `ready=false` until at least one
-corpus candidate has been accepted through review.
+counts, readiness checks, and grouped rows. It should show `ready=false` until
+the required checks pass:
+
+- at least 20 reviewed rows
+- non-empty train, dev, and test splits
+- health-domain coverage
+- no duplicate meaning keys in the export
+- consent scope on every row
+
+Commerce-domain coverage is tracked as a warning for the next product lane,
+not as the first health-training blocker.
 
 If the local database is not running and you intentionally want to export from
 the local JSONL fallback, use:

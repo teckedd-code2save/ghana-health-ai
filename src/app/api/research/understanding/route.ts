@@ -91,6 +91,7 @@ export async function GET() {
       draftAnnotated: corpusRows.filter((row) => row.modelProposal.status === "draft").length,
       trainingReady: trainingExport.accepted,
       splits: trainingExport.splits,
+      readiness: trainingExport.readiness,
     },
   });
 }

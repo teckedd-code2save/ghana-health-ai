@@ -77,6 +77,7 @@ async function main() {
     rejected: exportPayload.rejected,
     splits: exportPayload.splits,
     rejected_reasons: exportPayload.rejected_reasons,
+    readiness: exportPayload.readiness,
   };
 
   await fs.mkdir(outDir, { recursive: true });
@@ -92,8 +93,8 @@ async function main() {
   await fs.writeFile(path.join(outDir, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`, "utf8");
   console.log(JSON.stringify({ outDir, ...summary }, null, 2));
 
-  if (strict && exportPayload.accepted === 0) {
-    throw new Error("No reviewed rows are eligible for training export yet.");
+  if (strict && !exportPayload.readiness.ready) {
+    throw new Error("Reviewed rows have not passed the training readiness gate yet.");
   }
 }
 

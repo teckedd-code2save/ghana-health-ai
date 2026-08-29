@@ -253,6 +253,14 @@ export type UnderstandingTrainingRow = {
   eligible_for_training: true;
   eligible_for_final_evaluation: boolean;
 };
+export type UnderstandingReadinessCheck = {
+  id: string;
+  label: string;
+  passed: boolean;
+  value: number | string | boolean;
+  required: number | string | boolean;
+  severity: "required" | "warning";
+};
 
 export const understandingReviewInputSchema = reviewSchema.omit({
   reviewer: true,
@@ -431,6 +439,84 @@ function parseEntities(value: string): unknown {
   }
 }
 
+function buildReadinessChecks(rows: UnderstandingTrainingRow[]): UnderstandingReadinessCheck[] {
+  const duplicateKeys = new Map<string, number>();
+  const domains = new Set(rows.map((row) => row.domain));
+  const splits = new Set(rows.map((row) => row.split));
+  for (const row of rows) {
+    duplicateKeys.set(row.duplicate_key, (duplicateKeys.get(row.duplicate_key) ?? 0) + 1);
+  }
+  const duplicateCount = Array.from(duplicateKeys.values()).filter((count) => count > 1).length;
+  const rowsWithConsent = rows.filter((row) => row.consent_scope.trim().length > 0).length;
+
+  return [
+    {
+      id: "minimum_rows",
+      label: "At least 20 reviewed rows",
+      passed: rows.length >= 20,
+      value: rows.length,
+      required: 20,
+      severity: "required",
+    },
+    {
+      id: "train_split",
+      label: "Train split has rows",
+      passed: splits.has("train"),
+      value: splits.has("train"),
+      required: true,
+      severity: "required",
+    },
+    {
+      id: "dev_split",
+      label: "Dev split has rows",
+      passed: splits.has("dev"),
+      value: splits.has("dev"),
+      required: true,
+      severity: "required",
+    },
+    {
+      id: "test_split",
+      label: "Test split has rows",
+      passed: splits.has("test"),
+      value: splits.has("test"),
+      required: true,
+      severity: "required",
+    },
+    {
+      id: "health_domain",
+      label: "Health domain represented",
+      passed: domains.has("health"),
+      value: domains.has("health"),
+      required: true,
+      severity: "required",
+    },
+    {
+      id: "no_duplicate_keys",
+      label: "No duplicate meaning keys in export",
+      passed: duplicateCount === 0,
+      value: duplicateCount,
+      required: 0,
+      severity: "required",
+    },
+    {
+      id: "consent_scope",
+      label: "Every row has consent scope",
+      passed: rows.length > 0 && rowsWithConsent === rows.length,
+      value: `${rowsWithConsent}/${rows.length}`,
+      required: "all",
+      severity: "required",
+    },
+    {
+      id: "commerce_domain",
+      label: "Commerce domain represented",
+      passed: domains.has("commerce"),
+      value: domains.has("commerce"),
+      required: true,
+      severity: "warning",
+    },
+  ];
+}
+
 export async function buildUnderstandingTrainingExport() {
   const [candidates, reviews] = await Promise.all([
     readCorpusCandidates(),
@@ -501,6 +587,8 @@ export function buildUnderstandingTrainingExportFromReviews(
     acc[row.reason] = (acc[row.reason] ?? 0) + 1;
     return acc;
   }, {});
+  const readinessChecks = buildReadinessChecks(rows);
+  const requiredChecks = readinessChecks.filter((check) => check.severity === "required");
 
   return {
     schema_version: 1,
@@ -511,6 +599,12 @@ export function buildUnderstandingTrainingExportFromReviews(
     rejected: rejected.length,
     splits,
     rejected_reasons: rejectedReasons,
+    readiness: {
+      ready: requiredChecks.every((check) => check.passed),
+      required_passed: requiredChecks.filter((check) => check.passed).length,
+      required_total: requiredChecks.length,
+      checks: readinessChecks,
+    },
     rows,
   };
 }

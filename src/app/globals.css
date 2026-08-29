@@ -1980,7 +1980,8 @@ select {
 .research-ase__categories,
 .research-ase__review-switch,
 .research-ase__review-progress,
-.research-ase__quick-actions {
+.research-ase__quick-actions,
+.research-ase__readiness {
   display: flex;
   flex-wrap: wrap;
   gap: 0.55rem;
@@ -2242,6 +2243,30 @@ select {
 
 .research-ase__quick-actions {
   align-items: center;
+}
+
+.research-ase__readiness {
+  align-items: center;
+}
+
+.research-ase__readiness span {
+  border: 1px solid rgba(15, 37, 29, 0.1);
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  color: #6b3f08;
+  background: rgba(255, 246, 222, 0.82);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.research-ase__readiness span.is-passed {
+  color: #08745c;
+  background: rgba(25, 183, 140, 0.1);
+}
+
+.research-ase__readiness span.is-failed:not(.is-warning) {
+  color: #8f2f21;
+  background: rgba(239, 111, 97, 0.1);
 }
 
 .research-ase__quick-actions button {

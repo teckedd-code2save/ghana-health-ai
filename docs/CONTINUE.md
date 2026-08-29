@@ -776,5 +776,8 @@ train/dev/test counts, and a direct link to
 The corpus is ready for review, not training. The next real step is to review
 rows in the workbench and run `pnpm corpus:understanding:export:strict`; only
 that export should feed training. The export endpoint and strict command must
-remain at `0` accepted rows until a human has corrected and accepted corpus
-rows.
+remain unready until a human has corrected and accepted enough corpus rows to
+pass the readiness gate: at least 20 reviewed rows, train/dev/test coverage,
+health-domain coverage, no duplicate meaning keys, and consent scope on every
+row. Commerce-domain coverage is visible as a warning so the product track can
+follow without blocking the first health-focused run.

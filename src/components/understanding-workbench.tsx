@@ -107,6 +107,19 @@ type WorkbenchPayload = {
       dev: number;
       test: number;
     };
+    readiness: {
+      ready: boolean;
+      required_passed: number;
+      required_total: number;
+      checks: Array<{
+        id: string;
+        label: string;
+        passed: boolean;
+        value: number | string | boolean;
+        required: number | string | boolean;
+        severity: "required" | "warning";
+      }>;
+    };
   };
 };
 
@@ -394,9 +407,26 @@ export function UnderstandingWorkbench() {
             <span>{payload.candidates.trainingReady} training-ready</span>
             <span>{corpusReviewSummary.unreviewed} left to review</span>
             <span>
+              readiness {payload.candidates.readiness.required_passed}/
+              {payload.candidates.readiness.required_total}
+            </span>
+            <span>
               train/dev/test {payload.candidates.splits.train}/{payload.candidates.splits.dev}/
               {payload.candidates.splits.test}
             </span>
+          </div>
+          <div className="research-ase__readiness">
+            {payload.candidates.readiness.checks.map((check) => (
+              <span
+                key={check.id}
+                className={[
+                  check.passed ? "is-passed" : "is-failed",
+                  check.severity === "warning" ? "is-warning" : "",
+                ].join(" ")}
+              >
+                {check.label}: {String(check.value)}
+              </span>
+            ))}
           </div>
           <div className="research-ase__quick-actions">
             <button

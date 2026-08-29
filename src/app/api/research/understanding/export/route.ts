@@ -31,10 +31,10 @@ export async function GET() {
   return jsonOk({
     ...payload,
     rows: bySplit,
-    ready: payload.accepted > 0,
+    ready: payload.readiness.ready,
     message:
-      payload.accepted > 0
+      payload.readiness.ready
         ? "Reviewed corpus rows are ready for training export."
-        : "No reviewed corpus rows are eligible for training export yet.",
+        : "Reviewed corpus rows have not passed the training readiness gate yet.",
   });
 }
