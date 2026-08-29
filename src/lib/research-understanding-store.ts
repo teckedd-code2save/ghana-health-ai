@@ -226,6 +226,33 @@ export type BenchmarkSeed = z.infer<typeof benchmarkSeedSchema>;
 export type CorpusCandidate = z.infer<typeof corpusCandidateSchema>;
 export type UnderstandingReview = z.infer<typeof reviewSchema>;
 export type UnderstandingScorecard = z.infer<typeof scorecardSchema>;
+export type UnderstandingTrainingRow = {
+  id: string;
+  split: "train" | "dev" | "test";
+  domain: string;
+  language: string;
+  dialect: string;
+  source: string;
+  source_record_id: string;
+  source_path: string;
+  source_hash: string;
+  duplicate_key: string;
+  consent_scope: string;
+  audio_artifact_id: string | null;
+  speaker_id: string | null;
+  duration_seconds: number | null;
+  original_text: string;
+  normalized_twi: string;
+  natural_english: string;
+  literal_english: string;
+  intent: string;
+  entities: unknown;
+  ambiguities: string;
+  reviewer: string;
+  reviewed_at: string | null;
+  eligible_for_training: true;
+  eligible_for_final_evaluation: boolean;
+};
 
 export const understandingReviewInputSchema = reviewSchema.omit({
   reviewer: true,
@@ -280,9 +307,16 @@ export async function readUnderstandingReviews(): Promise<UnderstandingReview[]>
       }),
     );
   } catch (error) {
-    console.error("[research-understanding] falling back to file reviews", error);
+    console.warn(
+      "[research-understanding] database reviews unavailable; using local review file",
+      error instanceof Error ? error.message : String(error),
+    );
   }
 
+  return readFileUnderstandingReviews();
+}
+
+export async function readFileUnderstandingReviews(): Promise<UnderstandingReview[]> {
   try {
     const raw = await readFile(reviewPath, "utf8");
     return parseJsonl(raw, (value) => reviewSchema.parse(value));
@@ -367,4 +401,116 @@ export async function saveUnderstandingReview(
   await mkdir(reviewDir, { recursive: true });
   await writeFile(reviewPath, `${merged.map((row) => JSON.stringify(row)).join("\n")}\n`, "utf8");
   return next;
+}
+
+function stableBucket(id: string): "train" | "dev" | "test" {
+  let hash = 0;
+  for (const char of id) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+  const mod = hash % 100;
+  if (mod < 80) return "train";
+  if (mod < 90) return "dev";
+  return "test";
+}
+
+function hasRequiredReviewFields(review: UnderstandingReview) {
+  return (
+    review.normalizedTwi.trim().length > 0 &&
+    review.naturalEnglish.trim().length > 0 &&
+    review.intent.trim().length > 0
+  );
+}
+
+function parseEntities(value: string): unknown {
+  if (!value.trim()) return [];
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+export async function buildUnderstandingTrainingExport() {
+  const [candidates, reviews] = await Promise.all([
+    readCorpusCandidates(),
+    readUnderstandingReviews(),
+  ]);
+  return buildUnderstandingTrainingExportFromReviews(candidates, reviews);
+}
+
+export function buildUnderstandingTrainingExportFromReviews(
+  candidates: CorpusCandidate[],
+  reviews: UnderstandingReview[],
+) {
+  const candidateById = new Map(candidates.map((candidate) => [candidate.id, candidate]));
+  const rejected: { id: string; reason: string }[] = [];
+  const rows: UnderstandingTrainingRow[] = [];
+
+  for (const review of reviews) {
+    const candidate = candidateById.get(review.id);
+    if (!candidate) {
+      rejected.push({ id: review.id, reason: "review_without_candidate" });
+      continue;
+    }
+    if (review.decision !== "reviewed") {
+      rejected.push({ id: review.id, reason: `decision_${review.decision}` });
+      continue;
+    }
+    if (!hasRequiredReviewFields(review)) {
+      rejected.push({ id: review.id, reason: "missing_required_review_fields" });
+      continue;
+    }
+
+    const split = stableBucket(candidate.speaker_id || candidate.duplicate_key || candidate.id);
+    rows.push({
+      id: candidate.id,
+      split,
+      domain: candidate.domain,
+      language: candidate.language,
+      dialect: candidate.dialect,
+      source: candidate.source,
+      source_record_id: candidate.source_record_id,
+      source_path: candidate.source_path,
+      source_hash: candidate.source_hash,
+      duplicate_key: candidate.duplicate_key,
+      consent_scope: candidate.consent_scope,
+      audio_artifact_id: candidate.audio_artifact_id,
+      speaker_id: candidate.speaker_id,
+      duration_seconds: candidate.duration_seconds,
+      original_text: candidate.text,
+      normalized_twi: review.normalizedTwi.trim(),
+      natural_english: review.naturalEnglish.trim(),
+      literal_english: review.literalEnglish.trim(),
+      intent: review.intent.trim(),
+      entities: parseEntities(review.entities),
+      ambiguities: review.ambiguities.trim(),
+      reviewer: review.reviewer,
+      reviewed_at: review.updatedAt ?? null,
+      eligible_for_training: true,
+      eligible_for_final_evaluation: split === "test",
+    });
+  }
+
+  const splits = {
+    train: rows.filter((row) => row.split === "train").length,
+    dev: rows.filter((row) => row.split === "dev").length,
+    test: rows.filter((row) => row.split === "test").length,
+  };
+  const rejectedReasons = rejected.reduce<Record<string, number>>((acc, row) => {
+    acc[row.reason] = (acc[row.reason] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return {
+    schema_version: 1,
+    created_at: new Date().toISOString(),
+    candidates: candidates.length,
+    reviews: reviews.length,
+    accepted: rows.length,
+    rejected: rejected.length,
+    splits,
+    rejected_reasons: rejectedReasons,
+    rows,
+  };
 }

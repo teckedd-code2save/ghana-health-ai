@@ -45,6 +45,16 @@ pnpm corpus:understanding:export:strict
 Strict mode fails when no rows are eligible. That is intentional: model drafts
 and unreviewed corpus candidates are not training data.
 
+The deployed review workspace also exposes the same gate at:
+
+```text
+/api/research/understanding/export
+```
+
+That endpoint returns the current accepted row count, train/dev/test split
+counts, and grouped rows. It should show `ready=false` until at least one
+corpus candidate has been accepted through review.
+
 If the local database is not running and you intentionally want to export from
 the local JSONL fallback, use:
 

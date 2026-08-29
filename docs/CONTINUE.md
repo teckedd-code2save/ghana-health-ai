@@ -769,6 +769,12 @@ Corpus state:
   fallback.
 
 The research workbench now exposes the benchmark scorecard in `/research/ase`.
+It also shows how many reviewed rows are training-ready, the current
+train/dev/test counts, and a direct link to
+`/api/research/understanding/export`.
+
 The corpus is ready for review, not training. The next real step is to review
 rows in the workbench and run `pnpm corpus:understanding:export:strict`; only
-that export should feed training.
+that export should feed training. The export endpoint and strict command must
+remain at `0` accepted rows until a human has corrected and accepted corpus
+rows.

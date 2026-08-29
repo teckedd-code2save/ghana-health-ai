@@ -3,6 +3,7 @@ import { jsonError, jsonOk } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth";
 import {
   corpusStages,
+  buildUnderstandingTrainingExport,
   readBenchmarkSeeds,
   readCorpusCandidates,
   readUnderstandingScorecard,
@@ -33,11 +34,12 @@ export async function GET() {
   const reviewer = await getReviewer();
   if (!reviewer) return jsonError("Research review access is not enabled for this account.", 403);
 
-  const [seeds, candidates, reviews, scorecard] = await Promise.all([
+  const [seeds, candidates, reviews, scorecard, trainingExport] = await Promise.all([
     readBenchmarkSeeds(),
     readCorpusCandidates(),
     readUnderstandingReviews(),
     readUnderstandingScorecard(),
+    buildUnderstandingTrainingExport(),
   ]);
   const reviewById = new Map(reviews.map((review) => [review.id, review]));
   const rows = seeds.map((seed) => ({
@@ -87,6 +89,8 @@ export async function GET() {
       completed: corpusCompleted,
       withAudio: corpusRows.filter((row) => row.audioArtifactId).length,
       draftAnnotated: corpusRows.filter((row) => row.modelProposal.status === "draft").length,
+      trainingReady: trainingExport.accepted,
+      splits: trainingExport.splits,
     },
   });
 }

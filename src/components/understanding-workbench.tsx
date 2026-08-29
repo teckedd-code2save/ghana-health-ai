@@ -101,6 +101,12 @@ type WorkbenchPayload = {
     completed: number;
     withAudio: number;
     draftAnnotated: number;
+    trainingReady: number;
+    splits: {
+      train: number;
+      dev: number;
+      test: number;
+    };
   };
 };
 
@@ -115,6 +121,16 @@ const emptyReview = (row?: BenchmarkRow): Review => ({
   decision: "unreviewed",
   notes: "",
 });
+
+function reviewRank(row: BenchmarkRow) {
+  const reviewed = row.review?.decision === "reviewed" ? 100 : 0;
+  const excluded = row.review?.decision === "exclude" ? 120 : 0;
+  const secondReview = row.review?.decision === "needs_second_review" ? 80 : 0;
+  const health = row.category.includes("health") ? -20 : 0;
+  const audio = row.audioArtifactId ? -10 : 0;
+  const local = row.source === "local_recording" ? -8 : 0;
+  return reviewed + excluded + secondReview + health + audio + local;
+}
 
 export function UnderstandingWorkbench() {
   const [payload, setPayload] = useState<WorkbenchPayload | null>(null);
@@ -153,8 +169,18 @@ export function UnderstandingWorkbench() {
   }, []);
 
   const rows = useMemo(
-    () => (reviewMode === "corpus" ? payload?.candidates.rows ?? [] : payload?.benchmark.rows ?? []),
+    () =>
+      [...(reviewMode === "corpus" ? payload?.candidates.rows ?? [] : payload?.benchmark.rows ?? [])].sort(
+        (a, b) => reviewRank(a) - reviewRank(b) || a.id.localeCompare(b.id),
+      ),
     [payload, reviewMode],
+  );
+  const corpusReviewRows = useMemo(
+    () =>
+      [...(payload?.candidates.rows ?? [])].sort(
+        (a, b) => reviewRank(a) - reviewRank(b) || a.id.localeCompare(b.id),
+      ),
+    [payload],
   );
   const selected = rows[selectedIndex];
   const progress = payload
@@ -335,9 +361,22 @@ export function UnderstandingWorkbench() {
             <span>{payload.candidates.withAudio} with audio references</span>
             <span>{payload.candidates.draftAnnotated} with draft annotations</span>
             <span>{payload.candidates.completed} reviewed</span>
+            <span>{payload.candidates.trainingReady} training-ready</span>
+            <span>
+              train/dev/test {payload.candidates.splits.train}/{payload.candidates.splits.dev}/
+              {payload.candidates.splits.test}
+            </span>
           </div>
+          <a
+            className="research-ase__export-link"
+            href="/api/research/understanding/export"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Open training export
+          </a>
           <div className="research-ase__candidate-list">
-            {payload.candidates.rows.slice(0, 24).map((row, index) => (
+            {corpusReviewRows.slice(0, 24).map((row, index) => (
               <button
                 key={row.id}
                 type="button"
