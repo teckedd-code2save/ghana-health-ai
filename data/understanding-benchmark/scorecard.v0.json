@@ -1,0 +1,343 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-29T10:08:42.670Z",
+  "rubric": "data/understanding-benchmark/rubric.v0.json",
+  "scorecards": [
+    {
+      "candidate": "openai:gpt-5.4-mini",
+      "model_id": "openai:gpt-5.4-mini",
+      "adapter_id": null,
+      "tokenizer_id": null,
+      "resolved_revision": null,
+      "resolved_adapter_revision": null,
+      "artifact": "tmp/understanding-results/understanding/openai--gpt-5.4-mini/20260829T100632Z.json",
+      "cases_scored": 50,
+      "exact_cases": 42,
+      "checks": 138,
+      "passed": 130,
+      "score": 0.942,
+      "elapsed_seconds": 62.426,
+      "critical_failures": [
+        {
+          "id": "health-fever",
+          "category": "health",
+          "text": "Me ho yɛ hyew na awɔ nso de me.",
+          "prediction": "I feel hot, and I am also having body aches/pains.",
+          "failures": [
+            "missing one of: chills | cold | shivering"
+          ]
+        },
+        {
+          "id": "health-diarrhea-ors",
+          "category": "health",
+          "text": "Me ba no yam retu no bebree. ORS bɛboa anaa?",
+          "prediction": "My child has been having a lot of stomach pain. Will ORS help?",
+          "failures": [
+            "missing one of: diarrhea | diarrhoea | stool | running stomach"
+          ]
+        },
+        {
+          "id": "health-cough-duration",
+          "category": "health",
+          "text": "Makɔ so abɔ waw nnafua mmiɛnsa.",
+          "prediction": "I have been having a severe headache for three days.",
+          "failures": [
+            "missing one of: cough"
+          ]
+        },
+        {
+          "id": "health-dizziness",
+          "category": "health",
+          "text": "M'ani so yɛ me kusuu bere a mesɔre gyina hɔ.",
+          "prediction": "My eyes are turning blurry when I stand up.",
+          "failures": [
+            "missing one of: dizzy | dizziness | lightheaded"
+          ]
+        },
+        {
+          "id": "commerce-price-rice",
+          "category": "commerce",
+          "text": "Bayerɛ kotoku baako bo yɛ sɛn wɔ Kejetia?",
+          "prediction": "How much is one bag of onions at Kejetia?",
+          "failures": [
+            "missing one of: yam | plantain | cassava"
+          ]
+        },
+        {
+          "id": "commerce-comparison",
+          "category": "commerce",
+          "text": "Nea ɛwɔ ha ne nea ɛwɔ Madina no mu deɛ, emu deɛ ɛwɔ he na ne bo yɛ fo?",
+          "prediction": "Of the things here and the ones in Madina, which one is available here and is expensive?",
+          "failures": [
+            "missing one of: cheaper | price | cost"
+          ]
+        }
+      ]
+    },
+    {
+      "candidate": "ninte/twi-en-nllb-v2",
+      "model_id": "ninte/twi-en-nllb-v2",
+      "adapter_id": null,
+      "tokenizer_id": "facebook/nllb-200-distilled-600M",
+      "resolved_revision": "79522137844c0aa6dbba3d4da4d1926a9bf945f4",
+      "resolved_adapter_revision": null,
+      "artifact": "tmp/understanding-results/understanding/ninte--twi-en-nllb-v2/20260828T143600Z.json",
+      "cases_scored": 50,
+      "exact_cases": 30,
+      "checks": 138,
+      "passed": 107,
+      "score": 0.7754,
+      "elapsed_seconds": 5.866,
+      "critical_failures": [
+        {
+          "id": "health-unwell",
+          "category": "health",
+          "text": "Me ho mfa me.",
+          "prediction": "I don't care.",
+          "failures": [
+            "missing one of: unwell | not well | not feeling well | sick | ill | body",
+            "contains forbidden: don't care | do not care"
+          ]
+        },
+        {
+          "id": "health-pregnancy-swelling",
+          "category": "health",
+          "text": "Me nyinsɛn na me ti yɛ me yaw paa, m'anim nso ahonhon.",
+          "prediction": "My pregnancy is the most painful part of my head, and my face is heartburn.",
+          "failures": [
+            "contains forbidden: heartburn"
+          ]
+        },
+        {
+          "id": "health-fever",
+          "category": "health",
+          "text": "Me ho yɛ hyew na awɔ nso de me.",
+          "prediction": "I am hot and thirsty.",
+          "failures": [
+            "missing one of: chills | cold | shivering",
+            "contains forbidden: thirsty"
+          ]
+        },
+        {
+          "id": "health-child-fever",
+          "category": "health",
+          "text": "Me ba no ho yɛ hyew fi nnora.",
+          "prediction": "My son has heat from a pool.",
+          "failures": [
+            "missing one of: fever | hot | temperature",
+            "missing one of: yesterday | last night | since",
+            "contains forbidden: pool"
+          ]
+        },
+        {
+          "id": "health-diarrhea-ors",
+          "category": "health",
+          "text": "Me ba no yam retu no bebree. ORS bɛboa anaa?",
+          "prediction": "My son is having a lot of heartburn. Will ORS help?",
+          "failures": [
+            "missing one of: diarrhea | diarrhoea | stool | running stomach",
+            "contains forbidden: heartburn"
+          ]
+        },
+        {
+          "id": "health-chest-pain",
+          "category": "health",
+          "text": "Me koko mu yɛ me yaw na mehome yɛ den.",
+          "prediction": "My heart hurts and my breath is heavy.",
+          "failures": [
+            "missing one of: chest",
+            "contains forbidden: heart hurts"
+          ]
+        },
+        {
+          "id": "health-eye-pain",
+          "category": "health",
+          "text": "M'ani kum paa.",
+          "prediction": "I was very sad.",
+          "failures": [
+            "missing one of: eye",
+            "missing one of: pain | hurt | ache",
+            "contains forbidden: sad"
+          ]
+        },
+        {
+          "id": "health-cough-duration",
+          "category": "health",
+          "text": "Makɔ so abɔ waw nnafua mmiɛnsa.",
+          "prediction": "For three days, I have kept digging.",
+          "failures": [
+            "missing one of: cough"
+          ]
+        },
+        {
+          "id": "health-medicine-negation",
+          "category": "health",
+          "text": "Minnom aduru biara nnɛ.",
+          "prediction": "I don't take any medicine today.",
+          "failures": [
+            "missing one of: not | no | haven't | have not"
+          ]
+        },
+        {
+          "id": "health-allergy",
+          "category": "health",
+          "text": "Sɛ menom aduru no a, me honam ani hye me.",
+          "prediction": "When I take the medication, my skin aches.",
+          "failures": [
+            "missing one of: medicine | drug"
+          ]
+        },
+        {
+          "id": "health-dizziness",
+          "category": "health",
+          "text": "M'ani so yɛ me kusuu bere a mesɔre gyina hɔ.",
+          "prediction": "My eyes shake when I stand up.",
+          "failures": [
+            "missing one of: dizzy | dizziness | lightheaded"
+          ]
+        },
+        {
+          "id": "health-location-ambiguity",
+          "category": "health",
+          "text": "Me kɔn yɛ me yaw.",
+          "prediction": "My stomach hurts.",
+          "failures": [
+            "missing one of: neck | throat",
+            "contains forbidden: stomach"
+          ]
+        }
+      ]
+    },
+    {
+      "candidate": "facebook/nllb-200-distilled-600M + mclanorjeff/NLLB-Twi-Human-Aligned",
+      "model_id": "facebook/nllb-200-distilled-600M",
+      "adapter_id": "mclanorjeff/NLLB-Twi-Human-Aligned",
+      "tokenizer_id": "facebook/nllb-200-distilled-600M",
+      "resolved_revision": "f8d333a098d19b4fd9a8b18f94170487ad3f821d",
+      "resolved_adapter_revision": "b45d39eaa47bf46161050fcbdd5843a160e8de43",
+      "artifact": "tmp/understanding-results/understanding/mclanorjeff--NLLB-Twi-Human-Aligned/20260829T100413Z.json",
+      "cases_scored": 50,
+      "exact_cases": 28,
+      "checks": 138,
+      "passed": 105,
+      "score": 0.7609,
+      "elapsed_seconds": 9.479,
+      "critical_failures": [
+        {
+          "id": "health-unwell",
+          "category": "health",
+          "text": "Me ho mfa me.",
+          "prediction": "I am not concerned.",
+          "failures": [
+            "missing one of: unwell | not well | not feeling well | sick | ill | body"
+          ]
+        },
+        {
+          "id": "health-fever",
+          "category": "health",
+          "text": "Me ho yɛ hyew na awɔ nso de me.",
+          "prediction": "I am hot and thirsty.",
+          "failures": [
+            "missing one of: chills | cold | shivering",
+            "contains forbidden: thirsty"
+          ]
+        },
+        {
+          "id": "health-child-fever",
+          "category": "health",
+          "text": "Me ba no ho yɛ hyew fi nnora.",
+          "prediction": "My child is very hot.",
+          "failures": [
+            "missing one of: yesterday | last night | since"
+          ]
+        },
+        {
+          "id": "health-diarrhea-ors",
+          "category": "health",
+          "text": "Me ba no yam retu no bebree. ORS bɛboa anaa?",
+          "prediction": "Me ba no ho yɛ no den. ORS bɛboa anaa?",
+          "failures": [
+            "missing one of: child | son | daughter | baby",
+            "missing one of: diarrhea | diarrhoea | stool | running stomach"
+          ]
+        },
+        {
+          "id": "health-chest-pain",
+          "category": "health",
+          "text": "Me koko mu yɛ me yaw na mehome yɛ den.",
+          "prediction": "My heart aches and my breath is heavy.",
+          "failures": [
+            "missing one of: chest"
+          ]
+        },
+        {
+          "id": "health-eye-pain",
+          "category": "health",
+          "text": "M'ani kum paa.",
+          "prediction": "I was very sad.",
+          "failures": [
+            "missing one of: eye",
+            "missing one of: pain | hurt | ache",
+            "contains forbidden: sad"
+          ]
+        },
+        {
+          "id": "health-cough-duration",
+          "category": "health",
+          "text": "Makɔ so abɔ waw nnafua mmiɛnsa.",
+          "prediction": "For three days I continued to breathe.",
+          "failures": [
+            "missing one of: cough"
+          ]
+        },
+        {
+          "id": "health-dizziness",
+          "category": "health",
+          "text": "M'ani so yɛ me kusuu bere a mesɔre gyina hɔ.",
+          "prediction": "My eyes shake when I wake up and stand there.",
+          "failures": [
+            "missing one of: dizzy | dizziness | lightheaded"
+          ]
+        },
+        {
+          "id": "health-duration",
+          "category": "health",
+          "text": "Me ti yɛ me yaw fi nnora.",
+          "prediction": "My head hurts from the neck.",
+          "failures": [
+            "missing one of: yesterday | last night | since"
+          ]
+        },
+        {
+          "id": "commerce-quantity-delivery",
+          "category": "commerce",
+          "text": "Mepɛ sɛ metɔ tomato 2 kg, fa brɛ me wɔ Adenta.",
+          "prediction": "Mepɛ sɛ metua tomato 2 kg, fa no ma me wɔ Adenta.",
+          "failures": [
+            "missing one of: bring | deliver | delivery"
+          ]
+        },
+        {
+          "id": "commerce-price-rice",
+          "category": "commerce",
+          "text": "Bayerɛ kotoku baako bo yɛ sɛn wɔ Kejetia?",
+          "prediction": "How much does a bag of beer cost in Kejetia?",
+          "failures": [
+            "missing one of: yam | plantain | cassava",
+            "contains forbidden: beer"
+          ]
+        },
+        {
+          "id": "commerce-budget",
+          "category": "commerce",
+          "text": "Mewɔ Ghana cedis ɔha pɛ.",
+          "prediction": "Me wɔ Ghana cedis ɔha pɛ.",
+          "failures": [
+            "missing one of: 100 | hundred"
+          ]
+        }
+      ]
+    }
+  ],
+  "decision_hint": "Candidates with health or commerce critical failures are draft assistants only. Promote only after human review confirms meaning preservation."
+}

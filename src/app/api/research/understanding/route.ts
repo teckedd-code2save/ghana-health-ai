@@ -5,6 +5,7 @@ import {
   corpusStages,
   readBenchmarkSeeds,
   readCorpusCandidates,
+  readUnderstandingScorecard,
   readUnderstandingReviews,
   saveUnderstandingReview,
   sourceInventory,
@@ -32,10 +33,11 @@ export async function GET() {
   const reviewer = await getReviewer();
   if (!reviewer) return jsonError("Research review access is not enabled for this account.", 403);
 
-  const [seeds, candidates, reviews] = await Promise.all([
+  const [seeds, candidates, reviews, scorecard] = await Promise.all([
     readBenchmarkSeeds(),
     readCorpusCandidates(),
     readUnderstandingReviews(),
+    readUnderstandingScorecard(),
   ]);
   const reviewById = new Map(reviews.map((review) => [review.id, review]));
   const rows = seeds.map((seed) => ({
@@ -77,6 +79,7 @@ export async function GET() {
       completed,
       needsSecondReview,
       excluded,
+      scorecard,
     },
     candidates: {
       rows: corpusRows,

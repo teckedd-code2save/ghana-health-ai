@@ -74,6 +74,26 @@ type WorkbenchPayload = {
     completed: number;
     needsSecondReview: number;
     excluded: number;
+    scorecard: {
+      created_at: string;
+      decision_hint: string;
+      scorecards: Array<{
+        candidate: string;
+        cases_scored: number;
+        exact_cases: number;
+        checks: number;
+        passed: number;
+        score: number;
+        elapsed_seconds: number;
+        critical_failures: Array<{
+          id: string;
+          category: string;
+          text: string;
+          prediction: string;
+          failures: string[];
+        }>;
+      }>;
+    } | null;
   };
   candidates: {
     rows: BenchmarkRow[];
@@ -267,6 +287,27 @@ export function UnderstandingWorkbench() {
             <span>{payload.benchmark.needsSecondReview} need second review</span>
             <span>{payload.benchmark.excluded} excluded</span>
           </div>
+          {payload.benchmark.scorecard && (
+            <div className="research-ase__scorecards">
+              {payload.benchmark.scorecard.scorecards.map((scorecard, index) => (
+                <article key={scorecard.candidate} className={index === 0 ? "is-leading" : ""}>
+                  <div>
+                    <span>{index === 0 ? "Current best fit" : "Candidate"}</span>
+                    <h3>{scorecard.candidate}</h3>
+                  </div>
+                  <strong>{Math.round(scorecard.score * 100)}%</strong>
+                  <p>
+                    {scorecard.exact_cases}/{scorecard.cases_scored} exact cases · {scorecard.passed}/
+                    {scorecard.checks} meaning checks · {scorecard.elapsed_seconds}s
+                  </p>
+                  {scorecard.critical_failures.length > 0 && (
+                    <small>{scorecard.critical_failures.length} critical failures still need review.</small>
+                  )}
+                </article>
+              ))}
+              <p className="research-ase__hint">{payload.benchmark.scorecard.decision_hint}</p>
+            </div>
+          )}
           <div className="research-ase__categories">
             {benchmarkCategoryCounts.map(([category, count]) => (
               <span key={category}>

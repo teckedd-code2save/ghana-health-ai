@@ -707,6 +707,12 @@ See roadmap. TTS train script is still a skeleton.
 | `data/asr-product-eval/README.md` | Product ASR eval manifest and bucket requirements |
 | `modal/train/train_dondo_asr.py` | DONDO / w2v-BERT CTC fine-tune path |
 | `scripts/eval-understanding.ts` | Runtime understanding regression checks |
+| `scripts/benchmark-understanding-llm.ts` | Scores structured LLM meaning extraction on the Twi benchmark |
+| `scripts/score-understanding-benchmark.ts` | Scores candidate benchmark artifacts against the project meaning rubric |
+| `scripts/export-understanding-training-corpus.ts` | Exports only reviewed understanding rows into train/dev/test manifests |
+| `data/understanding-benchmark/rubric.v0.json` | Meaning-preservation rubric for the 50 synthetic benchmark probes |
+| `data/understanding-benchmark/scorecard.v0.json` | Current candidate ranking for the benchmark probes |
+| `data/understanding-corpus/candidates.v0.jsonl` | 80 draft corpus candidates for human review |
 | `scripts/eval-understanding-fallback.ts` | Verifies outage fallback for health, weak ASR, and commerce |
 | `scripts/eval-conversation-fallback-contract.ts` | Verifies full conversation turn fallback persists messages |
 | `scripts/eval-commerce-execute.ts` | Verifies commerce execution does not mutate cart/checkout |
@@ -728,3 +734,38 @@ See roadmap. TTS train script is still a skeleton.
 - Official Ghana tabular CSVs as voice-model training data  
 
 Continue from **§ Remaining work** above.
+
+---
+
+## 2026-08-29 Understanding Research Status
+
+Current best draft-understanding candidate:
+
+| Candidate | Meaning score | Exact cases | Notes |
+| --- | ---: | ---: | --- |
+| `openai:gpt-5.4-mini` | 94.2% | 42/50 | Best current draft annotator and product understanding candidate. Still misses some health/commerce meanings. |
+| `ninte/twi-en-nllb-v2` | 77.5% | 30/50 | Fast translation baseline only; unsafe alone for health meaning. |
+| `facebook/nllb-200-distilled-600M` + `mclanorjeff/NLLB-Twi-Human-Aligned` | 76.1% | 28/50 | Adapter path works on Modal but did not beat v2 on this rubric. |
+
+New commands:
+
+```bash
+pnpm eval:understanding:model:human-aligned
+pnpm eval:understanding:llm
+pnpm eval:understanding:score
+pnpm corpus:understanding:export
+pnpm corpus:understanding:export:strict
+```
+
+Corpus state:
+
+- `80` candidate rows exist.
+- `80` have draft annotations.
+- `30` reference local audio artifacts.
+- `0` saved human reviews exist in the local review file.
+- `0` rows are currently training-eligible.
+
+The research workbench now exposes the benchmark scorecard in `/research/ase`.
+The corpus is ready for review, not training. The next real step is to review
+rows in the workbench and run `pnpm corpus:understanding:export:strict`; only
+that export should feed training.

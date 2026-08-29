@@ -10,6 +10,18 @@ const seedPath = path.join(
 );
 const reviewDir = path.join(/* turbopackIgnore: true */ process.cwd(), "tmp", "understanding-review");
 const reviewPath = path.join(reviewDir, "reviews.v0.jsonl");
+const scorecardPath = path.join(
+  /* turbopackIgnore: true */ process.cwd(),
+  "tmp",
+  "understanding-results",
+  "scorecard.v0.json",
+);
+const committedScorecardPath = path.join(
+  /* turbopackIgnore: true */ process.cwd(),
+  "data",
+  "understanding-benchmark",
+  "scorecard.v0.json",
+);
 const candidatePath = path.join(
   /* turbopackIgnore: true */ process.cwd(),
   "tmp",
@@ -179,9 +191,40 @@ const reviewSchema = z.object({
   updatedAt: z.string().optional(),
 });
 
+const scorecardSchema = z.object({
+  schema_version: z.number(),
+  created_at: z.string(),
+  rubric: z.string(),
+  scorecards: z.array(
+    z.object({
+      candidate: z.string(),
+      model_id: z.string(),
+      adapter_id: z.string().nullable().optional(),
+      artifact: z.string(),
+      cases_scored: z.number(),
+      exact_cases: z.number(),
+      checks: z.number(),
+      passed: z.number(),
+      score: z.number(),
+      elapsed_seconds: z.number(),
+      critical_failures: z.array(
+        z.object({
+          id: z.string(),
+          category: z.string(),
+          text: z.string(),
+          prediction: z.string(),
+          failures: z.array(z.string()),
+        }),
+      ),
+    }),
+  ),
+  decision_hint: z.string(),
+});
+
 export type BenchmarkSeed = z.infer<typeof benchmarkSeedSchema>;
 export type CorpusCandidate = z.infer<typeof corpusCandidateSchema>;
 export type UnderstandingReview = z.infer<typeof reviewSchema>;
+export type UnderstandingScorecard = z.infer<typeof scorecardSchema>;
 
 export const understandingReviewInputSchema = reviewSchema.omit({
   reviewer: true,
@@ -222,6 +265,18 @@ export async function readUnderstandingReviews(): Promise<UnderstandingReview[]>
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
     throw error;
   }
+}
+
+export async function readUnderstandingScorecard(): Promise<UnderstandingScorecard | null> {
+  for (const filePath of [scorecardPath, committedScorecardPath]) {
+    try {
+      const raw = await readFile(filePath, "utf8");
+      return scorecardSchema.parse(JSON.parse(raw));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
+  return null;
 }
 
 export async function saveUnderstandingReview(

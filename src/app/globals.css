@@ -1998,6 +1998,55 @@ select {
   color: var(--fg);
 }
 
+.research-ase__scorecards {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+
+.research-ase__scorecards article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.25rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 0.9rem 1rem;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.research-ase__scorecards article.is-leading {
+  border-color: rgba(8, 116, 92, 0.24);
+  background: linear-gradient(135deg, rgba(245, 255, 252, 0.92), rgba(255, 255, 255, 0.76));
+}
+
+.research-ase__scorecards h3,
+.research-ase__scorecards p {
+  margin: 0;
+}
+
+.research-ase__scorecards h3 {
+  color: var(--fg);
+  font-size: 0.98rem;
+}
+
+.research-ase__scorecards span,
+.research-ase__scorecards small,
+.research-ase__hint {
+  color: var(--fg-subtle);
+  font-size: 0.78rem;
+}
+
+.research-ase__scorecards strong {
+  color: #08745c;
+  font-size: 1.2rem;
+}
+
+.research-ase__scorecards p,
+.research-ase__scorecards small,
+.research-ase__hint {
+  grid-column: 1 / -1;
+}
+
 .research-ase__review {
   display: grid;
   grid-template-columns: minmax(12rem, 18rem) 1fr;

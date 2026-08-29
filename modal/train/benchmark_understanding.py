@@ -37,6 +37,7 @@ image = (
     .pip_install(
         "torch==2.5.1",
         "transformers==4.46.3",
+        "peft==0.17.1",
         "sentencepiece==0.2.0",
         "sacremoses==0.1.1",
         "huggingface_hub==0.26.2",
@@ -86,8 +87,10 @@ def _language_id(tokenizer: Any, candidates: tuple[str, ...]) -> tuple[str, int]
 def benchmark(
     model_id: str = "ninte/twi-en-nllb-v2",
     tokenizer_id: str = "facebook/nllb-200-distilled-600M",
+    adapter_id: str = "",
     revision: str = "main",
     tokenizer_revision: str = "main",
+    adapter_revision: str = "main",
     limit: int = 0,
     batch_size: int = 8,
 ) -> dict[str, Any]:
@@ -96,6 +99,7 @@ def benchmark(
     import torch
     from huggingface_hub import HfApi
     from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+    from peft import PeftModel
 
     rows = _load_rows(_REMOTE_SEED_PATH, limit)
     if not rows:
@@ -114,6 +118,9 @@ def benchmark(
 
     api = HfApi(token=token)
     resolved_revision = api.model_info(model_id, revision=revision).sha
+    resolved_adapter_revision = (
+        api.model_info(adapter_id, revision=adapter_revision).sha if adapter_id else None
+    )
     tokenizer = AutoTokenizer.from_pretrained(
         tokenizer_id,
         revision=tokenizer_revision,
@@ -132,7 +139,17 @@ def benchmark(
         cache_dir=cache,
         token=token,
         torch_dtype=dtype,
-    ).to(device)
+    )
+    if adapter_id:
+        model = PeftModel.from_pretrained(
+            model,
+            adapter_id,
+            revision=resolved_adapter_revision,
+            cache_dir=cache,
+            token=token,
+        )
+        model = model.merge_and_unload()
+    model = model.to(device)
     model.eval()
 
     predictions: list[dict[str, Any]] = []
@@ -172,9 +189,12 @@ def benchmark(
         "created_at": datetime.now(timezone.utc).isoformat(),
         "model_id": model_id,
         "tokenizer_id": tokenizer_id,
+        "adapter_id": adapter_id or None,
         "requested_revision": revision,
         "requested_tokenizer_revision": tokenizer_revision,
+        "requested_adapter_revision": adapter_revision if adapter_id else None,
         "resolved_revision": resolved_revision,
+        "resolved_adapter_revision": resolved_adapter_revision,
         "source_language": source_code,
         "target_language": target_code,
         "seed_sha256": seed_sha256,
@@ -184,7 +204,7 @@ def benchmark(
         "review_status": "unverified",
         "predictions": predictions,
     }
-    safe_model_id = model_id.replace("/", "--")
+    safe_model_id = (adapter_id or model_id).replace("/", "--")
     output_dir = f"/results/understanding/{safe_model_id}"
     os.makedirs(output_dir, exist_ok=True)
     output_path = f"{output_dir}/{timestamp}.json"
@@ -198,7 +218,9 @@ def benchmark(
         "output_path": output_path,
         "model_id": model_id,
         "tokenizer_id": tokenizer_id,
+        "adapter_id": adapter_id or None,
         "resolved_revision": resolved_revision,
+        "resolved_adapter_revision": resolved_adapter_revision,
         "case_count": len(predictions),
         "elapsed_seconds": result["elapsed_seconds"],
     }
@@ -208,16 +230,20 @@ def benchmark(
 def main(
     model_id: str = "ninte/twi-en-nllb-v2",
     tokenizer_id: str = "facebook/nllb-200-distilled-600M",
+    adapter_id: str = "",
     revision: str = "main",
     tokenizer_revision: str = "main",
+    adapter_revision: str = "main",
     limit: int = 0,
     batch_size: int = 8,
 ) -> None:
     result = benchmark.remote(
         model_id=model_id,
         tokenizer_id=tokenizer_id,
+        adapter_id=adapter_id,
         revision=revision,
         tokenizer_revision=tokenizer_revision,
+        adapter_revision=adapter_revision,
         limit=limit,
         batch_size=batch_size,
     )

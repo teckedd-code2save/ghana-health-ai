@@ -19,3 +19,28 @@ Important boundaries:
 Next step: review rows in `/research/ase`, correct the Twi/English meaning and
 semantic fields, then export only reviewed rows into a versioned training or
 evaluation manifest.
+
+## Training export gate
+
+Use:
+
+```bash
+pnpm corpus:understanding:export
+```
+
+This writes split manifests under `tmp/understanding-corpus/exports/v0/`.
+Rows are exported only when a saved review has:
+
+- `decision=reviewed`
+- non-empty normalized Twi
+- non-empty faithful English meaning
+- non-empty intent
+
+Use the strict gate before training:
+
+```bash
+pnpm corpus:understanding:export:strict
+```
+
+Strict mode fails when no rows are eligible. That is intentional: model drafts
+and unreviewed corpus candidates are not training data.

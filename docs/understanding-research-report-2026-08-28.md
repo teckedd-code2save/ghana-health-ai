@@ -11,26 +11,33 @@ confusing three different evidence classes:
 
 ## Benchmark
 
-Modal benchmark completed for `ninte/twi-en-nllb-v2`.
+Modal benchmark completed for `ninte/twi-en-nllb-v2`, then the same benchmark
+path was extended to test a PEFT/LoRA Twi→English adapter. A structured LLM
+draft-understanding benchmark was also added so translation-only models can be
+compared against models that extract meaning and entities directly.
 
 | Field | Value |
 | --- | --- |
-| Model | `ninte/twi-en-nllb-v2` |
-| Tokenizer | `facebook/nllb-200-distilled-600M` |
-| Resolved revision | `79522137844c0aa6dbba3d4da4d1926a9bf945f4` |
-| Cases | 50 |
-| Runtime | 5.866 seconds on CUDA |
-| Artifact | `tmp/understanding-results/understanding/ninte--twi-en-nllb-v2/20260828T143600Z.json` |
+| Candidate | Cases | Meaning score | Exact cases | Runtime | Artifact |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `openai:gpt-5.4-mini` | 50 | 94.2% | 42/50 | 62.426s | `tmp/understanding-results/understanding/openai--gpt-5.4-mini/20260829T100632Z.json` |
+| `ninte/twi-en-nllb-v2` | 50 | 77.5% | 30/50 | 5.866s | `tmp/understanding-results/understanding/ninte--twi-en-nllb-v2/20260828T143600Z.json` |
+| `facebook/nllb-200-distilled-600M` + `mclanorjeff/NLLB-Twi-Human-Aligned` | 50 | 76.1% | 28/50 | 9.479s | `tmp/understanding-results/understanding/mclanorjeff--NLLB-Twi-Human-Aligned/20260829T100413Z.json` |
 
 The benchmark runner had to be fixed because the model repository tokenizer
 metadata resolves to `TokenizersBackend`, which failed in the pinned
 Transformers environment. The benchmark now loads the NLLB base tokenizer while
 using the fine-tuned `ninte/twi-en-nllb-v2` weights.
 
+The runner now also supports PEFT/LoRA adapters through `--adapter-id`; this was
+needed to test `mclanorjeff/NLLB-Twi-Human-Aligned`.
+
 ## Benchmark finding
 
 NLLB is fast and useful as a baseline translation candidate, but it is not safe
-as the sole health meaning annotator.
+as the sole health meaning annotator. The human-aligned adapter improved some
+phrasing, but it did not beat the existing NLLB v2 baseline on this project
+rubric and still failed safety-relevant health meanings.
 
 Examples from the benchmark:
 
@@ -42,8 +49,14 @@ Examples from the benchmark:
 | `Me kɔn yɛ me yaw.` | `My stomach hurts.` | Body-part mismatch. |
 | `Mewɔ Ghana cedis ɔha pɛ.` | `I live in Ghana only one hundred cedis.` | Commerce budget meaning lost. |
 
-Decision: use NLLB as a fast translation baseline and disagreement signal, not
-as the final draft annotator for safety-sensitive health records.
+Decision:
+
+1. Use `openai:gpt-5.4-mini` as the current best draft-understanding candidate
+   for corpus population and product meaning extraction.
+2. Use `ninte/twi-en-nllb-v2` as a fast translation baseline and disagreement
+   signal, not as the final health annotator.
+3. Do not promote `mclanorjeff/NLLB-Twi-Human-Aligned` for this product yet; it
+   remains useful research context, but it did not outperform the baseline here.
 
 ## Corpus candidate queue
 
@@ -92,15 +105,40 @@ The expected workflow is:
 3. The reviewer marks `reviewed`, `needs_second_review`, or `exclude`.
 4. Only reviewed, split-safe rows can be exported for training or evaluation.
 
+## Training export gate
+
+The export gate is implemented:
+
+`pnpm corpus:understanding:export`
+
+It writes manifests under `tmp/understanding-corpus/exports/v0/` only for rows
+with saved human reviews marked `decision=reviewed` and non-empty normalized
+Twi, faithful English meaning, and intent.
+
+Current export state:
+
+| Metric | Count |
+| --- | ---: |
+| Candidate rows | 80 |
+| Saved reviews | 0 |
+| Training-eligible rows | 0 |
+| Dev rows | 0 |
+| Test rows | 0 |
+
+This means the corpus pipeline is ready for review and export, but the corpus is
+not yet ready for training. The blocker is not missing code; it is missing human
+accepted review decisions.
+
 ## Next model step
 
 Do not train from the 50 benchmark rows.
 
 Next useful model work:
 
-1. Add one stronger structured-understanding candidate beside NLLB, likely a
-   Qwen/Gemma-class instruction model through Modal.
-2. Use NLLB plus the stronger model for disagreement scoring.
-3. Prioritize review rows where the models disagree or where health/commerce
-   entities are safety-critical.
-4. Train only after enough reviewed rows exist.
+1. Review the 80 corpus candidates in `/research/ase`, starting with health rows
+   that have audio references and safety-critical symptoms.
+2. Export reviewed rows with `pnpm corpus:understanding:export:strict`.
+3. If strict export produces enough rows, train the first understanding/adaptation
+   artifact from reviewed data only.
+4. Add a heavier open model candidate, likely Qwen/Gemma-class, only after this
+   review gate proves the corpus labels are useful enough to justify the run.
