@@ -102,6 +102,7 @@ const SYSTEM_DIRECT = `Understand and respond directly to the latest message in 
 Start immediately with the useful answer or the one necessary follow-up question. The first clause must add new information or ask a question; it must never be a standalone acknowledgement. Do not acknowledge, repeat, paraphrase, summarize, or translate what the user just said before answering. Never restate the user's request in first person as though it were your own request. Use conversation history silently: a short message such as "MacBook" adds detail to the preceding request and should not cause you to repeat the combined request. If one detail is missing, ask only for that detail instead of first describing the item or request. Restate user information only when resolving a genuine ambiguity that cannot be handled with a direct question. Do not open with "Okay", "I understand", "You said", "Ɛyɛ", "Aane", "Aane, me tee ase", or "Mepa wo kyɛw". Bad: "Ɛyɛ. MacBook charger no..." Good: "MacBook Air anaa Pro, na afe bɛn?"
 
 Set understood=false only when the core meaning or intent cannot be recovered. Missing details do not make a message unclear: when the request is understood but needs a brand, model, symptom detail, location, or other slot, set understood=true, preserve the recovered meaning, and put the direct follow-up question in reply. If the message is genuinely unclear, set understood=false and reply=null rather than guessing. For health, do not diagnose or prescribe dosage and treat explicit emergencies urgently. For commerce, do not invent prices, stores, or availability. Return JSON only:
+Known Twi health meanings that must be preserved: "m'ani kum", "mani kum", and "ani kum" mean eye pain/eye ache in this product's health context, not sleepiness, sadness, or indifference. "abɔ waw" and "abo waw" mean cough/coughing. "mehome yɛ den" and "ahome yɛ den" mean difficulty breathing. "me koko mu yɛ me yaw" means chest pain, not heartburn.
 {"understood":boolean,"understoodMeaning":"brief faithful English meaning for internal records or null","uncertaintyReason":"brief reason or null","reply":"direct response or null","intent":"HEALTH|ECOMMERCE|GENERAL|UNKNOWN","severity":"LOW|MEDIUM|HIGH|EMERGENCY","escalate":boolean}`;
 
 function dangerOverride(text: string) {
@@ -130,6 +131,25 @@ function normalizeHealthText(text: string) {
     .replace(/\bserius\b/g, "serious")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function hasEyePainPhrase(text: string) {
+  return /\b(?:m'?ani|mani|ani)\s+kum\b/.test(normalizeHealthText(text));
+}
+
+function asksWhichHospital(text: string) {
+  const lower = normalizeHealthText(text);
+  return /\bhospital\b/.test(lower) && /\bb[eɛ]n\b|\bwhich\b|\bwhere\b|\bhe\b/.test(lower);
+}
+
+function continuesSeriousMigraine(
+  text: string,
+  history?: { role: "user" | "assistant"; content: string }[],
+) {
+  const lower = normalizeHealthText(text);
+  const serious = /\bserious\b|\bden\b|\bpaa\b/.test(lower);
+  const priorMigraine = (history ?? []).some((message) => /migraine/i.test(message.content));
+  return serious && priorMigraine;
 }
 
 function hasCommerceIntent(text: string) {
@@ -283,6 +303,72 @@ function applySafetyOverride(input: {
     escalate: override.escalate,
     reply: input.reply.startsWith(prefix) ? input.reply : `${prefix}${input.reply}`,
   };
+}
+
+function includesAnyTerm(text: string, terms: string[]) {
+  const lower = text.toLowerCase();
+  return terms.some((term) => lower.includes(term.toLowerCase()));
+}
+
+function applyHealthMeaningGuard(input: {
+  text: string;
+  reply: string;
+  intent: "HEALTH" | "ECOMMERCE" | "GENERAL" | "UNKNOWN";
+  severity: "LOW" | "MEDIUM" | "HIGH" | "EMERGENCY";
+  escalate: boolean;
+  replyLang: "tw" | "en";
+  focus: "health" | "commerce";
+  history?: { role: "user" | "assistant"; content: string }[];
+}) {
+  if (input.focus !== "health") return input;
+
+  if (hasEyePainPhrase(input.text)) {
+    const clinicLine =
+      input.replyLang === "en"
+        ? "If the eye pain is strong, worsening, or affects your vision, please go to a clinic today."
+        : "Sɛ ani yaw no yɛ den, ɛrekɔ so, anaa ɛka w'ani so hwɛ a, kɔ clinic nnɛ.";
+    return {
+      ...input,
+      intent: "HEALTH" as const,
+      severity: input.severity === "EMERGENCY" ? input.severity : ("MEDIUM" as const),
+      escalate: input.severity === "EMERGENCY" ? input.escalate : false,
+      reply: includesAnyTerm(input.reply, ["ani", "eye"]) && includesAnyTerm(input.reply, ["clinic"])
+        ? input.reply
+        : `${input.reply} ${clinicLine}`,
+    };
+  }
+
+  if (asksWhichHospital(input.text)) {
+    const detailLine =
+      input.replyLang === "en"
+        ? "Tell me your town or area and the main symptom, then I can help you choose the right hospital level."
+        : "Ka wo town anaa area ne symptom titiriw no, na mɛboa wo apaw hospital level a ɛfata.";
+    return {
+      ...input,
+      intent: "HEALTH" as const,
+      severity: input.severity === "EMERGENCY" ? input.severity : ("MEDIUM" as const),
+      escalate: input.severity === "EMERGENCY" ? input.escalate : false,
+      reply: includesAnyTerm(input.reply, ["town", "area", "symptom"]) ? input.reply : `${input.reply} ${detailLine}`,
+    };
+  }
+
+  if (continuesSeriousMigraine(input.text, input.history)) {
+    const clinicLine =
+      input.replyLang === "en"
+        ? "Because the migraine is serious, arrange clinic or hospital care today, especially if it is new, severe, or comes with weakness, fever, vision changes, or vomiting."
+        : "Sɛ migraine no yɛ serious saa a, kɔ clinic anaa hospital nnɛ, titiriw sɛ ɛyɛ foforo, ɛyɛ den paa, anaa ɛka ahoɔden so tew, fever, ani so haw, anaa vomiting ho.";
+    return {
+      ...input,
+      intent: "HEALTH" as const,
+      severity: "HIGH" as const,
+      escalate: true,
+      reply: includesAnyTerm(input.reply, ["migraine"]) && includesAnyTerm(input.reply, ["clinic", "hospital"])
+        ? input.reply
+        : `${input.reply} ${clinicLine}`,
+    };
+  }
+
+  return input;
 }
 
 function fallbackReply(input: {
@@ -481,11 +567,23 @@ export async function understandUtterance(input: {
     const uncertaintyReason = direct.success
       ? direct.data.uncertaintyReason ?? "meaning_not_recovered"
       : "invalid_understanding_output";
+    const intent = direct.success ? direct.data.intent : "UNKNOWN";
+    const health =
+      focus === "health"
+        ? buildHealthUnderstanding({
+            text: input.text,
+            severity: "LOW",
+            escalate: false,
+            transcript: input.transcript,
+            hotline: HOTLINE,
+          })
+        : undefined;
     return {
       reply: honestNotUnderstood(replyLang),
-      intent: direct.success ? direct.data.intent : "UNKNOWN",
+      intent,
       severity: "LOW",
       escalate: false,
+      health,
       engine: "llm",
       model: provider?.model,
       replyLanguage: replyLang,
@@ -515,12 +613,19 @@ export async function understandUtterance(input: {
     severity: direct.data.severity,
     escalate: direct.data.escalate,
   });
+  const guarded = applyHealthMeaningGuard({
+    ...intentChecked,
+    text: input.text,
+    replyLang,
+    focus,
+    history: input.history,
+  });
   const final = applySafetyOverride({
     text: input.text,
-    reply: intentChecked.reply.trim(),
-    intent: intentChecked.intent,
-    severity: intentChecked.severity,
-    escalate: intentChecked.escalate,
+    reply: guarded.reply.trim(),
+    intent: guarded.intent,
+    severity: guarded.severity,
+    escalate: guarded.escalate,
     replyLang,
   });
   const health =

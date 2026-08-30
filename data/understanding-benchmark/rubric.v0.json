@@ -3,165 +3,767 @@
   "notes": "Small project rubric for the synthetic Twi understanding benchmark. It scores preservation of critical meaning, not fluent translation quality.",
   "cases": {
     "health-headache-severe": {
-      "must_include_any": [["headache", "head"], ["severe", "bad", "very"]],
-      "must_not_include_any": [["stomach", "heart"]]
+      "must_include_any": [
+        [
+          "headache",
+          "head"
+        ],
+        [
+          "severe",
+          "bad",
+          "very",
+          "a lot",
+          "much"
+        ]
+      ],
+      "must_not_include_any": [
+        [
+          "stomach",
+          "heart"
+        ]
+      ]
     },
     "health-unwell": {
-      "must_include_any": [["unwell", "not well", "not feeling well", "sick", "ill", "body"]],
-      "must_not_include_any": [["don't care", "do not care"]]
+      "must_include_any": [
+        [
+          "unwell",
+          "not well",
+          "not feeling well",
+          "don’t feel well",
+          "don't feel well",
+          "do not feel well",
+          "sick",
+          "ill",
+          "body"
+        ]
+      ],
+      "must_not_include_any": [
+        [
+          "don't care",
+          "do not care"
+        ]
+      ]
     },
     "health-pregnancy-swelling": {
-      "must_include_any": [["pregnant", "pregnancy"], ["headache", "head"], ["swelling", "swollen", "face"]],
-      "must_not_include_any": [["heartburn"]]
+      "must_include_any": [
+        [
+          "pregnant",
+          "pregnancy"
+        ],
+        [
+          "headache",
+          "head"
+        ],
+        [
+          "swelling",
+          "swollen",
+          "face"
+        ]
+      ],
+      "must_not_include_any": [
+        [
+          "heartburn"
+        ]
+      ]
     },
     "health-fever": {
-      "must_include_any": [["fever", "hot", "temperature"], ["chills", "cold", "shivering"]],
-      "must_not_include_any": [["thirsty"]]
+      "must_include_any": [
+        [
+          "fever",
+          "hot",
+          "temperature"
+        ],
+        [
+          "chills",
+          "cold",
+          "shivering"
+        ]
+      ],
+      "must_not_include_any": [
+        [
+          "thirsty"
+        ]
+      ]
     },
     "health-child-fever": {
-      "must_include_any": [["child", "son", "daughter", "baby"], ["fever", "hot", "temperature"], ["yesterday", "last night", "since"]],
-      "must_not_include_any": [["pool"]]
+      "must_include_any": [
+        [
+          "child",
+          "son",
+          "daughter",
+          "baby"
+        ],
+        [
+          "fever",
+          "hot",
+          "temperature"
+        ],
+        [
+          "yesterday",
+          "last night",
+          "since"
+        ]
+      ],
+      "must_not_include_any": [
+        [
+          "pool"
+        ]
+      ]
     },
     "health-diarrhea-ors": {
-      "must_include_any": [["child", "son", "daughter", "baby"], ["diarrhea", "diarrhoea", "stool", "running stomach"], ["ORS"]],
-      "must_not_include_any": [["heartburn"]]
+      "must_include_any": [
+        [
+          "child",
+          "son",
+          "daughter",
+          "baby"
+        ],
+        [
+          "diarrhea",
+          "diarrhoea",
+          "stool",
+          "running stomach"
+        ],
+        [
+          "ORS"
+        ]
+      ],
+      "must_not_include_any": [
+        [
+          "heartburn"
+        ]
+      ]
     },
     "health-stomach-pain": {
-      "must_include_any": [["stomach", "abdomen", "belly"], ["pain", "hurt", "ache"]]
+      "must_include_any": [
+        [
+          "stomach",
+          "abdomen",
+          "belly"
+        ],
+        [
+          "pain",
+          "hurt",
+          "ache"
+        ]
+      ]
     },
     "health-chest-pain": {
-      "must_include_any": [["chest"], ["breath", "breathing"], ["pain", "hurt", "ache"]],
-      "must_not_include_any": [["heart hurts"]]
+      "must_include_any": [
+        [
+          "chest"
+        ],
+        [
+          "breath",
+          "breathing"
+        ],
+        [
+          "pain",
+          "hurt",
+          "ache"
+        ]
+      ],
+      "must_not_include_any": [
+        [
+          "heart hurts"
+        ]
+      ]
     },
     "health-eye-pain": {
-      "must_include_any": [["eye"], ["pain", "hurt", "ache"]],
-      "must_not_include_any": [["sad"]]
+      "must_include_any": [
+        [
+          "eye"
+        ],
+        [
+          "pain",
+          "hurt",
+          "ache"
+        ]
+      ],
+      "must_not_include_any": [
+        [
+          "sad"
+        ]
+      ]
     },
     "health-cough-duration": {
-      "must_include_any": [["cough"], ["three", "3"], ["days"]]
+      "must_include_any": [
+        [
+          "cough"
+        ],
+        [
+          "three",
+          "3"
+        ],
+        [
+          "days"
+        ]
+      ]
     },
     "health-medicine-negation": {
-      "must_include_any": [["not", "no", "haven't", "have not"], ["medicine", "drug"]]
+      "must_include_any": [
+        [
+          "not",
+          "no",
+          "haven't",
+          "have not"
+        ],
+        [
+          "medicine",
+          "drug"
+        ]
+      ]
     },
     "health-allergy": {
-      "must_include_any": [["medicine", "drug"], ["itch", "burn", "rash", "skin"]]
+      "must_include_any": [
+        [
+          "medicine",
+          "drug"
+        ],
+        [
+          "itch",
+          "burn",
+          "rash",
+          "skin"
+        ]
+      ]
     },
     "health-dizziness": {
-      "must_include_any": [["dizzy", "dizziness", "lightheaded"], ["stand", "standing", "get up"]]
+      "must_include_any": [
+        [
+          "dizzy",
+          "dizziness",
+          "lightheaded"
+        ],
+        [
+          "stand",
+          "standing",
+          "get up"
+        ]
+      ]
     },
     "health-location-ambiguity": {
-      "must_include_any": [["neck", "throat"], ["pain", "hurt", "ache"]],
-      "must_not_include_any": [["stomach"]]
+      "must_include_any": [
+        [
+          "neck",
+          "throat"
+        ],
+        [
+          "pain",
+          "hurt",
+          "ache"
+        ]
+      ],
+      "must_not_include_any": [
+        [
+          "stomach"
+        ]
+      ]
     },
     "health-duration": {
-      "must_include_any": [["headache", "head"], ["yesterday", "last night", "since"]]
+      "must_include_any": [
+        [
+          "headache",
+          "head"
+        ],
+        [
+          "yesterday",
+          "last night",
+          "since"
+        ]
+      ]
     },
     "commerce-charger": {
-      "must_include_any": [["buy", "purchase"], ["charger"]]
+      "must_include_any": [
+        [
+          "buy",
+          "purchase"
+        ],
+        [
+          "charger"
+        ]
+      ]
     },
     "commerce-macbook-charger": {
-      "must_include_any": [["MacBook"], ["charger"]]
+      "must_include_any": [
+        [
+          "MacBook"
+        ],
+        [
+          "charger"
+        ]
+      ]
     },
     "commerce-tomatoes": {
-      "must_include_any": [["buy", "purchase"], ["tomato", "tomatoes"], ["stew"]]
+      "must_include_any": [
+        [
+          "buy",
+          "purchase"
+        ],
+        [
+          "tomato",
+          "tomatoes"
+        ],
+        [
+          "stew"
+        ]
+      ]
     },
     "commerce-quantity-delivery": {
-      "must_include_any": [["tomato", "tomatoes"], ["2 kg", "2kg", "two kilograms"], ["Adenta"], ["bring", "deliver", "delivery"]]
+      "must_include_any": [
+        [
+          "tomato",
+          "tomatoes"
+        ],
+        [
+          "2 kg",
+          "2kg",
+          "two kilograms"
+        ],
+        [
+          "Adenta"
+        ],
+        [
+          "bring",
+          "deliver",
+          "delivery"
+        ]
+      ]
     },
     "commerce-location": {
-      "must_include_any": [["tomato", "tomatoes"], ["near", "around", "close"], ["Madina"]]
+      "must_include_any": [
+        [
+          "tomato",
+          "tomatoes"
+        ],
+        [
+          "near",
+          "around",
+          "close"
+        ],
+        [
+          "Madina"
+        ]
+      ]
     },
     "commerce-price-rice": {
-      "must_include_any": [["yam", "plantain", "cassava"], ["bag", "sack"], ["price", "cost", "how much"], ["Kejetia"]],
-      "must_not_include_any": [["beer"]]
+      "must_include_any": [
+        [
+          "yam",
+          "plantain",
+          "cassava"
+        ],
+        [
+          "bag",
+          "sack"
+        ],
+        [
+          "price",
+          "cost",
+          "how much"
+        ],
+        [
+          "Kejetia"
+        ]
+      ],
+      "must_not_include_any": [
+        [
+          "beer"
+        ]
+      ]
     },
     "commerce-out-of-stock": {
-      "must_include_any": [["if"], ["not available", "out of stock", "not there"], ["another", "different", "substitute"]]
+      "must_include_any": [
+        [
+          "if"
+        ],
+        [
+          "not available",
+          "isn’t available",
+          "isn't available",
+          "unavailable",
+          "out of stock",
+          "not there"
+        ],
+        [
+          "another",
+          "different",
+          "substitute"
+        ]
+      ]
     },
     "commerce-budget": {
-      "must_include_any": [["100", "hundred"], ["cedis", "Ghana cedis", "GHS", "GH₵"]],
-      "must_not_include_any": [["live in Ghana"]]
+      "must_include_any": [
+        [
+          "100",
+          "hundred"
+        ],
+        [
+          "cedis",
+          "Ghana cedis",
+          "GHS",
+          "GH₵"
+        ]
+      ],
+      "must_not_include_any": [
+        [
+          "live in Ghana"
+        ]
+      ]
     },
     "commerce-size": {
-      "must_include_any": [["black"], ["shoe", "slipper", "sandals"], ["42", "forty two"]]
+      "must_include_any": [
+        [
+          "black"
+        ],
+        [
+          "shoe",
+          "slipper",
+          "sandals"
+        ],
+        [
+          "42",
+          "forty two"
+        ]
+      ]
     },
     "commerce-comparison": {
-      "must_include_any": [["Madina"], ["cheaper", "price", "cost"], ["which"]]
+      "must_include_any": [
+        [
+          "Madina"
+        ],
+        [
+          "cheaper",
+          "price",
+          "cost"
+        ],
+        [
+          "which"
+        ]
+      ]
     },
     "commerce-past": {
-      "must_include_any": [["bought", "purchased"], ["phone"], ["last week", "past week", "week ago"]]
+      "must_include_any": [
+        [
+          "bought",
+          "purchased"
+        ],
+        [
+          "phone"
+        ],
+        [
+          "last week",
+          "past week",
+          "week ago"
+        ]
+      ]
     },
     "commerce-future": {
-      "must_include_any": [["tomorrow"], ["buy", "purchase"], ["new laptop", "laptop"]]
+      "must_include_any": [
+        [
+          "tomorrow"
+        ],
+        [
+          "buy",
+          "purchase"
+        ],
+        [
+          "new laptop",
+          "laptop"
+        ]
+      ]
     },
     "negation-not-hungry": {
-      "must_include_any": [["not hungry", "not feel hungry"]]
+      "must_include_any": [
+        [
+          "not hungry",
+          "not feel hungry"
+        ]
+      ]
     },
     "negation-did-not-go": {
-      "must_include_any": [["did not go", "didn't go"], ["work"], ["yesterday", "last night"]]
+      "must_include_any": [
+        [
+          "did not go",
+          "didn't go"
+        ],
+        [
+          "work"
+        ],
+        [
+          "yesterday",
+          "last night"
+        ]
+      ]
     },
     "tense-present": {
-      "must_include_any": [["going"], ["school"], ["now"]]
+      "must_include_any": [
+        [
+          "going"
+        ],
+        [
+          "school"
+        ],
+        [
+          "now"
+        ]
+      ]
     },
     "tense-past": {
-      "must_include_any": [["went"], ["school"], ["morning"]]
+      "must_include_any": [
+        [
+          "went"
+        ],
+        [
+          "school"
+        ],
+        [
+          "morning"
+        ]
+      ]
     },
     "tense-future": {
-      "must_include_any": [["will go", "going to"], ["school"], ["tomorrow"]]
+      "must_include_any": [
+        [
+          "will go",
+          "going to"
+        ],
+        [
+          "school"
+        ],
+        [
+          "tomorrow"
+        ]
+      ]
     },
     "question-why": {
-      "must_include_any": [["why"], ["electricity", "power"], ["off", "out"]]
+      "must_include_any": [
+        [
+          "why"
+        ],
+        [
+          "electricity",
+          "power"
+        ],
+        [
+          "off",
+          "out"
+        ]
+      ]
     },
     "question-where": {
-      "must_include_any": [["where"], ["water"], ["drink", "drinking"]]
+      "must_include_any": [
+        [
+          "where"
+        ],
+        [
+          "water"
+        ],
+        [
+          "drink",
+          "drinking"
+        ]
+      ]
     },
     "instruction-call": {
-      "must_include_any": [["call"], ["arrive", "get there"]]
+      "must_include_any": [
+        [
+          "call"
+        ],
+        [
+          "arrive",
+          "get there"
+        ]
+      ]
     },
     "informal-leetspeak": {
-      "must_include_any": [["headache", "head"], ["pain", "hurt", "ache"]]
+      "must_include_any": [
+        [
+          "headache",
+          "head"
+        ],
+        [
+          "pain",
+          "hurt",
+          "ache"
+        ]
+      ]
     },
     "informal-code-switch": {
-      "must_include_any": [["laptop"], ["charger"], ["lost", "missing"]]
+      "must_include_any": [
+        [
+          "laptop"
+        ],
+        [
+          "charger"
+        ],
+        [
+          "lost",
+          "missing"
+        ]
+      ]
     },
     "code-switch-clinic": {
-      "must_include_any": [["doctor"], ["clinic"], ["Monday"]]
+      "must_include_any": [
+        [
+          "doctor"
+        ],
+        [
+          "clinic"
+        ],
+        [
+          "Monday"
+        ]
+      ]
     },
     "pronoun-reference": {
-      "must_include_any": [["that"], ["want"], ["first"]]
+      "must_include_any": [
+        [
+          "that"
+        ],
+        [
+          "want"
+        ],
+        [
+          "first"
+        ]
+      ]
     },
     "short-followup-model": {
-      "must_include_any": [["MacBook"]]
+      "must_include_any": [
+        [
+          "MacBook"
+        ]
+      ]
     },
     "short-followup-quantity": {
-      "must_include_any": [["two", "2"], ["only", "just"]]
+      "must_include_any": [
+        [
+          "two",
+          "2"
+        ],
+        [
+          "only",
+          "just"
+        ]
+      ]
     },
     "ambiguity-bank": {
-      "must_include_any": [["bank"]]
+      "must_include_any": [
+        [
+          "bank"
+        ]
+      ]
     },
     "polite-request": {
-      "must_include_any": [["please"], ["help"], ["way", "route", "road"]]
+      "must_include_any": [
+        [
+          "please"
+        ],
+        [
+          "help"
+        ],
+        [
+          "way",
+          "route",
+          "road"
+        ]
+      ]
     },
     "family": {
-      "must_include_any": [["brother"], ["children", "kids"], ["evening"]]
+      "must_include_any": [
+        [
+          "brother"
+        ],
+        [
+          "children",
+          "kids"
+        ],
+        [
+          "evening"
+        ]
+      ]
     },
     "weather": {
-      "must_include_any": [["rain"], ["heavily", "heavy"]]
+      "must_include_any": [
+        [
+          "rain"
+        ],
+        [
+          "heavily",
+          "heavy"
+        ]
+      ]
     },
     "time": {
-      "must_include_any": [["meet"], ["morning"], ["nine", "9"]]
+      "must_include_any": [
+        [
+          "meet"
+        ],
+        [
+          "morning"
+        ],
+        [
+          "nine",
+          "9"
+        ]
+      ]
     },
     "quantity": {
-      "must_include_any": [["water"], ["three", "3"], ["bottle", "container"]]
+      "must_include_any": [
+        [
+          "water"
+        ],
+        [
+          "three",
+          "3"
+        ],
+        [
+          "bottle",
+          "container"
+        ]
+      ]
     },
     "conditional": {
-      "must_include_any": [["if"], ["rain"], ["market"]]
+      "must_include_any": [
+        [
+          "if"
+        ],
+        [
+          "rain"
+        ],
+        [
+          "market"
+        ]
+      ]
     },
     "comparison": {
-      "must_include_any": [["Kofi"], ["Kwame"], ["tall", "taller"], ["run", "running"]]
+      "must_include_any": [
+        [
+          "Kofi"
+        ],
+        [
+          "Kwame"
+        ],
+        [
+          "tall",
+          "taller"
+        ],
+        [
+          "run",
+          "running"
+        ]
+      ]
     },
     "unclear-fragment": {
-      "must_include_any": [["unclear", "hmm", "matter", "issue"]]
+      "must_include_any": [
+        [
+          "unclear",
+          "hmm",
+          "matter",
+          "issue"
+        ]
+      ]
     }
   }
 }

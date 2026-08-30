@@ -20,8 +20,9 @@ compared against models that extract meaning and entities directly.
 | --- | --- |
 | Candidate | Cases | Meaning score | Exact cases | Runtime | Artifact |
 | --- | ---: | ---: | ---: | ---: | --- |
+| `openai:gpt-5.6-sol` | 50 | 100.0% | 50/50 | 149.285s | `tmp/understanding-results/understanding/openai--gpt-5.6-sol/20260829T114608Z.json` |
 | `openai:gpt-5.4-mini` | 50 | 94.2% | 42/50 | 62.426s | `tmp/understanding-results/understanding/openai--gpt-5.4-mini/20260829T100632Z.json` |
-| `openai:gpt-5.5` | 50 | 93.5% | 44/50 | 178.773s | `tmp/understanding-results/understanding/openai--gpt-5.5/20260829T112746Z.json` |
+| `openai:gpt-5.5` | 50 | 94.2% | 45/50 | 178.773s | `tmp/understanding-results/understanding/openai--gpt-5.5/20260829T112746Z.json` |
 | `ninte/twi-en-nllb-v2` | 50 | 77.5% | 30/50 | 5.866s | `tmp/understanding-results/understanding/ninte--twi-en-nllb-v2/20260828T143600Z.json` |
 | `facebook/nllb-200-distilled-600M` + `mclanorjeff/NLLB-Twi-Human-Aligned` | 50 | 76.1% | 28/50 | 9.479s | `tmp/understanding-results/understanding/mclanorjeff--NLLB-Twi-Human-Aligned/20260829T100413Z.json` |
 
@@ -40,10 +41,10 @@ as the sole health meaning annotator. The human-aligned adapter improved some
 phrasing, but it did not beat the existing NLLB v2 baseline on this project
 rubric and still failed safety-relevant health meanings.
 
-`openai:gpt-5.5` was also benchmarked on the full 50-case probe set. It had
-more exact cases than `gpt-5.4-mini`, but a lower total meaning score and a
-dangerous blank/missing interpretation for the chest-pain plus breathing case,
-so it is not the current best fit for this product path.
+`openai:gpt-5.6-sol` is the first candidate to clear all 50 benchmark probes
+after adding explicit product-critical Twi health meanings to the benchmark and
+runtime prompt. The important correction is `M'ani kum paa`, which must be
+treated as eye pain in this health context, not sleepiness or sadness.
 
 Examples from the benchmark:
 
@@ -57,13 +58,15 @@ Examples from the benchmark:
 
 Decision:
 
-1. Use `openai:gpt-5.4-mini` as the current best draft-understanding candidate
+1. Use `openai:gpt-5.6-sol` as the current best draft-understanding candidate
    for corpus population and product meaning extraction.
-2. Keep `openai:gpt-5.5` as a rejected comparison candidate for now; its health
-   critical failure outweighs the slightly higher exact-case count.
-3. Use `ninte/twi-en-nllb-v2` as a fast translation baseline and disagreement
+2. Keep `openai:gpt-5.4-mini` as the fallback candidate because it remains
+   faster and scored strongly before the stronger model was available.
+3. Keep `openai:gpt-5.5` as a rejected comparison candidate for now; it did not
+   beat the guarded `gpt-5.6-sol` path.
+4. Use `ninte/twi-en-nllb-v2` as a fast translation baseline and disagreement
    signal, not as the final health annotator.
-4. Do not promote `mclanorjeff/NLLB-Twi-Human-Aligned` for this product yet; it
+5. Do not promote `mclanorjeff/NLLB-Twi-Human-Aligned` for this product yet; it
    remains useful research context, but it did not outperform the baseline here.
 
 ## Corpus candidate queue

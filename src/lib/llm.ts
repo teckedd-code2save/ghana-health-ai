@@ -27,11 +27,11 @@ function resolveProvider(): {
       baseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
       // Keep the language model independent from the historical provider-wide
       // override so an old gpt-4o-mini setting cannot silently pin this path.
-      model: process.env.OPENAI_LANGUAGE_MODEL?.trim() || "gpt-5.4-mini",
+      model: process.env.OPENAI_LANGUAGE_MODEL?.trim() || "gpt-5.6-sol",
       fallbackModel:
-        legacyModel && legacyModel !== "gpt-5.4-mini"
+        legacyModel && !["gpt-5.6-sol", "gpt-5.4-mini"].includes(legacyModel)
           ? legacyModel
-          : "gpt-4o-mini",
+          : "gpt-5.4-mini",
     };
   }
   return null;

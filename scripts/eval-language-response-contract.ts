@@ -21,7 +21,7 @@ async function main() {
 const { chatComplete, llmProviderInfo } = await import("../src/lib/llm");
 const { understandUtterance } = await import("../src/lib/understand");
 
-assert.equal(llmProviderInfo()?.model, "gpt-5.4-mini");
+assert.equal(llmProviderInfo()?.model, "gpt-5.6-sol");
 
 responseQueue = [
   { ok: false, status: 404, body: { error: "model unavailable" } },
@@ -37,7 +37,7 @@ assert.equal(
 );
 assert.deepEqual(
   requests.slice(0, 2).map((request) => request.model),
-  ["gpt-5.4-mini", "gpt-4o-mini"],
+  ["gpt-5.6-sol", "gpt-4o-mini"],
 );
 assert.equal(requests[0].max_completion_tokens, 123);
 assert.equal(requests[0].max_tokens, undefined);

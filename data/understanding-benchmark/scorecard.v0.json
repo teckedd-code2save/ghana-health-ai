@@ -1,8 +1,24 @@
 {
   "schema_version": 1,
-  "created_at": "2026-08-29T11:29:02.977Z",
+  "created_at": "2026-08-29T11:46:16.629Z",
   "rubric": "data/understanding-benchmark/rubric.v0.json",
   "scorecards": [
+    {
+      "candidate": "openai:gpt-5.6-sol",
+      "model_id": "openai:gpt-5.6-sol",
+      "adapter_id": null,
+      "tokenizer_id": null,
+      "resolved_revision": null,
+      "resolved_adapter_revision": null,
+      "artifact": "tmp/understanding-results/understanding/openai--gpt-5.6-sol/20260829T114608Z.json",
+      "cases_scored": 50,
+      "exact_cases": 50,
+      "checks": 138,
+      "passed": 138,
+      "score": 1,
+      "elapsed_seconds": 149.285,
+      "critical_failures": []
+    },
     {
       "candidate": "openai:gpt-5.4-mini",
       "model_id": "openai:gpt-5.4-mini",
@@ -83,21 +99,12 @@
       "resolved_adapter_revision": null,
       "artifact": "tmp/understanding-results/understanding/openai--gpt-5.5/20260829T112746Z.json",
       "cases_scored": 50,
-      "exact_cases": 44,
+      "exact_cases": 45,
       "checks": 138,
-      "passed": 129,
-      "score": 0.9348,
+      "passed": 130,
+      "score": 0.942,
       "elapsed_seconds": 178.773,
       "critical_failures": [
-        {
-          "id": "health-headache-severe",
-          "category": "health",
-          "text": "Me ti yɛ me yaw paa.",
-          "prediction": "My head hurts a lot.",
-          "failures": [
-            "missing one of: severe | bad | very"
-          ]
-        },
         {
           "id": "health-chest-pain",
           "category": "health",
@@ -160,7 +167,7 @@
           "text": "Me ho mfa me.",
           "prediction": "I don't care.",
           "failures": [
-            "missing one of: unwell | not well | not feeling well | sick | ill | body",
+            "missing one of: unwell | not well | not feeling well | don’t feel well | don't feel well | do not feel well | sick | ill | body",
             "contains forbidden: don't care | do not care"
           ]
         },
@@ -294,7 +301,7 @@
           "text": "Me ho mfa me.",
           "prediction": "I am not concerned.",
           "failures": [
-            "missing one of: unwell | not well | not feeling well | sick | ill | body"
+            "missing one of: unwell | not well | not feeling well | don’t feel well | don't feel well | do not feel well | sick | ill | body"
           ]
         },
         {

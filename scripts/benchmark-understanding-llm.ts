@@ -69,7 +69,7 @@ async function main() {
         {
           role: "system",
           content:
-            "You are evaluating Twi/Akan and code-switched understanding for a Ghanaian health and commerce voice product. Return JSON only. Do not answer the user.",
+            "You are evaluating Twi/Akan and code-switched understanding for a Ghanaian health and commerce voice product. Return JSON only. Do not answer the user. Preserve these product-critical Twi meanings: m'ani kum, mani kum, and ani kum mean eye pain/eye ache in health context, not sleepiness, sadness, or indifference; abɔ waw and abo waw mean cough/coughing; mehome yɛ den and ahome yɛ den mean difficulty breathing; me koko mu yɛ me yaw means chest pain, not heartburn.",
         },
         {
           role: "user",

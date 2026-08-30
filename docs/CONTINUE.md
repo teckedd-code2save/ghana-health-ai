@@ -745,8 +745,9 @@ Current best draft-understanding candidate:
 
 | Candidate | Meaning score | Exact cases | Notes |
 | --- | ---: | ---: | --- |
-| `openai:gpt-5.4-mini` | 94.2% | 42/50 | Best current draft annotator and product understanding candidate. Still misses some health/commerce meanings. |
-| `openai:gpt-5.5` | 93.5% | 44/50 | Rejected for now: lower meaning score and a critical miss on chest pain plus breathing. |
+| `openai:gpt-5.6-sol` | 100.0% | 50/50 | Best current draft annotator and product understanding candidate after product-critical Twi health guards. |
+| `openai:gpt-5.4-mini` | 94.2% | 42/50 | Fallback candidate: faster and still strong, but not top-ranked. |
+| `openai:gpt-5.5` | 94.2% | 45/50 | Rejected for now: did not beat guarded `gpt-5.6-sol`. |
 | `ninte/twi-en-nllb-v2` | 77.5% | 30/50 | Fast translation baseline only; unsafe alone for health meaning. |
 | `facebook/nllb-200-distilled-600M` + `mclanorjeff/NLLB-Twi-Human-Aligned` | 76.1% | 28/50 | Adapter path works on Modal but did not beat v2 on this rubric. |
 
@@ -754,7 +755,7 @@ New commands:
 
 ```bash
 pnpm eval:understanding:model:human-aligned
-pnpm eval:understanding:llm -- --model gpt-5.5
+pnpm eval:understanding:llm -- --model gpt-5.6-sol
 pnpm eval:understanding:score
 pnpm corpus:understanding:export
 pnpm corpus:understanding:export:strict
