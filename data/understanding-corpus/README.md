@@ -2,9 +2,20 @@
 
 `candidates.v0.jsonl` is a review queue, not a training corpus.
 
-Each row is derived from project-owned prompt packs or existing local recordings
-and keeps source identity, text, review status, draft model proposals, consent
-scope, and training eligibility flags.
+Each row is derived from licensed training-data manifests, project-owned prompt
+packs, or existing local recordings and keeps source identity, text, review
+status, draft model proposals, consent scope, and training eligibility flags.
+
+Current committed queue:
+
+- 5,000 candidates.
+- 2,500 GhanaNLP Twi speech-text rows.
+- 2,255 WAXAL Akan rows across train/dev/test manifests.
+- 210 curated health, commerce, and code-switch text prompts.
+- 35 local recording rows with audio artifact references.
+
+The 50-row benchmark under `data/understanding-benchmark/` is only for comparing
+candidate annotators. It is not the training corpus.
 
 Important boundaries:
 
@@ -83,6 +94,18 @@ For spreadsheet review, download the sheet from the workbench or run:
 ```bash
 pnpm corpus:understanding:review-sheet
 ```
+
+To rebuild the large candidate queue from the available local training-data
+manifests:
+
+```bash
+pnpm corpus:understanding:candidates
+cp tmp/understanding-corpus/candidates.v0.jsonl data/understanding-corpus/candidates.v0.jsonl
+```
+
+The builder defaults to a 5,000-row queue. Use `--limit` for a smaller or larger
+queue, and use `--annotate --annotate-limit <n>` only when intentionally spending
+model credits on a bounded proposal batch.
 
 For the fastest first pass toward a trainable corpus, download **Download 20-row
 training pack** in the workbench or run:

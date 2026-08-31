@@ -9,7 +9,7 @@ type Json = Record<string, unknown>;
 type Candidate = {
   id: string;
   record_id: string;
-  source: "waxal" | "ghana_nlp_speech" | "local_recording" | "curated_prompt";
+  source: "waxal" | "ghana_nlp_speech" | "local_recording" | "curated_prompt" | string;
   source_record_id: string;
   source_path: string;
   language: string;
@@ -53,43 +53,43 @@ const sources = [
   {
     source: "curated_prompt" as const,
     path: path.join(root, "tmp", "asr-collection-pack", "prompts.corpus-v2.health_twi.jsonl"),
-    limit: 60,
+    limit: 126,
     domain: "health",
   },
   {
     source: "curated_prompt" as const,
     path: path.join(root, "tmp", "asr-collection-pack", "prompts.corpus-v2.commerce_twi.jsonl"),
-    limit: 40,
+    limit: 74,
     domain: "commerce",
   },
   {
     source: "curated_prompt" as const,
     path: path.join(root, "tmp", "asr-collection-pack", "prompts.corpus-v2.codeswitch_tw_en.jsonl"),
-    limit: 30,
+    limit: 50,
     domain: "mixed",
   },
   {
     source: "ghana_nlp_speech" as const,
     path: path.join(speechLabRoot, "data", "manifests", "ghana_nlp_twi.jsonl"),
-    limit: 80,
+    limit: 2500,
     domain: "general",
   },
   {
     source: "waxal" as const,
     path: path.join(speechLabRoot, "data", "manifests", "waxal_round2", "train.jsonl"),
-    limit: 50,
+    limit: 1800,
     domain: "general",
   },
   {
     source: "waxal" as const,
     path: path.join(speechLabRoot, "data", "manifests", "waxal_round2", "dev.jsonl"),
-    limit: 20,
+    limit: 350,
     domain: "general",
   },
   {
     source: "waxal" as const,
     path: path.join(speechLabRoot, "data", "manifests", "waxal_round2", "test.jsonl"),
-    limit: 20,
+    limit: 300,
     domain: "general",
   },
 ];
@@ -128,6 +128,11 @@ function asString(value: unknown) {
 
 function asNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function numericArgValue(name: string, fallback: number) {
+  const value = Number(argValue(name, String(fallback)));
+  return Number.isFinite(value) && value >= 0 ? value : fallback;
 }
 
 function localRecordingPath(promptId: string, bucket: string) {
@@ -289,9 +294,10 @@ async function propose(candidate: Candidate): Promise<Candidate> {
   }
 }
 
-async function readCandidates(limit: number, annotate: boolean) {
+async function readCandidates(limit: number, annotateLimit: number) {
   const candidates: Candidate[] = [];
   const seen = new Set<string>();
+  let annotated = 0;
 
   for (const source of sources) {
     if (candidates.length >= limit) break;
@@ -315,7 +321,12 @@ async function readCandidates(limit: number, annotate: boolean) {
       });
       if (!candidate || seen.has(candidate.duplicate_key)) continue;
       seen.add(candidate.duplicate_key);
-      candidates.push(annotate ? await propose(candidate) : candidate);
+      if (annotated < annotateLimit) {
+        candidates.push(await propose(candidate));
+        annotated += 1;
+      } else {
+        candidates.push(candidate);
+      }
       accepted += 1;
     }
   }
@@ -324,10 +335,12 @@ async function readCandidates(limit: number, annotate: boolean) {
 }
 
 async function main() {
-  const limit = Number(argValue("--limit", "180"));
+  const limit = numericArgValue("--limit", 5000);
+  const annotateLimit = process.argv.includes("--annotate")
+    ? numericArgValue("--annotate-limit", limit)
+    : 0;
   const out = argValue("--out", defaultOut);
-  const annotate = process.argv.includes("--annotate");
-  const candidates = await readCandidates(limit, annotate);
+  const candidates = await readCandidates(limit, annotateLimit);
   await fs.mkdir(path.dirname(out), { recursive: true });
   await fs.writeFile(out, `${candidates.map((row) => JSON.stringify(row)).join("\n")}\n`, "utf8");
 
@@ -335,6 +348,15 @@ async function main() {
     acc[row.source] = (acc[row.source] ?? 0) + 1;
     return acc;
   }, {});
+  const byDomain = candidates.reduce<Record<string, number>>((acc, row) => {
+    acc[row.domain] = (acc[row.domain] ?? 0) + 1;
+    return acc;
+  }, {});
+  const bySplit = candidates.reduce<Record<string, number>>((acc, row) => {
+    acc[row.split] = (acc[row.split] ?? 0) + 1;
+    return acc;
+  }, {});
+  const annotated = candidates.filter((row) => row.model_proposal.status === "draft").length;
   const withAudio = candidates.filter((row) => row.audio_artifact_id).length;
   console.log(
     JSON.stringify(
@@ -343,7 +365,10 @@ async function main() {
         rows: candidates.length,
         withAudio,
         bySource,
-        annotated: annotate,
+        byDomain,
+        bySplit,
+        annotated,
+        annotateLimit,
       },
       null,
       2,
