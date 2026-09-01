@@ -223,7 +223,7 @@ export function UnderstandingWorkbench() {
         return row.source === "waxal" || row.source === "ghana_nlp_speech";
       }
       if (corpusFilter === "local_audio") return row.source === "local_recording";
-      if (corpusFilter === "medical") return row.category.includes("health") || row.source === "medical_response_seed";
+      if (corpusFilter === "medical") return row.source === "medical_response_seed";
       if (corpusFilter === "curated") return row.source === "curated_prompt";
       return true;
     });
