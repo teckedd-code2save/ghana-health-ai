@@ -1,0 +1,78 @@
+{
+  "purpose": "Track external medical and Ghanaian-language sources for corpus-scale understanding research. The 50 benchmark rows and 16 response seeds are not the corpus.",
+  "last_reviewed": "2026-09-01",
+  "sources": [
+    {
+      "id": "ghananlpcommunity/ghana-health-symptoms",
+      "url": "https://huggingface.co/datasets/ghananlpcommunity/ghana-health-symptoms",
+      "status": "approved_for_noncommercial_research_queue",
+      "license": "cc-by-nc-4.0",
+      "scale": "98,656 Twi symptom descriptions",
+      "shape": {
+        "input": "symptom_twi",
+        "meaning": "tag_en",
+        "category": "body_system",
+        "supporting_text": "source_twi",
+        "id": "row_id"
+      },
+      "use": "Large Twi health understanding candidate source. Human review is still required before final training/evaluation export.",
+      "restriction": "Non-commercial license. Do not use for commercial production model weights without permission or legal approval."
+    },
+    {
+      "id": "Malikeh1375/medical-question-answering-datasets",
+      "url": "https://huggingface.co/datasets/Malikeh1375/medical-question-answering-datasets",
+      "status": "candidate_for_translation_and_safety_filtering",
+      "license": "mit",
+      "scale": "1M+ English medical QA examples across configs",
+      "shape": {
+        "input": "instruction + input",
+        "answer": "output"
+      },
+      "use": "English medical QA source for answer/intention coverage, translated to Twi in chunks, then safety-filtered and reviewed.",
+      "restriction": "Some configs aggregate third-party medical content. Prefer clearly patient-facing and permissive configs first; keep provenance per row."
+    },
+    {
+      "id": "ImhotepSystems/AfriHealth-QA",
+      "url": "https://huggingface.co/datasets/ImhotepSystems/AfriHealth-QA",
+      "status": "candidate_needs_schema_license_review",
+      "license": "needs_review",
+      "scale": "African multilingual health QA",
+      "use": "Potential evaluation and coverage source after license/schema inspection.",
+      "restriction": "Do not ingest into training queue until license and columns are verified."
+    },
+    {
+      "id": "afrimedqa/afrimedqa_v2",
+      "url": "https://huggingface.co/datasets/afrimedqa/afrimedqa_v2",
+      "status": "candidate_needs_schema_license_review",
+      "license": "needs_review",
+      "scale": "15,000 pan-African medical QA rows",
+      "use": "Potential medical reasoning/evaluation source after license/schema inspection.",
+      "restriction": "Do not ingest into training queue until license and columns are verified."
+    },
+    {
+      "id": "UCSD26/medical_dialog",
+      "url": "https://huggingface.co/datasets/UCSD26/medical_dialog",
+      "status": "excluded_pending_rights_review",
+      "license": "rights_unclear",
+      "scale": "Large English medical dialogue corpus",
+      "use": "Not used for training queue now.",
+      "restriction": "Dataset card references source-site copyrights; avoid training ingestion without rights review."
+    },
+    {
+      "id": "crawlfeeds/Medical-Health-QA-Articles-Dataset",
+      "url": "https://huggingface.co/datasets/crawlfeeds/Medical-Health-QA-Articles-Dataset",
+      "status": "excluded_pending_rights_review",
+      "license": "rights_unclear",
+      "scale": "Large scraped medical QA/articles",
+      "use": "Not used for training queue now.",
+      "restriction": "Scraped article/question-answer content needs rights review before any training use."
+    }
+  ],
+  "required_pipeline": [
+    "Import licensed/permitted source rows with row-level provenance.",
+    "Generate draft normalized Twi, faithful English meaning, intent, entities, ambiguity notes, and safety flags.",
+    "Translate English medical QA into Twi in chunks only after source license passes.",
+    "Expose rows in the review UI with filters by source, language, domain, risk, and missing fields.",
+    "Export only human-reviewed rows to train/dev/test manifests."
+  ]
+}

@@ -75,6 +75,12 @@ const sources = [
     domain: "health",
   },
   {
+    source: "ghana_health_symptoms" as const,
+    path: path.join(root, "data", "medical-response-corpus", "ghana-health-symptoms.v0.jsonl"),
+    limit: 5000,
+    domain: "health",
+  },
+  {
     source: "ghana_nlp_speech" as const,
     path: path.join(speechLabRoot, "data", "manifests", "ghana_nlp_twi.jsonl"),
     limit: 2500,
@@ -181,6 +187,7 @@ function buildCandidate(input: {
 }): Candidate | null {
   const text =
     asString(input.row.twi_user) ||
+    asString(input.row.symptom_twi) ||
     asString(input.row.text) ||
     asString(input.row.reference) ||
     asString(input.row.normalized_text);
@@ -201,26 +208,38 @@ function buildCandidate(input: {
   const id = `${input.source}_${sourceHash.slice(0, 16)}`;
   const language =
     asString(input.row.language) ||
-    (input.source === "curated_prompt" || input.source === "medical_response_seed" ? "tw" : "aka");
+    (input.source === "curated_prompt" ||
+    input.source === "medical_response_seed" ||
+    input.source === "ghana_health_symptoms"
+      ? "tw"
+      : "aka");
   const audioArtifact = input.audioPath || asString(input.row.audio_path) || null;
   const split = asString(input.row.split) || asString(input.row.source_split) || "unknown";
   const speakerId = asString(input.row.speaker_id) || null;
   const initialEnglish =
     input.source === "curated_prompt"
       ? asString(input.row.en_reference)
-      : asString(input.row.faithful_english_meaning);
-  const initialIntent = asString(input.row.intent);
+      : asString(input.row.faithful_english_meaning) || asString(input.row.tag_en);
+  const initialIntent =
+    asString(input.row.intent) ||
+    (input.source === "ghana_health_symptoms" ? "health_symptom_report" : "");
   const initialEntities =
     typeof input.row.entities === "string"
       ? input.row.entities
       : input.row.entities
         ? JSON.stringify(input.row.entities)
+        : asString(input.row.body_system)
+          ? JSON.stringify({ body_system: asString(input.row.body_system) })
         : "";
   const initialNotes = [
     asString(input.row.answer) ? `answer=${asString(input.row.answer)}` : "",
     asString(input.row.twi_answer) ? `twi_answer=${asString(input.row.twi_answer)}` : "",
     asString(input.row.safety_level) ? `safety_level=${asString(input.row.safety_level)}` : "",
+    asString(input.row.body_system) ? `body_system=${asString(input.row.body_system)}` : "",
+    asString(input.row.source_twi) ? `source_twi=${asString(input.row.source_twi)}` : "",
     Array.isArray(input.row.source_urls) ? `sources=${input.row.source_urls.join(" | ")}` : "",
+    asString(input.row.source_url) ? `source=${asString(input.row.source_url)}` : "",
+    asString(input.row.training_use) ? `training_use=${asString(input.row.training_use)}` : "",
   ]
     .filter(Boolean)
     .join("\n");

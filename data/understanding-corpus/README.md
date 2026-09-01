@@ -8,14 +8,21 @@ status, draft model proposals, consent scope, and training eligibility flags.
 
 Current committed queue:
 
-- 5,000 candidates.
+- 6,811 candidates.
 - 2,500 GhanaNLP Twi speech-text rows.
-- 2,255 WAXAL Akan rows across train/dev/test manifests.
+- 2,450 WAXAL Akan rows across train/dev/test manifests.
+- 1,600 Ghana Health Symptoms Twi medical rows.
 - 210 curated health, commerce, and code-switch text prompts.
 - 35 local recording rows with audio artifact references.
+- 1,922 rows currently have model/source draft proposals; these are not gold
+  labels until reviewed.
 
 The 50-row benchmark under `data/understanding-benchmark/` is only for comparing
 candidate annotators. It is not the training corpus.
+
+The 16-row medical response seed under `data/medical-response-corpus/` is also
+not the corpus. It is only a schema/provenance smoke test for patient-facing
+medical answer rows.
 
 Important boundaries:
 
@@ -106,6 +113,65 @@ cp tmp/understanding-corpus/candidates.v0.jsonl data/understanding-corpus/candid
 The builder defaults to a 5,000-row queue. Use `--limit` for a smaller or larger
 queue, and use `--annotate --annotate-limit <n>` only when intentionally spending
 model credits on a bounded proposal batch.
+
+## Corpus-scale draft annotation
+
+The real annotation target is the large candidate queue from WAXAL, GhanaNLP,
+project-owned recordings/prompts, and approved external medical sources.
+
+Use the standalone annotator to spend model credits against the existing queue
+without rebuilding it:
+
+```bash
+pnpm corpus:understanding:annotate -- --source ghana_nlp_speech,waxal --max-new 500 --chunk-size 8 --in-place
+```
+
+This fills `model_proposal` only. It does not mark rows as reviewed or eligible
+for training. Human review is still the promotion gate.
+
+Useful variants:
+
+```bash
+# Annotate the next batch of WAXAL/GhanaNLP rows.
+pnpm corpus:understanding:annotate -- --source ghana_nlp_speech,waxal --max-new 1000 --chunk-size 8 --in-place
+
+# Annotate imported Twi health-symptom rows.
+pnpm corpus:understanding:annotate -- --source ghana_health_symptoms --max-new 1000 --chunk-size 8 --in-place
+
+# Write an annotated copy instead of mutating the committed queue.
+pnpm corpus:understanding:annotate -- --source waxal --max-new 100 --out tmp/understanding-corpus/waxal.annotated.v0.jsonl
+```
+
+## External medical sources
+
+The current source inventory is tracked at:
+
+```text
+data/medical-response-corpus/source-inventory.v0.json
+```
+
+The first large Twi health source is:
+
+```text
+ghananlpcommunity/ghana-health-symptoms
+```
+
+It contains about 98k Twi symptom descriptions with English triage tags, but it
+is `cc-by-nc-4.0`, so keep it as non-commercial research data unless permission
+or legal approval changes that status.
+
+Import a bounded local copy with:
+
+```bash
+pnpm corpus:medical:ghana-health-symptoms -- --limit 5000
+```
+
+Then rebuild a larger candidate queue:
+
+```bash
+pnpm corpus:understanding:candidates -- --limit 10000
+cp tmp/understanding-corpus/candidates.v0.jsonl data/understanding-corpus/candidates.v0.jsonl
+```
 
 For the fastest first pass toward a trainable corpus, download **Download 20-row
 training pack** in the workbench or run:
