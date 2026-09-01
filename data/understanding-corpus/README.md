@@ -8,14 +8,14 @@ status, draft model proposals, consent scope, and training eligibility flags.
 
 Current committed queue:
 
-- 6,823 candidates.
+- 12,223 candidates.
 - 2,500 GhanaNLP Twi speech-text rows.
 - 2,450 WAXAL Akan rows across train/dev/test manifests.
-- 1,600 Ghana Health Symptoms Twi medical rows.
+- 7,000 Ghana Health Symptoms Twi medical rows.
 - 12 translated Twi medical QA draft rows.
 - 210 curated health, commerce, and code-switch text prompts.
 - 35 local recording rows with audio artifact references.
-- 1,934 rows currently have model/source draft proposals; these are not gold
+- 7,489 rows currently have model/source draft proposals; these are not gold
   labels until reviewed.
 
 The 50-row benchmark under `data/understanding-benchmark/` is only for comparing
@@ -167,6 +167,12 @@ Import a bounded local copy with:
 pnpm corpus:medical:ghana-health-symptoms -- --limit 5000
 ```
 
+For a rate-limit-resistant import from the Hugging Face parquet shard:
+
+```bash
+python scripts/import_ghana_health_symptoms_parquet.py --limit 7000
+```
+
 Import patient-facing MIT English medical QA and translate a review batch to Twi:
 
 ```bash
@@ -179,6 +185,36 @@ Then rebuild a larger candidate queue:
 ```bash
 pnpm corpus:understanding:candidates -- --limit 10000
 cp tmp/understanding-corpus/candidates.v0.jsonl data/understanding-corpus/candidates.v0.jsonl
+```
+
+## Delivered silver corpus
+
+The current quick-skim/training corpus is:
+
+```text
+data/understanding-corpus/silver-medical-v0/
+```
+
+It intentionally excludes the small seed rows, local recordings, translated
+12-row QA pilot, and weak curated synthetic rows. It contains only the large Twi
+medical symptom source:
+
+- `all.jsonl`: 7,000 rows
+- `train.jsonl`: 5,659 rows
+- `dev.jsonl`: 669 rows
+- `test.jsonl`: 672 rows
+
+Generate it with:
+
+```bash
+pnpm corpus:understanding:silver -- --out-dir data/understanding-corpus/silver-medical-v0
+```
+
+To skim the same corpus plus currently annotated WAXAL/GhanaNLP language
+coverage rows:
+
+```bash
+pnpm corpus:understanding:silver -- --include-language-coverage --out-dir tmp/understanding-corpus/silver-medical-plus-language-v0
 ```
 
 For the fastest first pass toward a trainable corpus, download **Download 20-row

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-01T21:31:24.230Z",
+  "outDir": "tmp/understanding-corpus/silver-medical-v0",
+  "candidates": 12223,
+  "selected": 7000,
+  "splits": {
+    "train": 5659,
+    "dev": 669,
+    "test": 672
+  },
+  "bySource": {
+    "ghana_health_symptoms": 7000
+  },
+  "byTrainingLane": {
+    "medical_research_silver": 7000
+  },
+  "excludedPolicy": {
+    "curated_prompt": "excluded from silver export because sampled rows showed weak synthetic quality",
+    "local_recording": "excluded from this corpus because user requested large corpus only",
+    "medical_response_seed": "excluded from this corpus because it is a small seed",
+    "medical_qa_twi_draft": "excluded from this corpus until the translated QA set is scaled and audited",
+    "general_waxal_ghana_nlp": "included only with --include-language-coverage after machine annotation",
+    "requires_clarification": "excluded from first training run"
+  }
+}

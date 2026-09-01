@@ -83,7 +83,7 @@ const sources = [
   {
     source: "ghana_health_symptoms" as const,
     path: path.join(root, "data", "medical-response-corpus", "ghana-health-symptoms.v0.jsonl"),
-    limit: 5000,
+    limit: 7000,
     domain: "health",
   },
   {

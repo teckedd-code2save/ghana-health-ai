@@ -2,17 +2,17 @@
 Twi understand SFT — research path.
 
 Data sources (priority):
-  1. --dataset HF chat JSONL (messages column)
-  2. --use-ghananlp-parallel → Ghana-NLP/TWI_ENGLISH_PARALLEL_TEXT
+  1. --use-local-silver → data/understanding-corpus/silver-medical-v0
+  2. --dataset HF chat JSONL (messages column)
+  3. --use-ghananlp-parallel → Ghana-NLP/TWI_ENGLISH_PARALLEL_TEXT
      converted to Twi-first health-style chat turns
 
-  modal run modal/train/train_understand.py --use-ghananlp-parallel --smoke
+  modal run modal/train/train_understand.py --use-local-silver --smoke
   modal run --detach modal/train/train_understand.py \\
-    --use-ghananlp-parallel --max-steps 500 \\
-    --push-repo teckedd/gha-understand-twi-v1
+    --use-local-silver --max-steps 500 \\
+    --push-repo teckedd/gha-understand-twi-medical-silver-v1
 
-Language policy: assistant replies in Twi by default.
-English assistant rows only for explicit English preference training (~15%).
+Language policy: this model is for semantic recovery, not direct medical advice.
 """
 
 from __future__ import annotations
@@ -27,6 +27,9 @@ app = modal.App("ghana-health-understand-train")
 vol = modal.Volume.from_name("ghana-health-understand-train", create_if_missing=True)
 
 _TRAIN_DIR = os.path.dirname(os.path.abspath(__file__))
+_REPO_ROOT = os.path.dirname(os.path.dirname(_TRAIN_DIR))
+_LOCAL_SILVER_DIR = os.path.join(_REPO_ROOT, "data", "understanding-corpus", "silver-medical-v0")
+_REMOTE_SILVER_DIR = "/root/gha_understanding_silver"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -43,6 +46,10 @@ image = (
     .add_local_file(
         local_path=os.path.join(_TRAIN_DIR, "model_card.py"),
         remote_path="/root/gha_train/model_card.py",
+    )
+    .add_local_dir(
+        local_path=_LOCAL_SILVER_DIR,
+        remote_path=_REMOTE_SILVER_DIR,
     )
 )
 
@@ -125,6 +132,7 @@ def _parallel_to_messages(row: dict[str, Any], rng: random.Random) -> dict[str, 
 def train(
     base_model: str = "Qwen/Qwen2.5-1.5B-Instruct",
     dataset_name: str = "",
+    use_local_silver: bool = True,
     use_ghananlp_parallel: bool = False,
     max_steps: int = 500,
     learning_rate: float = 2e-4,
@@ -143,8 +151,21 @@ def train(
 
     rows: list[dict[str, Any]] = []
     source = dataset_name or "none"
+    datasets_used: list[str] = []
 
-    if use_ghananlp_parallel or not dataset_name:
+    if use_local_silver:
+        local_train = os.path.join(_REMOTE_SILVER_DIR, "train.jsonl")
+        if os.path.exists(local_train):
+            raw = load_dataset("json", data_files={"train": local_train}, cache_dir=cache)
+            for row in raw["train"]:
+                if "messages" in row and row["messages"]:
+                    rows.append({"messages": row["messages"]})
+            source = "local:understanding-corpus/silver-medical-v0"
+            datasets_used.append("ghananlpcommunity/ghana-health-symptoms:cc-by-nc-4.0")
+        else:
+            print(f"[understand-train] local silver dataset missing: {local_train}")
+
+    if use_ghananlp_parallel or (not dataset_name and not rows):
         # Research default: Ghana-NLP Twi↔EN parallel
         pname = "Ghana-NLP/TWI_ENGLISH_PARALLEL_TEXT"
         try:
@@ -156,6 +177,7 @@ def train(
                 if m:
                     rows.append(m)
             source = pname
+            datasets_used.append(pname)
         except Exception as exc:  # noqa: BLE001
             if not dataset_name:
                 return {
@@ -176,6 +198,7 @@ def train(
                 if m:
                     rows.append(m)
         source = f"{source}+{dataset_name}" if source != "none" else dataset_name
+        datasets_used.append(dataset_name)
 
     if len(rows) < 8:
         return {
@@ -274,14 +297,20 @@ def train(
                 task="text-generation",
                 language=["tw", "ak", "en"],
                 base_model=base_model,
-                datasets=[source],
+                datasets=datasets_used or [source],
                 metrics={"n_train": len(train_ds), "max_steps": max_steps},
                 summary=(
-                    "Twi-first health/dialogue LoRA for Ghana Health AI. "
-                    "Trained from Ghana-NLP parallel (+ optional SFT). "
-                    "English assistant only on preference rows."
+                    "Twi medical semantic-recovery LoRA for Ghana Health AI. "
+                    "Trained on machine-annotated silver corpus for research evaluation."
                 ),
-                tags=["lora", "sft", "twi", "ghana-nlp"],
+                extra_markdown=(
+                    "## Dataset status\n\n"
+                    "This is a research checkpoint trained from machine annotations. "
+                    "Rows are not human-gold labels. The main source is CC-BY-NC-4.0, "
+                    "so use is non-commercial research unless separate permission is obtained.\n"
+                ),
+                license_id="cc-by-nc-4.0" if any("cc-by-nc" in d for d in datasets_used) else "apache-2.0",
+                tags=["lora", "sft", "twi", "ghana-nlp", "semantic-recovery", "silver-corpus"],
                 pipeline_tag="text-generation",
                 token=token,
             )
@@ -304,7 +333,8 @@ def train(
 @app.local_entrypoint()
 def main(
     dataset: str = "",
-    use_ghananlp_parallel: bool = True,
+    use_local_silver: bool = True,
+    use_ghananlp_parallel: bool = False,
     base_model: str = "Qwen/Qwen2.5-1.5B-Instruct",
     smoke: bool = False,
     push_repo: str = "",
@@ -313,6 +343,7 @@ def main(
     print(
         train.remote(
             dataset_name=dataset,
+            use_local_silver=use_local_silver,
             use_ghananlp_parallel=use_ghananlp_parallel,
             base_model=base_model,
             smoke=smoke,
