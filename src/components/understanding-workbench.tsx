@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 type ReviewDecision = "unreviewed" | "reviewed" | "needs_second_review" | "exclude";
+type CorpusFilter = "priority" | "training_data" | "local_audio" | "medical" | "curated" | "all";
 
 type Review = {
   id: string;
@@ -130,6 +131,14 @@ type WorkbenchPayload = {
   };
 };
 
+const corpusFilterOptions: Array<[CorpusFilter, string]> = [
+  ["training_data", "Training data"],
+  ["medical", "Medical"],
+  ["local_audio", "Local audio"],
+  ["curated", "Curated"],
+  ["all", "All"],
+];
+
 const emptyReview = (row?: BenchmarkRow): Review => ({
   id: row?.id ?? "",
   normalizedTwi: row?.modelProposal?.normalized_twi ?? "",
@@ -176,6 +185,7 @@ export function UnderstandingWorkbench() {
   const [uploadStatus, setUploadStatus] = useState("");
   const [tab, setTab] = useState<"sources" | "benchmark" | "corpus" | "review">("sources");
   const [reviewMode, setReviewMode] = useState<"benchmark" | "corpus">("corpus");
+  const [corpusFilter, setCorpusFilter] = useState<CorpusFilter>("training_data");
 
   async function load() {
     const res = await fetch("/api/research/understanding", { cache: "no-store" });
@@ -205,19 +215,32 @@ export function UnderstandingWorkbench() {
     };
   }, []);
 
+  const filteredCorpusRows = useMemo(() => {
+    const corpusRows = payload?.candidates.rows ?? [];
+    const filtered = corpusRows.filter((row) => {
+      if (corpusFilter === "all" || corpusFilter === "priority") return true;
+      if (corpusFilter === "training_data") {
+        return row.source === "waxal" || row.source === "ghana_nlp_speech";
+      }
+      if (corpusFilter === "local_audio") return row.source === "local_recording";
+      if (corpusFilter === "medical") return row.category.includes("health") || row.source === "medical_response_seed";
+      if (corpusFilter === "curated") return row.source === "curated_prompt";
+      return true;
+    });
+    return filtered.sort((a, b) => reviewRank(a) - reviewRank(b) || a.id.localeCompare(b.id));
+  }, [payload, corpusFilter]);
   const rows = useMemo(
     () =>
-      [...(reviewMode === "corpus" ? payload?.candidates.rows ?? [] : payload?.benchmark.rows ?? [])].sort(
-        (a, b) => reviewRank(a) - reviewRank(b) || a.id.localeCompare(b.id),
-      ),
-    [payload, reviewMode],
+      reviewMode === "corpus"
+        ? filteredCorpusRows
+        : [...(payload?.benchmark.rows ?? [])].sort(
+            (a, b) => reviewRank(a) - reviewRank(b) || a.id.localeCompare(b.id),
+          ),
+    [filteredCorpusRows, payload, reviewMode],
   );
   const corpusReviewRows = useMemo(
-    () =>
-      [...(payload?.candidates.rows ?? [])].sort(
-        (a, b) => reviewRank(a) - reviewRank(b) || a.id.localeCompare(b.id),
-      ),
-    [payload],
+    () => filteredCorpusRows,
+    [filteredCorpusRows],
   );
   const selected = rows[selectedIndex];
   const corpusReviewSummary = useMemo(() => {
@@ -470,6 +493,7 @@ export function UnderstandingWorkbench() {
               type="button"
               onClick={() => {
                 setReviewMode("corpus");
+                setCorpusFilter("priority");
                 setSelectedIndex(nextCorpusReviewIndex);
                 setTab("review");
               }}
@@ -522,6 +546,18 @@ export function UnderstandingWorkbench() {
                 }}
               />
             </label>
+          </div>
+          <div className="research-ase__filters" aria-label="Corpus row filters">
+            {corpusFilterOptions.map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={corpusFilter === value ? "is-active" : ""}
+                onClick={() => setCorpusFilter(value as CorpusFilter)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
           {uploadStatus && <p className="research-ase__success">{uploadStatus}</p>}
           <div className="research-ase__candidate-list">
@@ -608,7 +644,8 @@ function ReviewEditor({
 
   return (
     <section className="research-ase__review">
-          <div className="research-ase__review-switch">
+          <div className="research-ase__review-topbar">
+            <div className="research-ase__review-switch">
             <button
               type="button"
               className={reviewMode === "corpus" ? "is-active" : ""}
@@ -629,8 +666,19 @@ function ReviewEditor({
             >
               Benchmark probes <span>{benchmarkTotal}</span>
             </button>
+            </div>
+            {reviewMode === "corpus" && (
+              <div className="research-ase__review-progress">
+                <span>
+                  Row {selectedIndex + 1}/{rows.length}
+                </span>
+                <span>{trainingReady} ready</span>
+                <span>{corpusReviewSummary.unreviewed} unreviewed</span>
+              </div>
+            )}
           </div>
-          <div className="research-ase__review-progress">
+          {reviewMode === "benchmark" && (
+            <div className="research-ase__review-progress">
             <span>
               Row {selectedIndex + 1}/{rows.length}
             </span>
@@ -638,41 +686,51 @@ function ReviewEditor({
             <span>{corpusReviewSummary.unreviewed} unreviewed</span>
             <span>{corpusReviewSummary.secondReview} second review</span>
             <span>{corpusReviewSummary.excluded} excluded</span>
-          </div>
+            </div>
+          )}
           <aside className="research-ase__queue" aria-label="Benchmark row queue">
-            {rows.map((row, index) => (
+            {rows.slice(0, 120).map((row, index) => (
               <button
                 key={row.id}
                 className={index === selectedIndex ? "is-active" : ""}
                 onClick={() => setSelectedIndex(index)}
               >
-                <span>{row.id}</span>
-                <small>{row.review?.decision ?? row.modelProposal?.status ?? "unreviewed"}</small>
+                <span>{row.text || row.id}</span>
+                <small>
+                  {row.source ?? row.kind} · {row.trainingSplit ?? row.split ?? "split?"}
+                </small>
               </button>
             ))}
           </aside>
 
           <div className="research-ase__editor">
             <div className="research-ase__prompt">
-              <span>{selected.category}</span>
+              <span>
+                {selected.category} · {selected.source ?? selected.kind} · {selected.trainingSplit ?? selected.split ?? "split?"}
+              </span>
               <p>{selected.text}</p>
-              <small>
-                {selected.kind === "corpus"
-                  ? `${selected.sourceRecordId ?? selected.id} · ${selected.consentScope ?? "unknown consent"} · ${selected.speakerId ?? "unknown speaker"} · ${selected.trainingSplit ?? "unknown split"}`
-                  : "Synthetic benchmark probe"}
-              </small>
-              {selected.audioArtifactId && <small>{selected.audioArtifactId}</small>}
-              <button
-                type="button"
-                onClick={() => setForm((value) => ({ ...value, normalizedTwi: selected.text }))}
-              >
-                Use as normalized Twi
-              </button>
-              {selected.modelProposal?.status === "draft" && (
-                <button type="button" onClick={() => setForm((value) => fillFromDraft(selected, value))}>
-                  Use model draft fields
+              <details>
+                <summary>Source details</summary>
+                <small>
+                  {selected.kind === "corpus"
+                    ? `${selected.sourceRecordId ?? selected.id} · ${selected.consentScope ?? "unknown consent"} · ${selected.speakerId ?? "unknown speaker"}`
+                    : "Synthetic benchmark probe"}
+                </small>
+                {selected.audioArtifactId && <small>{selected.audioArtifactId}</small>}
+              </details>
+              <div className="research-ase__prompt-actions">
+                <button
+                  type="button"
+                  onClick={() => setForm((value) => ({ ...value, normalizedTwi: selected.text }))}
+                >
+                  Use transcript
                 </button>
-              )}
+                {selected.modelProposal?.status === "draft" && (
+                  <button type="button" onClick={() => setForm((value) => fillFromDraft(selected, value))}>
+                    Use draft
+                  </button>
+                )}
+              </div>
             </div>
 
             <label>

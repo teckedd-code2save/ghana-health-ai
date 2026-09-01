@@ -69,6 +69,12 @@ const sources = [
     domain: "mixed",
   },
   {
+    source: "medical_response_seed" as const,
+    path: path.join(root, "data", "medical-response-corpus", "twi-drafts.v0.jsonl"),
+    limit: 1000,
+    domain: "health",
+  },
+  {
     source: "ghana_nlp_speech" as const,
     path: path.join(speechLabRoot, "data", "manifests", "ghana_nlp_twi.jsonl"),
     limit: 2500,
@@ -174,6 +180,7 @@ function buildCandidate(input: {
   audioPath?: string | null;
 }): Candidate | null {
   const text =
+    asString(input.row.twi_user) ||
     asString(input.row.text) ||
     asString(input.row.reference) ||
     asString(input.row.normalized_text);
@@ -192,12 +199,31 @@ function buildCandidate(input: {
     }),
   );
   const id = `${input.source}_${sourceHash.slice(0, 16)}`;
-  const language = asString(input.row.language) || (input.source === "curated_prompt" ? "tw" : "aka");
+  const language =
+    asString(input.row.language) ||
+    (input.source === "curated_prompt" || input.source === "medical_response_seed" ? "tw" : "aka");
   const audioArtifact = input.audioPath || asString(input.row.audio_path) || null;
   const split = asString(input.row.split) || asString(input.row.source_split) || "unknown";
   const speakerId = asString(input.row.speaker_id) || null;
   const initialEnglish =
-    input.source === "curated_prompt" ? asString(input.row.en_reference) : "";
+    input.source === "curated_prompt"
+      ? asString(input.row.en_reference)
+      : asString(input.row.faithful_english_meaning);
+  const initialIntent = asString(input.row.intent);
+  const initialEntities =
+    typeof input.row.entities === "string"
+      ? input.row.entities
+      : input.row.entities
+        ? JSON.stringify(input.row.entities)
+        : "";
+  const initialNotes = [
+    asString(input.row.answer) ? `answer=${asString(input.row.answer)}` : "",
+    asString(input.row.twi_answer) ? `twi_answer=${asString(input.row.twi_answer)}` : "",
+    asString(input.row.safety_level) ? `safety_level=${asString(input.row.safety_level)}` : "",
+    Array.isArray(input.row.source_urls) ? `sources=${input.row.source_urls.join(" | ")}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   return {
     id,
@@ -214,7 +240,10 @@ function buildCandidate(input: {
     audio_artifact_id: portableAudioArtifact(audioArtifact),
     speaker_id: speakerId,
     duration_seconds: asNumber(input.row.duration_seconds),
-    consent_scope: input.source === "curated_prompt" ? "text_only" : "dataset_license",
+    consent_scope:
+      input.source === "curated_prompt" || input.source === "medical_response_seed"
+        ? "text_only"
+        : "dataset_license",
     source_hash: sourceHash,
     duplicate_key: hash(normalized).slice(0, 16),
     review_status: "needs_review",
@@ -224,11 +253,11 @@ function buildCandidate(input: {
       normalized_twi: normalized,
       natural_english: initialEnglish,
       literal_english: "",
-      intent: "",
-      entities: "",
-      ambiguities: "",
+      intent: initialIntent,
+      entities: initialEntities,
+      ambiguities: initialNotes,
       requires_clarification: false,
-      model: initialEnglish ? "curated_source_en_reference" : "none",
+      model: initialEnglish ? "source_seed_or_translation_draft" : "none",
       status: initialEnglish ? "draft" : "not_requested",
     },
   };

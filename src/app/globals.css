@@ -1990,6 +1990,7 @@ select {
 
 .research-ase__metrics,
 .research-ase__categories,
+.research-ase__filters,
 .research-ase__review-switch,
 .research-ase__review-progress,
 .research-ase__quick-actions,
@@ -2013,6 +2014,27 @@ select {
 
 .research-ase__categories strong {
   color: var(--fg);
+}
+
+.research-ase__filters {
+  align-items: center;
+}
+
+.research-ase__filters button {
+  min-height: 2.35rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 0 0.8rem;
+  color: var(--fg-muted);
+  background: rgba(255, 255, 255, 0.68);
+  font-size: 0.82rem;
+  font-weight: 820;
+  cursor: pointer;
+}
+
+.research-ase__filters button.is-active {
+  color: #f8fbf9;
+  background: #14241d;
 }
 
 .research-ase__scorecards {
