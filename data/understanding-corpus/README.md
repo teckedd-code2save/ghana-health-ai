@@ -8,13 +8,14 @@ status, draft model proposals, consent scope, and training eligibility flags.
 
 Current committed queue:
 
-- 6,811 candidates.
+- 6,823 candidates.
 - 2,500 GhanaNLP Twi speech-text rows.
 - 2,450 WAXAL Akan rows across train/dev/test manifests.
 - 1,600 Ghana Health Symptoms Twi medical rows.
+- 12 translated Twi medical QA draft rows.
 - 210 curated health, commerce, and code-switch text prompts.
 - 35 local recording rows with audio artifact references.
-- 1,922 rows currently have model/source draft proposals; these are not gold
+- 1,934 rows currently have model/source draft proposals; these are not gold
   labels until reviewed.
 
 The 50-row benchmark under `data/understanding-benchmark/` is only for comparing
@@ -164,6 +165,13 @@ Import a bounded local copy with:
 
 ```bash
 pnpm corpus:medical:ghana-health-symptoms -- --limit 5000
+```
+
+Import patient-facing MIT English medical QA and translate a review batch to Twi:
+
+```bash
+pnpm corpus:medical:qa -- --limit 200
+pnpm corpus:medical:qa:twi -- --limit 50 --chunk-size 2
 ```
 
 Then rebuild a larger candidate queue:

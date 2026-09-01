@@ -57,6 +57,8 @@
     "corpus:understanding:export": "node --import tsx scripts/export-understanding-training-corpus.ts",
     "corpus:understanding:export:strict": "node --import tsx scripts/export-understanding-training-corpus.ts --strict",
     "corpus:medical:ghana-health-symptoms": "node --import tsx scripts/import-ghana-health-symptoms.ts",
+    "corpus:medical:qa": "node --import tsx scripts/import-medical-qa-corpus.ts",
+    "corpus:medical:qa:twi": "node --import tsx scripts/translate-medical-qa-to-twi.ts",
     "research:understanding:report": "node --import tsx scripts/summarize-understanding-research.ts",
     "eval:model-card": "python modal/train/validate_model_card.py",
     "eval:hf-model-cards": "node --import tsx scripts/eval-hf-model-cards.ts",

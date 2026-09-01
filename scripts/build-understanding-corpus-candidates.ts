@@ -75,6 +75,12 @@ const sources = [
     domain: "health",
   },
   {
+    source: "medical_qa_twi_draft" as const,
+    path: path.join(root, "data", "medical-response-corpus", "medical-qa-twi-drafts.v0.jsonl"),
+    limit: 2000,
+    domain: "health",
+  },
+  {
     source: "ghana_health_symptoms" as const,
     path: path.join(root, "data", "medical-response-corpus", "ghana-health-symptoms.v0.jsonl"),
     limit: 5000,
@@ -210,6 +216,7 @@ function buildCandidate(input: {
     asString(input.row.language) ||
     (input.source === "curated_prompt" ||
     input.source === "medical_response_seed" ||
+    input.source === "medical_qa_twi_draft" ||
     input.source === "ghana_health_symptoms"
       ? "tw"
       : "aka");
@@ -234,6 +241,7 @@ function buildCandidate(input: {
   const initialNotes = [
     asString(input.row.answer) ? `answer=${asString(input.row.answer)}` : "",
     asString(input.row.twi_answer) ? `twi_answer=${asString(input.row.twi_answer)}` : "",
+    asString(input.row.english_answer) ? `english_answer=${asString(input.row.english_answer)}` : "",
     asString(input.row.safety_level) ? `safety_level=${asString(input.row.safety_level)}` : "",
     asString(input.row.body_system) ? `body_system=${asString(input.row.body_system)}` : "",
     asString(input.row.source_twi) ? `source_twi=${asString(input.row.source_twi)}` : "",
@@ -260,7 +268,9 @@ function buildCandidate(input: {
     speaker_id: speakerId,
     duration_seconds: asNumber(input.row.duration_seconds),
     consent_scope:
-      input.source === "curated_prompt" || input.source === "medical_response_seed"
+      input.source === "curated_prompt" ||
+      input.source === "medical_response_seed" ||
+      input.source === "medical_qa_twi_draft"
         ? "text_only"
         : "dataset_license",
     source_hash: sourceHash,
