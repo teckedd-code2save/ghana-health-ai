@@ -382,3 +382,52 @@ The current implementation pass completes Gate 0 only. It does not begin broad
 audio retention, automated annotation, or participant recruitment. Those start
 after the data model, consent design, review workflow, and research governance
 are planned cleanly.
+## Product Evaluation Path
+
+Current candidate:
+
+- HF adapter: `teckedd/gha-understand-twi-medical-silver-v1`
+- Base model: `Qwen/Qwen2.5-1.5B-Instruct`
+- Corpus: `data/understanding-corpus/silver-medical-v0`
+- Scope: semantic recovery only, not final medical advice.
+
+Use the adapter as a candidate model in the product pipeline:
+
+```bash
+pnpm eval:understanding:adapter
+pnpm deploy:understanding
+```
+
+Set the application environment variable after deploying the Modal endpoint:
+
+```text
+UNDERSTANDING_MODEL_URL=https://<modal-understand-endpoint>
+```
+
+Optional:
+
+```text
+UNDERSTANDING_MODEL_TOKEN=<shared bearer token>
+UNDERSTANDING_MODEL_TIMEOUT_MS=12000
+```
+
+The application sends transcript text, language, focus, recent conversation
+history, and lightweight transcript metadata to the endpoint. The model returns
+structured semantic recovery:
+
+- normalized Twi
+- faithful English meaning
+- literal English meaning where available
+- intent
+- entities
+- ambiguities
+- clarification flag
+
+The response generator then uses this only as a silent hint. If the endpoint is
+down, slow, or returns invalid JSON, the app continues through the existing LLM
+path and records the missing candidate in metadata. This lets real in-app tests
+show whether failures come from ASR, semantic recovery, or final response logic.
+
+This model should not be promoted as production-ready until real app turns and
+held-out review rows show better semantic recovery than the current response
+pipeline.

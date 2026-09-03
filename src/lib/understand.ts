@@ -11,6 +11,12 @@
 import { chatComplete, isLlmConfigured, llmProviderInfo } from "@/lib/llm";
 import { buildCommerceActionPlan, type CommerceActionPlan } from "@/lib/commerce-plan";
 import { buildHealthUnderstanding, type HealthUnderstanding } from "@/lib/health-plan";
+import {
+  formatUnderstandingModelHint,
+  recoverUnderstandingWithModel,
+  understandingModelMode,
+  type UnderstandingModelPrediction,
+} from "@/lib/understanding-model";
 import type { LanguageCode } from "@prisma/client";
 import { z } from "zod";
 
@@ -28,6 +34,7 @@ export type UnderstandResult = {
     understood: boolean;
     meaning?: string | null;
     uncertaintyReason?: string | null;
+    model?: UnderstandingModelPrediction | null;
   };
   retrieve?: {
     engine: string;
@@ -47,6 +54,12 @@ export type UnderstandResult = {
     usedHistory: boolean;
     usedMemory: boolean;
     safetyEnforced: boolean;
+    understandingModel?: {
+      mode: "shadow" | "assist";
+      used: boolean;
+      model?: string;
+      latencyMs?: number;
+    };
   };
 };
 
@@ -513,6 +526,28 @@ export async function understandUtterance(input: {
     products: [],
     cacheMisses: 0,
   };
+  const history = (input.history ?? [])
+    .filter((message) => message.role === "user" || !isFailureReply(message.content))
+    .slice(-6)
+    .map((m) => ({
+      role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+      content: m.content,
+    }));
+  const modelPrediction = await recoverUnderstandingWithModel({
+    text: input.text,
+    language,
+    focus,
+    history,
+    memory: input.memory,
+    transcript: input.transcript
+      ? {
+          language: input.transcript.language,
+          languageProbability: input.transcript.languageProbability,
+          model: input.transcript.model,
+          route: input.transcript.route,
+        }
+      : undefined,
+  });
 
   if (!isLlmConfigured()) {
     return fallbackUnderstanding({
@@ -525,20 +560,21 @@ export async function understandUtterance(input: {
       history: input.history,
     });
   }
-
-  const history = (input.history ?? [])
-    .filter((message) => message.role === "user" || !isFailureReply(message.content))
-    .slice(-6)
-    .map((m) => ({
-      role: m.role === "user" ? ("user" as const) : ("assistant" as const),
-      content: m.content,
-    }));
+  const modelMode = understandingModelMode();
+  const modelHint =
+    modelMode === "assist" ? formatUnderstandingModelHint(modelPrediction) : "";
 
   const directRaw = await chatComplete(
     [
       {
         role: "system",
-        content: `${SYSTEM_DIRECT}\nRequested reply language: ${replyLang === "en" ? "English" : "Twi/Akan"}.`,
+        content: [
+          SYSTEM_DIRECT,
+          `Requested reply language: ${replyLang === "en" ? "English" : "Twi/Akan"}.`,
+          modelHint,
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
       },
       ...history,
       { role: "user", content: input.text },
@@ -591,6 +627,7 @@ export async function understandUtterance(input: {
         understood: false,
         meaning: null,
         uncertaintyReason,
+        model: modelPrediction,
       },
       retrieve: retrieveMeta,
       review: { engine: "fallback", revised: false },
@@ -601,6 +638,12 @@ export async function understandUtterance(input: {
         usedHistory: history.length > 0,
         usedMemory: Boolean(input.memory),
         safetyEnforced: true,
+        understandingModel: {
+          mode: modelMode,
+          used: Boolean(modelPrediction),
+          model: modelPrediction?.model,
+          latencyMs: modelPrediction?.latencyMs,
+        },
       },
     };
   }
@@ -651,8 +694,9 @@ export async function understandUtterance(input: {
     replyLanguage: replyLang,
     comprehension: {
       understood: true,
-      meaning: direct.data.understoodMeaning ?? null,
+      meaning: direct.data.understoodMeaning ?? modelPrediction?.naturalEnglish ?? null,
       uncertaintyReason: null,
+      model: modelPrediction,
     },
     retrieve: retrieveMeta,
     review: {
@@ -666,6 +710,12 @@ export async function understandUtterance(input: {
       usedHistory: history.length > 0,
       usedMemory: Boolean(input.memory),
       safetyEnforced: true,
+      understandingModel: {
+        mode: modelMode,
+        used: Boolean(modelPrediction),
+        model: modelPrediction?.model,
+        latencyMs: modelPrediction?.latencyMs,
+      },
     },
   };
 }
