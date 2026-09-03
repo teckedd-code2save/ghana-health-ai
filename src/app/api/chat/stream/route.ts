@@ -9,6 +9,7 @@ const schema = z.object({
   conversationId: z.string().uuid().optional(),
   language: z.enum(["tw", "en", "ga"]).optional(),
   speak: z.boolean().optional(),
+  understandingModelMode: z.enum(["shadow", "assist"]).optional(),
 });
 
 function streamHeaders() {
@@ -94,6 +95,7 @@ export async function POST(req: Request) {
             language,
             channel: "WEB",
             speak: body.speak,
+            understandingModelMode: body.understandingModelMode,
             onStage: (stage) => {
               if (stage.name === "reply_delta") {
                 send("reply_delta", { chunk: stage.chunk, at: stage.at });

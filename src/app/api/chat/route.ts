@@ -11,6 +11,7 @@ const schema = z.object({
   conversationId: z.string().uuid().optional(),
   language: z.enum(["tw", "en", "ga"]).optional(),
   speak: z.boolean().optional(),
+  understandingModelMode: z.enum(["shadow", "assist"]).optional(),
 });
 
 /**
@@ -35,6 +36,7 @@ export async function POST(req: Request) {
       language,
       channel: "WEB",
       speak: body.speak,
+      understandingModelMode: body.understandingModelMode,
     });
 
     return jsonOk({

@@ -34,6 +34,7 @@ export type ConversationTurnInput = {
   conversationId?: string;
   channel: ConversationChannel;
   speak?: boolean;
+  understandingModelMode?: "shadow" | "assist";
   transcript?: TurnTranscriptMeta;
   onStage?: (stage: {
     name:
@@ -155,6 +156,7 @@ export async function runConversationTurn(
     transcript: input.transcript,
     focus: input.focus,
     instruction: input.instruction,
+    understandingModelMode: input.understandingModelMode,
   });
   const commerceExecution =
     understanding.intent === "ECOMMERCE"

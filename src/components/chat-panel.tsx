@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Mic, Send } from "lucide-react";
 import { useLang } from "@/components/lang-provider";
 import { useAsrModel } from "@/lib/asr-model-store";
+import { useUnderstandingModelMode } from "@/lib/understanding-model-store";
 import { enqueueOffline } from "@/lib/offline-queue";
 import { recordUntilSilence } from "@/lib/browser-audio";
 import { VoiceOrb, modeLabel, type OrbMode } from "@/components/voice-orb";
@@ -134,6 +135,7 @@ export function ChatPanel() {
   const [level, setLevel] = useState(0);
   const [vadState, setVadState] = useState<string | null>(null);
   const [asrModel, changeAsrModel] = useAsrModel();
+  const [understandingModelMode, changeUnderstandingModelMode] = useUnderstandingModelMode();
   const bottomRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioSafetyTimerRef = useRef<number | null>(null);
@@ -233,7 +235,7 @@ export function ChatPanel() {
     ]);
     setLoading(true);
     setVoicePending(false);
-    const payload = { message: trimmed, conversationId, language: lang };
+    const payload = { message: trimmed, conversationId, language: lang, understandingModelMode };
     try {
       if (!navigator.onLine) {
         enqueueOffline("chat", payload);
@@ -360,6 +362,7 @@ export function ChatPanel() {
       if (asrModel === "dondo") {
         form.append("asrModel", "dondo");
       }
+      form.append("understandingModelMode", understandingModelMode);
 
       if (conversationId) form.append("conversationId", conversationId);
       form.append("speak", "true");
@@ -525,6 +528,18 @@ export function ChatPanel() {
               <select value={asrModel} onChange={(event) => changeAsrModel(event.target.value as typeof asrModel)}>
                 <option value="dondo">DONDO</option>
                 <option value="v6">v6</option>
+              </select>
+            </label>
+            <label className="voice-model-picker voice-model-picker--compact" aria-label="Understanding model mode">
+              <span>Mind</span>
+              <select
+                value={understandingModelMode}
+                onChange={(event) =>
+                  changeUnderstandingModelMode(event.target.value as typeof understandingModelMode)
+                }
+              >
+                <option value="shadow">Stable</option>
+                <option value="assist">Research</option>
               </select>
             </label>
             <span className="chat-composer__spacer" />

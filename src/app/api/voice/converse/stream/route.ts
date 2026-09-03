@@ -129,6 +129,7 @@ export async function POST(req: Request) {
           const focusValue = form.get("focus");
           const instructionValue = form.get("instruction");
           const asrModelValue = form.get("asrModel");
+          const understandingModelValue = form.get("understandingModelMode");
 
           const language: LanguageCode =
             typeof lang === "string" && ["tw", "en", "ga"].includes(lang)
@@ -145,6 +146,10 @@ export async function POST(req: Request) {
           const asrModel =
             typeof asrModelValue === "string" && asrModelValue
               ? asrModelValue
+              : undefined;
+          const understandingModelMode =
+            understandingModelValue === "shadow" || understandingModelValue === "assist"
+              ? understandingModelValue
               : undefined;
 
           if (!(file instanceof Blob)) {
@@ -199,6 +204,7 @@ export async function POST(req: Request) {
             conversationId,
             channel: "VOICE",
             speak,
+            understandingModelMode,
             transcript: {
               mode: "asr",
               model: asr.model,

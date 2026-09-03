@@ -47,6 +47,7 @@ export async function POST(req: Request) {
     let focus: "health" | "commerce" | undefined;
     let instruction: string | undefined;
     let asrModel: string | undefined;
+    let understandingModelMode: "shadow" | "assist" | undefined;
 
     if (contentType.includes("multipart/form-data")) {
       const form = await req.formData();
@@ -67,6 +68,10 @@ export async function POST(req: Request) {
       const instructionValue = form.get("instruction");
       if (typeof instructionValue === "string" && instructionValue.trim()) {
         instruction = instructionValue.slice(0, 240);
+      }
+      const understandingValue = form.get("understandingModelMode");
+      if (understandingValue === "shadow" || understandingValue === "assist") {
+        understandingModelMode = understandingValue;
       }
     } else {
       audio = await req.arrayBuffer();
@@ -102,6 +107,7 @@ export async function POST(req: Request) {
       conversationId,
       channel: "VOICE",
       speak,
+      understandingModelMode,
       transcript: {
         mode: "asr",
         model: asr.model,

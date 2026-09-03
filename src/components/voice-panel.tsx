@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Mic, Pencil, ShoppingCart, Volume2, X } from "lucide-react";
 import { useLang } from "@/components/lang-provider";
 import { useAsrModel } from "@/lib/asr-model-store";
+import { useUnderstandingModelMode } from "@/lib/understanding-model-store";
 import { recordUntilSilence } from "@/lib/browser-audio";
 import { VoiceOrb, type OrbMode } from "@/components/voice-orb";
 import {
@@ -234,6 +235,7 @@ export function VoicePanel() {
   const [confirmingCommerce, setConfirmingCommerce] = useState(false);
   // A/B: Whisper v6 (default, production) vs DONDO CTC (research endpoint)
   const [asrModel, changeAsrModel] = useAsrModel();
+  const [understandingModelMode, changeUnderstandingModelMode] = useUnderstandingModelMode();
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastAudioBlobRef = useRef<Blob | null>(null);
@@ -455,6 +457,7 @@ export function VoicePanel() {
       form.append("speak", "true");
       form.append("focus", focus);
       form.append("instruction", focusInstruction(focus));
+      form.append("understandingModelMode", understandingModelMode);
       if (asrModel === "dondo") form.append("asrModel", "dondo");
       if (conversationId) form.append("conversationId", conversationId);
 
@@ -782,6 +785,18 @@ export function VoicePanel() {
               <select value={asrModel} onChange={(event) => changeAsrModel(event.target.value as typeof asrModel)}>
                 <option value="dondo">DONDO</option>
                 <option value="v6">v6</option>
+              </select>
+            </label>
+            <label className="voice-model-picker" aria-label="Understanding model mode">
+              <span>Mind</span>
+              <select
+                value={understandingModelMode}
+                onChange={(event) =>
+                  changeUnderstandingModelMode(event.target.value as typeof understandingModelMode)
+                }
+              >
+                <option value="shadow">Stable</option>
+                <option value="assist">Research</option>
               </select>
             </label>
             <button

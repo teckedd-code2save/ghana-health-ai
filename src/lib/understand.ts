@@ -513,11 +513,13 @@ export async function understandUtterance(input: {
   transcript?: TranscriptQualityInput;
   focus?: "health" | "commerce";
   instruction?: string;
+  understandingModelMode?: "shadow" | "assist";
 }): Promise<UnderstandResult> {
   const language = input.language ?? "tw";
   const provider = llmProviderInfo();
   const replyLang = resolveReplyLanguage(language);
   const focus = inferFocus(input.text, input.focus);
+  const modelMode = input.understandingModelMode ?? understandingModelMode();
   const commerce = withCommercePlan(extractCommerceUnderstanding(input.text, focus));
   const retrieveMeta = {
     engine: "none",
@@ -533,21 +535,24 @@ export async function understandUtterance(input: {
       role: m.role === "user" ? ("user" as const) : ("assistant" as const),
       content: m.content,
     }));
-  const modelPrediction = await recoverUnderstandingWithModel({
-    text: input.text,
-    language,
-    focus,
-    history,
-    memory: input.memory,
-    transcript: input.transcript
-      ? {
-          language: input.transcript.language,
-          languageProbability: input.transcript.languageProbability,
-          model: input.transcript.model,
-          route: input.transcript.route,
-        }
-      : undefined,
-  });
+  const modelPrediction =
+    modelMode === "assist"
+      ? await recoverUnderstandingWithModel({
+          text: input.text,
+          language,
+          focus,
+          history,
+          memory: input.memory,
+          transcript: input.transcript
+            ? {
+                language: input.transcript.language,
+                languageProbability: input.transcript.languageProbability,
+                model: input.transcript.model,
+                route: input.transcript.route,
+              }
+            : undefined,
+        })
+      : null;
 
   if (!isLlmConfigured()) {
     return fallbackUnderstanding({
@@ -560,7 +565,6 @@ export async function understandUtterance(input: {
       history: input.history,
     });
   }
-  const modelMode = understandingModelMode();
   const modelHint =
     modelMode === "assist" ? formatUnderstandingModelHint(modelPrediction) : "";
 
