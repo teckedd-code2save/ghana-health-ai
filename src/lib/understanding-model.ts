@@ -61,10 +61,9 @@ export async function recoverUnderstandingWithModel(input: {
   if (!baseUrl) return null;
 
   const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    Number(process.env.UNDERSTANDING_MODEL_TIMEOUT_MS || 12_000),
-  );
+  const configuredTimeout = Number(process.env.UNDERSTANDING_MODEL_TIMEOUT_MS || 4_000);
+  const timeoutMs = Math.min(Math.max(configuredTimeout, 500), 5_000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const res = await fetch(`${baseUrl}/understand`, {
