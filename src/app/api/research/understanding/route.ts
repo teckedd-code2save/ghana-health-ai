@@ -31,9 +31,13 @@ async function getReviewer() {
   return user?.email ?? user?.phone ?? user?.id ?? "local_reviewer";
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const reviewer = await getReviewer();
   if (!reviewer) return jsonError("Research review access is not enabled for this account.", 403);
+  const { searchParams } = new URL(request.url);
+  const summaryOnly = searchParams.get("summary") === "1" || searchParams.get("summary") === "true";
+  const rowLimitValue = Number(searchParams.get("limit") ?? "");
+  const rowLimit = Number.isFinite(rowLimitValue) && rowLimitValue >= 0 ? Math.floor(rowLimitValue) : null;
 
   const [seeds, candidates, reviews, scorecard, trainingExport] = await Promise.all([
     readBenchmarkSeeds(),
@@ -96,7 +100,7 @@ export async function GET() {
       stages: corpusStages,
     },
     benchmark: {
-      rows,
+      rows: summaryOnly ? [] : rows,
       total: rows.length,
       completed,
       needsSecondReview,
@@ -104,7 +108,7 @@ export async function GET() {
       scorecard,
     },
     candidates: {
-      rows: corpusRows,
+      rows: summaryOnly ? [] : rowLimit === null ? corpusRows : corpusRows.slice(0, rowLimit),
       total: corpusRows.length,
       completed: corpusCompleted,
       withAudio: corpusRows.filter((row) => row.audioArtifactId).length,
