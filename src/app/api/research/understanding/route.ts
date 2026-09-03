@@ -76,6 +76,17 @@ export async function GET() {
     },
     { train: 0, dev: 0, test: 0 },
   );
+  const sourceSummary = corpusRows.reduce<
+    Record<string, { total: number; draftAnnotated: number; reviewed: number; excluded: number }>
+  >((acc, row) => {
+    const source = row.source ?? "unknown";
+    acc[source] ??= { total: 0, draftAnnotated: 0, reviewed: 0, excluded: 0 };
+    acc[source].total += 1;
+    if (row.modelProposal.status === "draft") acc[source].draftAnnotated += 1;
+    if (row.review?.decision === "reviewed") acc[source].reviewed += 1;
+    if (row.review?.decision === "exclude") acc[source].excluded += 1;
+    return acc;
+  }, {});
 
   return jsonOk({
     reviewer,
@@ -101,6 +112,7 @@ export async function GET() {
       trainingReady: trainingExport.accepted,
       splits: trainingExport.splits,
       candidateSplits,
+      sourceSummary,
       readiness: trainingExport.readiness,
     },
   });

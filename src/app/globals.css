@@ -1991,6 +1991,7 @@ select {
 .research-ase__metrics,
 .research-ase__categories,
 .research-ase__filters,
+.research-ase__source-summary,
 .research-ase__review-switch,
 .research-ase__review-progress,
 .research-ase__quick-actions,
@@ -2035,6 +2036,39 @@ select {
 .research-ase__filters button.is-active {
   color: #f8fbf9;
   background: #14241d;
+}
+
+.research-ase__source-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.research-ase__source-summary article {
+  display: grid;
+  gap: 0.2rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 0.85rem 0.9rem;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.research-ase__source-summary strong {
+  color: var(--fg);
+  font-size: 0.88rem;
+  text-transform: capitalize;
+}
+
+.research-ase__source-summary span {
+  color: #08745c;
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.research-ase__source-summary small {
+  color: var(--fg-subtle);
+  font-size: 0.76rem;
+  line-height: 1.4;
 }
 
 .research-ase__scorecards {
@@ -2377,6 +2411,10 @@ select {
   }
 
   .research-ase__sources {
+    grid-template-columns: 1fr;
+  }
+
+  .research-ase__source-summary {
     grid-template-columns: 1fr;
   }
 

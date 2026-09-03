@@ -15,7 +15,13 @@ import {
 } from "lucide-react";
 
 type ReviewDecision = "unreviewed" | "reviewed" | "needs_second_review" | "exclude";
-type CorpusFilter = "priority" | "training_data" | "local_audio" | "medical" | "curated" | "all";
+type CorpusFilter =
+  | "priority"
+  | "medical_large"
+  | "language_sources"
+  | "local_audio"
+  | "product_text"
+  | "all";
 
 type Review = {
   id: string;
@@ -115,6 +121,10 @@ type WorkbenchPayload = {
       dev: number;
       test: number;
     };
+    sourceSummary: Record<
+      string,
+      { total: number; draftAnnotated: number; reviewed: number; excluded: number }
+    >;
     readiness: {
       ready: boolean;
       required_passed: number;
@@ -132,10 +142,10 @@ type WorkbenchPayload = {
 };
 
 const corpusFilterOptions: Array<[CorpusFilter, string]> = [
-  ["training_data", "Training data"],
-  ["medical", "Medical"],
+  ["medical_large", "7k medical"],
+  ["language_sources", "WAXAL/GhanaNLP"],
   ["local_audio", "Local audio"],
-  ["curated", "Curated"],
+  ["product_text", "Product text"],
   ["all", "All"],
 ];
 
@@ -185,7 +195,7 @@ export function UnderstandingWorkbench() {
   const [uploadStatus, setUploadStatus] = useState("");
   const [tab, setTab] = useState<"sources" | "benchmark" | "corpus" | "review">("sources");
   const [reviewMode, setReviewMode] = useState<"benchmark" | "corpus">("corpus");
-  const [corpusFilter, setCorpusFilter] = useState<CorpusFilter>("training_data");
+  const [corpusFilter, setCorpusFilter] = useState<CorpusFilter>("medical_large");
 
   async function load() {
     const res = await fetch("/api/research/understanding", { cache: "no-store" });
@@ -219,12 +229,18 @@ export function UnderstandingWorkbench() {
     const corpusRows = payload?.candidates.rows ?? [];
     const filtered = corpusRows.filter((row) => {
       if (corpusFilter === "all" || corpusFilter === "priority") return true;
-      if (corpusFilter === "training_data") {
+      if (corpusFilter === "medical_large") return row.source === "ghana_health_symptoms";
+      if (corpusFilter === "language_sources") {
         return row.source === "waxal" || row.source === "ghana_nlp_speech";
       }
       if (corpusFilter === "local_audio") return row.source === "local_recording";
-      if (corpusFilter === "medical") return row.source === "medical_response_seed";
-      if (corpusFilter === "curated") return row.source === "curated_prompt";
+      if (corpusFilter === "product_text") {
+        return (
+          row.source === "curated_prompt" ||
+          row.source === "medical_response_seed" ||
+          row.source === "medical_qa_twi_draft"
+        );
+      }
       return true;
     });
     return filtered.sort((a, b) => reviewRank(a) - reviewRank(b) || a.id.localeCompare(b.id));
@@ -493,7 +509,7 @@ export function UnderstandingWorkbench() {
               type="button"
               onClick={() => {
                 setReviewMode("corpus");
-                setCorpusFilter("priority");
+                setCorpusFilter("medical_large");
                 setSelectedIndex(nextCorpusReviewIndex);
                 setTab("review");
               }}
@@ -557,6 +573,18 @@ export function UnderstandingWorkbench() {
               >
                 {label}
               </button>
+            ))}
+          </div>
+          <div className="research-ase__source-summary" aria-label="Corpus source summary">
+            {Object.entries(payload.candidates.sourceSummary).map(([source, stats]) => (
+              <article key={source}>
+                <strong>{source.replaceAll("_", " ")}</strong>
+                <span>{stats.total.toLocaleString()} rows</span>
+                <small>
+                  {stats.draftAnnotated.toLocaleString()} annotated · {stats.reviewed.toLocaleString()} reviewed ·{" "}
+                  {stats.excluded.toLocaleString()} excluded
+                </small>
+              </article>
             ))}
           </div>
           {uploadStatus && <p className="research-ase__success">{uploadStatus}</p>}
