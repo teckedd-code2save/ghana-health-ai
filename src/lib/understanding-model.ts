@@ -36,11 +36,24 @@ function cleanUrl(value: string | undefined) {
   return value?.replace(/\/$/, "") || "";
 }
 
-export function isUnderstandingModelConfigured() {
-  return Boolean(cleanUrl(process.env.UNDERSTANDING_MODEL_URL));
+export type UnderstandingModelMode = "shadow" | "assist" | "assist_v1";
+
+function urlForMode(mode: UnderstandingModelMode) {
+  if (mode === "assist_v1") {
+    return cleanUrl(
+      process.env.UNDERSTANDING_MODEL_RESEARCH_V1_URL ||
+        "https://createdliving1000--ghana-health-understand-v3-api.modal.run",
+    );
+  }
+  return cleanUrl(process.env.UNDERSTANDING_MODEL_URL);
 }
 
-export function understandingModelMode(): "shadow" | "assist" {
+export function isUnderstandingModelConfigured(mode: UnderstandingModelMode = "assist") {
+  return Boolean(urlForMode(mode));
+}
+
+export function understandingModelMode(): UnderstandingModelMode {
+  if (process.env.UNDERSTANDING_MODEL_MODE === "assist_v1") return "assist_v1";
   return process.env.UNDERSTANDING_MODEL_MODE === "assist" ? "assist" : "shadow";
 }
 
@@ -56,8 +69,9 @@ export async function recoverUnderstandingWithModel(input: {
     model?: string;
     route?: string;
   };
+  mode?: UnderstandingModelMode;
 }): Promise<UnderstandingModelPrediction | null> {
-  const baseUrl = cleanUrl(process.env.UNDERSTANDING_MODEL_URL);
+  const baseUrl = urlForMode(input.mode ?? "assist");
   if (!baseUrl) return null;
 
   const controller = new AbortController();

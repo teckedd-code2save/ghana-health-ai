@@ -6,6 +6,7 @@ import { understandUtterance, type UnderstandResult } from "@/lib/understand";
 import { writeAudit } from "@/lib/audit";
 import { getAgentMemory, memoryPrompt, rememberFromTurn } from "@/lib/agent-memory";
 import { executeCommercePlan, type CommerceExecutionResult } from "@/lib/commerce-execute";
+import type { UnderstandingModelMode } from "@/lib/understanding-model";
 
 type SessionUser = {
   id: string;
@@ -34,7 +35,7 @@ export type ConversationTurnInput = {
   conversationId?: string;
   channel: ConversationChannel;
   speak?: boolean;
-  understandingModelMode?: "shadow" | "assist";
+  understandingModelMode?: UnderstandingModelMode;
   transcript?: TurnTranscriptMeta;
   onStage?: (stage: {
     name:

@@ -539,7 +539,8 @@ export function ChatPanel() {
                 }
               >
                 <option value="shadow">Stable</option>
-                <option value="assist">Research</option>
+                <option value="assist">Research v0</option>
+                <option value="assist_v1">Research v1</option>
               </select>
             </label>
             <span className="chat-composer__spacer" />

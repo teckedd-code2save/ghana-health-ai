@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 
-export type UnderstandingModelMode = "shadow" | "assist";
+export type UnderstandingModelMode = "shadow" | "assist" | "assist_v1";
 
 const KEY = "gha:understanding-model-mode";
 const listeners = new Set<() => void>();
@@ -21,7 +21,7 @@ function subscribe(onStoreChange: () => void) {
 export function readUnderstandingModelMode(): UnderstandingModelMode {
   try {
     const saved = localStorage.getItem(KEY);
-    if (saved === "shadow" || saved === "assist") return saved;
+    if (saved === "shadow" || saved === "assist" || saved === "assist_v1") return saved;
   } catch {
     /* SSR / private mode */
   }

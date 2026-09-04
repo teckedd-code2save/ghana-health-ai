@@ -15,6 +15,7 @@ import {
   formatUnderstandingModelHint,
   recoverUnderstandingWithModel,
   understandingModelMode,
+  type UnderstandingModelMode,
   type UnderstandingModelPrediction,
 } from "@/lib/understanding-model";
 import type { LanguageCode } from "@prisma/client";
@@ -55,7 +56,7 @@ export type UnderstandResult = {
     usedMemory: boolean;
     safetyEnforced: boolean;
     understandingModel?: {
-      mode: "shadow" | "assist";
+      mode: UnderstandingModelMode;
       used: boolean;
       model?: string;
       latencyMs?: number;
@@ -513,7 +514,7 @@ export async function understandUtterance(input: {
   transcript?: TranscriptQualityInput;
   focus?: "health" | "commerce";
   instruction?: string;
-  understandingModelMode?: "shadow" | "assist";
+  understandingModelMode?: UnderstandingModelMode;
 }): Promise<UnderstandResult> {
   const language = input.language ?? "tw";
   const provider = llmProviderInfo();
@@ -552,6 +553,23 @@ export async function understandUtterance(input: {
               }
             : undefined,
         })
+      : modelMode === "assist_v1"
+        ? await recoverUnderstandingWithModel({
+            text: input.text,
+            language,
+            focus,
+            history,
+            memory: input.memory,
+            mode: modelMode,
+            transcript: input.transcript
+              ? {
+                  language: input.transcript.language,
+                  languageProbability: input.transcript.languageProbability,
+                  model: input.transcript.model,
+                  route: input.transcript.route,
+                }
+              : undefined,
+          })
       : null;
 
   if (!isLlmConfigured()) {
@@ -566,7 +584,9 @@ export async function understandUtterance(input: {
     });
   }
   const modelHint =
-    modelMode === "assist" ? formatUnderstandingModelHint(modelPrediction) : "";
+    modelMode === "assist" || modelMode === "assist_v1"
+      ? formatUnderstandingModelHint(modelPrediction)
+      : "";
 
   const directRaw = await chatComplete(
     [

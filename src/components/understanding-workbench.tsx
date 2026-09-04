@@ -1,27 +1,10 @@
 "use client";
 
 import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  Database,
-  FileCheck2,
-  Layers3,
-  ListChecks,
-  Save,
-  ShieldCheck,
-  Upload,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, FileDown, Save, Upload } from "lucide-react";
 
 type ReviewDecision = "unreviewed" | "reviewed" | "needs_second_review" | "exclude";
-type CorpusFilter =
-  | "priority"
-  | "medical_large"
-  | "language_sources"
-  | "local_audio"
-  | "product_text"
-  | "all";
+type CorpusFilter = "medical_large" | "language_sources" | "local_audio" | "product_text" | "all";
 
 type Review = {
   id: string;
@@ -35,7 +18,7 @@ type Review = {
   notes: string;
 };
 
-type BenchmarkRow = {
+type DatasetRow = {
   kind: "benchmark" | "corpus";
   id: string;
   category: string;
@@ -65,62 +48,16 @@ type BenchmarkRow = {
 
 type WorkbenchPayload = {
   reviewer: string;
-  corpus: {
-    sourceInventory: Array<{
-      id: string;
-      name: string;
-      role: string;
-      evidence: string;
-      storage: string;
-      status: string;
-    }>;
-    storageDecisions: Array<{ material: string; systemOfRecord: string; rule: string }>;
-    stages: string[];
-  };
-  benchmark: {
-    rows: BenchmarkRow[];
-    total: number;
-    completed: number;
-    needsSecondReview: number;
-    excluded: number;
-    scorecard: {
-      created_at: string;
-      decision_hint: string;
-      scorecards: Array<{
-        candidate: string;
-        cases_scored: number;
-        exact_cases: number;
-        checks: number;
-        passed: number;
-        score: number;
-        elapsed_seconds: number;
-        critical_failures: Array<{
-          id: string;
-          category: string;
-          text: string;
-          prediction: string;
-          failures: string[];
-        }>;
-      }>;
-    } | null;
-  };
   candidates: {
-    rows: BenchmarkRow[];
+    rows: DatasetRow[];
     total: number;
+    visible: number;
+    offset: number;
+    limit: number;
+    filter: CorpusFilter;
     completed: number;
-    withAudio: number;
     draftAnnotated: number;
     trainingReady: number;
-    splits: {
-      train: number;
-      dev: number;
-      test: number;
-    };
-    candidateSplits: {
-      train: number;
-      dev: number;
-      test: number;
-    };
     sourceSummary: Record<
       string,
       { total: number; draftAnnotated: number; reviewed: number; excluded: number }
@@ -129,85 +66,76 @@ type WorkbenchPayload = {
       ready: boolean;
       required_passed: number;
       required_total: number;
-      checks: Array<{
-        id: string;
-        label: string;
-        passed: boolean;
-        value: number | string | boolean;
-        required: number | string | boolean;
-        severity: "required" | "warning";
-      }>;
     };
   };
 };
 
+const PAGE_SIZE = 150;
+
 const corpusFilterOptions: Array<[CorpusFilter, string]> = [
-  ["medical_large", "7k medical"],
-  ["language_sources", "WAXAL/GhanaNLP"],
+  ["medical_large", "Medical corpus"],
+  ["language_sources", "WAXAL / GhanaNLP"],
   ["local_audio", "Local audio"],
-  ["product_text", "Product text"],
-  ["all", "All"],
+  ["product_text", "Product rows"],
+  ["all", "All rows"],
 ];
 
-const emptyReview = (row?: BenchmarkRow): Review => ({
-  id: row?.id ?? "",
-  normalizedTwi: row?.modelProposal?.normalized_twi ?? "",
-  naturalEnglish: row?.modelProposal?.natural_english ?? "",
-  literalEnglish: row?.modelProposal?.literal_english ?? "",
-  intent: row?.modelProposal?.intent ?? "",
-  entities: row?.modelProposal?.entities ?? "",
-  ambiguities: row?.modelProposal?.ambiguities ?? "",
-  decision: "unreviewed",
-  notes: "",
-});
-
-function reviewRank(row: BenchmarkRow) {
-  const reviewed = row.review?.decision === "reviewed" ? 100 : 0;
-  const excluded = row.review?.decision === "exclude" ? 120 : 0;
-  const secondReview = row.review?.decision === "needs_second_review" ? 80 : 0;
-  const health = row.category.includes("health") ? -20 : 0;
-  const audio = row.audioArtifactId ? -10 : 0;
-  const local = row.source === "local_recording" ? -8 : 0;
-  const splitCoverage = row.trainingSplit === "test" ? -18 : row.trainingSplit === "dev" ? -16 : 0;
-  return reviewed + excluded + secondReview + health + audio + local + splitCoverage;
+function emptyReview(row?: DatasetRow): Review {
+  return {
+    id: row?.id ?? "",
+    normalizedTwi: row?.modelProposal?.normalized_twi || row?.text || "",
+    naturalEnglish: row?.modelProposal?.natural_english ?? "",
+    literalEnglish: row?.modelProposal?.literal_english ?? "",
+    intent: row?.modelProposal?.intent ?? "",
+    entities: row?.modelProposal?.entities ?? "",
+    ambiguities: row?.modelProposal?.ambiguities ?? "",
+    decision: row?.review?.decision ?? "unreviewed",
+    notes: row?.review?.notes ?? "",
+  };
 }
 
-function fillFromDraft(row: BenchmarkRow, prior?: Review): Review {
-  return {
-    id: row.id,
-    normalizedTwi: row.modelProposal?.normalized_twi || prior?.normalizedTwi || row.text,
-    naturalEnglish: row.modelProposal?.natural_english || prior?.naturalEnglish || "",
-    literalEnglish: row.modelProposal?.literal_english || prior?.literalEnglish || "",
-    intent: row.modelProposal?.intent || prior?.intent || "",
-    entities: row.modelProposal?.entities || prior?.entities || "",
-    ambiguities: row.modelProposal?.ambiguities || prior?.ambiguities || "",
-    decision: prior?.decision ?? "unreviewed",
-    notes: prior?.notes ?? "",
-  };
+function hydrateReview(row: DatasetRow): Review {
+  return row.review ?? emptyReview(row);
+}
+
+function rowStatus(row: DatasetRow) {
+  if (row.review?.decision === "reviewed") return "Reviewed";
+  if (row.review?.decision === "needs_second_review") return "Second review";
+  if (row.review?.decision === "exclude") return "Excluded";
+  if (row.modelProposal?.status === "draft") return "Needs review";
+  return "Missing annotation";
+}
+
+function sourceLabel(row: DatasetRow) {
+  return [row.source ?? row.kind, row.trainingSplit ?? row.split, row.language]
+    .filter(Boolean)
+    .join(" / ");
 }
 
 export function UnderstandingWorkbench() {
   const [payload, setPayload] = useState<WorkbenchPayload | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [filter, setFilter] = useState<CorpusFilter>("medical_large");
+  const [offset, setOffset] = useState(0);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
-  const [tab, setTab] = useState<"sources" | "benchmark" | "corpus" | "review">("sources");
-  const [reviewMode, setReviewMode] = useState<"benchmark" | "corpus">("corpus");
-  const [corpusFilter, setCorpusFilter] = useState<CorpusFilter>("medical_large");
 
-  async function load(filter: CorpusFilter = corpusFilter) {
+  async function load(nextFilter = filter, nextOffset = offset) {
     const query = new URLSearchParams({
-      filter,
-      limit: "300",
+      dataset: "1",
+      filter: nextFilter,
+      offset: String(nextOffset),
+      limit: String(PAGE_SIZE),
     });
     const res = await fetch(`/api/research/understanding?${query}`, { cache: "no-store" });
     const data = await res.json();
     if (!res.ok) {
-      setError(data.error ?? "Research workspace is unavailable.");
+      setError(data.error ?? "Dataset review is unavailable.");
       return;
     }
+    setError("");
     setPayload(data);
   }
 
@@ -215,85 +143,39 @@ export function UnderstandingWorkbench() {
     let cancelled = false;
     async function run() {
       const query = new URLSearchParams({
-        filter: corpusFilter,
-        limit: "300",
+        dataset: "1",
+        filter,
+        offset: String(offset),
+        limit: String(PAGE_SIZE),
       });
       const res = await fetch(`/api/research/understanding?${query}`, { cache: "no-store" });
       const data = await res.json();
       if (cancelled) return;
       if (!res.ok) {
-        setError(data.error ?? "Research workspace is unavailable.");
+        setError(data.error ?? "Dataset review is unavailable.");
         return;
       }
+      setError("");
       setPayload(data);
     }
     void run();
     return () => {
       cancelled = true;
     };
-  }, [corpusFilter]);
+  }, [filter, offset]);
 
-  const filteredCorpusRows = useMemo(() => {
-    const corpusRows = payload?.candidates.rows ?? [];
-    const filtered = corpusRows.filter((row) => {
-      if (corpusFilter === "all" || corpusFilter === "priority") return true;
-      if (corpusFilter === "medical_large") return row.source === "ghana_health_symptoms";
-      if (corpusFilter === "language_sources") {
-        return row.source === "waxal" || row.source === "ghana_nlp_speech";
-      }
-      if (corpusFilter === "local_audio") return row.source === "local_recording";
-      if (corpusFilter === "product_text") {
-        return (
-          row.source === "curated_prompt" ||
-          row.source === "medical_response_seed" ||
-          row.source === "medical_qa_twi_draft"
-        );
-      }
-      return true;
-    });
-    return filtered.sort((a, b) => reviewRank(a) - reviewRank(b) || a.id.localeCompare(b.id));
-  }, [payload, corpusFilter]);
-  const rows = useMemo(
-    () =>
-      reviewMode === "corpus"
-        ? filteredCorpusRows
-        : [...(payload?.benchmark.rows ?? [])].sort(
-            (a, b) => reviewRank(a) - reviewRank(b) || a.id.localeCompare(b.id),
-          ),
-    [filteredCorpusRows, payload, reviewMode],
-  );
-  const corpusReviewRows = useMemo(
-    () => filteredCorpusRows,
-    [filteredCorpusRows],
-  );
-  const selected = rows[selectedIndex];
-  const corpusReviewSummary = useMemo(() => {
-    const corpusRows = payload?.candidates.rows ?? [];
-    const accepted = corpusRows.filter((row) => row.review?.decision === "reviewed").length;
-    const secondReview = corpusRows.filter((row) => row.review?.decision === "needs_second_review").length;
-    const excluded = corpusRows.filter((row) => row.review?.decision === "exclude").length;
-    return {
-      accepted,
-      secondReview,
-      excluded,
-      unreviewed: Math.max(0, corpusRows.length - accepted - secondReview - excluded),
-    };
-  }, [payload]);
-  const nextCorpusReviewIndex = useMemo(() => {
-    const index = corpusReviewRows.findIndex((row) => !row.review || row.review.decision === "unreviewed");
-    return index >= 0 ? index : 0;
-  }, [corpusReviewRows]);
-  const progress = payload
-    ? Math.round((payload.candidates.trainingReady / Math.max(payload.candidates.total, 1)) * 100)
+  const rows = useMemo(() => payload?.candidates.rows ?? [], [payload]);
+  const selected = rows[selectedIndex] ?? rows[0];
+  const pageStart = payload && rows.length ? payload.candidates.offset + 1 : 0;
+  const pageEnd = payload
+    ? Math.min(payload.candidates.offset + rows.length, payload.candidates.total)
     : 0;
-
-  const benchmarkCategoryCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    (payload?.benchmark.rows ?? []).forEach((row) =>
-      counts.set(row.category, (counts.get(row.category) ?? 0) + 1),
-    );
-    return Array.from(counts.entries());
-  }, [payload]);
+  const reviewedOnPage = useMemo(
+    () => rows.filter((row) => row.review?.decision === "reviewed").length,
+    [rows],
+  );
+  const hasPrevPage = offset > 0;
+  const hasNextPage = payload ? offset + PAGE_SIZE < payload.candidates.total : false;
 
   async function save(review: Review, nextIndex?: number) {
     if (!selected) return;
@@ -331,575 +213,295 @@ export function UnderstandingWorkbench() {
       setError(data.error ?? "Review sheet could not be imported.");
       return;
     }
-    setUploadStatus(
-      `Imported ${data.imported} rows, skipped ${data.skipped}, accepted ${data.accepted}. Readiness ${data.readiness.required_passed}/${data.readiness.required_total}.`,
-    );
+    setUploadStatus(`Imported ${data.imported} rows, skipped ${data.skipped}.`);
     await load();
   }
 
   return (
     <section className="research-ase">
-      <header className="research-ase__hero">
+      <header className="research-ase__header">
         <div>
-          <p className="research-ase__eyebrow">Akan Speech Evidence</p>
-          <h1>Understanding corpus workbench</h1>
-          <p>
-            Build the real corpus from licensed datasets and consented records. The 50 synthetic rows
-            are only a small benchmark for comparing candidate models.
-          </p>
+          <span>Dataset Review</span>
+          <h1>Understanding corpus</h1>
         </div>
-        <div className="research-ase__status">
-          <span>{payload ? `${payload.benchmark.total} benchmark probes` : "Loading"}</span>
-          <strong>{payload ? `${progress}% training-ready` : "..."}</strong>
-        </div>
+        {payload && (
+          <dl className="research-ase__stats">
+            <div>
+              <dt>Total</dt>
+              <dd>{payload.candidates.total.toLocaleString()}</dd>
+            </div>
+            <div>
+              <dt>Reviewed</dt>
+              <dd>{payload.candidates.completed.toLocaleString()}</dd>
+            </div>
+            <div>
+              <dt>Ready</dt>
+              <dd>{payload.candidates.trainingReady.toLocaleString()}</dd>
+            </div>
+          </dl>
+        )}
       </header>
 
-      <nav className="research-ase__tabs" aria-label="Research workspace sections">
-        <button className={tab === "sources" ? "is-active" : ""} onClick={() => setTab("sources")}>
-          <Database className="h-4 w-4" />
-          Sources
-        </button>
-        <button className={tab === "benchmark" ? "is-active" : ""} onClick={() => setTab("benchmark")}>
-          <Layers3 className="h-4 w-4" />
-          Benchmark
-        </button>
-        <button className={tab === "corpus" ? "is-active" : ""} onClick={() => setTab("corpus")}>
-          <ListChecks className="h-4 w-4" />
-          Corpus
-        </button>
-        <button className={tab === "review" ? "is-active" : ""} onClick={() => setTab("review")}>
-          <FileCheck2 className="h-4 w-4" />
-          Review
-        </button>
-      </nav>
+      <div className="research-ase__toolbar">
+        <label>
+          Source
+          <select
+            value={filter}
+            onChange={(event) => {
+              setFilter(event.target.value as CorpusFilter);
+              setOffset(0);
+              setSelectedIndex(0);
+            }}
+          >
+            {corpusFilterOptions.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="research-ase__toolbar-actions">
+          <a href="/api/research/understanding/export" target="_blank" rel="noreferrer">
+            <FileDown className="h-4 w-4" />
+            Export
+          </a>
+          <label className="research-ase__upload">
+            <Upload className="h-4 w-4" />
+            {uploading ? "Importing" : "Import CSV"}
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              disabled={uploading}
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0] ?? null;
+                void uploadReviewSheet(file);
+                event.currentTarget.value = "";
+              }}
+            />
+          </label>
+        </div>
+      </div>
 
       {error && <p className="research-ase__error">{error}</p>}
+      {uploadStatus && <p className="research-ase__success">{uploadStatus}</p>}
 
-      {tab === "sources" && payload && (
-        <div className="research-ase__grid">
-          <section className="research-ase__panel research-ase__panel--wide">
-            <div className="research-ase__panel-head">
-              <ShieldCheck className="h-5 w-5" />
-              <div>
-                <h2>Corpus route</h2>
-                <p>No model trains from drafts. Every row must keep provenance, review state, and split safety.</p>
-              </div>
-            </div>
-            <ol className="research-ase__steps">
-              {payload.corpus.stages.map((stage) => (
-                <li key={stage}>{stage}</li>
-              ))}
-            </ol>
-          </section>
-
-          <section className="research-ase__panel">
-            <h2>Storage decisions</h2>
-            <div className="research-ase__table">
-              {payload.corpus.storageDecisions.map((item) => (
-                <div key={item.material}>
-                  <strong>{item.material}</strong>
-                  <span>{item.systemOfRecord}</span>
-                  <p>{item.rule}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="research-ase__sources">
-            {payload.corpus.sourceInventory.map((source) => (
-              <article key={source.id}>
-                <span>{source.evidence}</span>
-                <h3>{source.name}</h3>
-                <p>{source.role}</p>
-                <small>{source.storage}</small>
-                <em>{source.status}</em>
-              </article>
-            ))}
-          </section>
+      {payload && (
+        <div className="research-ase__pagebar">
+          <span>
+            Showing {pageStart.toLocaleString()}-{pageEnd.toLocaleString()} of{" "}
+            {payload.candidates.total.toLocaleString()}
+          </span>
+          <span>{reviewedOnPage.toLocaleString()} reviewed on this page</span>
+          <div>
+            <button
+              type="button"
+              disabled={!hasPrevPage}
+              onClick={() => {
+                setOffset(Math.max(0, offset - PAGE_SIZE));
+                setSelectedIndex(0);
+              }}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Previous
+            </button>
+            <button
+              type="button"
+              disabled={!hasNextPage}
+              onClick={() => {
+                setOffset(offset + PAGE_SIZE);
+                setSelectedIndex(0);
+              }}
+            >
+              Next
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 
-      {tab === "benchmark" && payload && (
-        <section className="research-ase__panel">
-          <div className="research-ase__panel-head">
-            <Layers3 className="h-5 w-5" />
-            <div>
-              <h2>Benchmark probes</h2>
-              <p>
-                These rows measure model behaviour. They are not the training corpus and not gold
-                labels until reviewed.
-              </p>
-            </div>
-          </div>
-          <div className="research-ase__metrics">
-            <span>{payload.benchmark.completed} reviewed</span>
-            <span>{payload.benchmark.needsSecondReview} need second review</span>
-            <span>{payload.benchmark.excluded} excluded</span>
-          </div>
-          {payload.benchmark.scorecard && (
-            <div className="research-ase__scorecards">
-              {payload.benchmark.scorecard.scorecards.map((scorecard, index) => (
-                <article key={scorecard.candidate} className={index === 0 ? "is-leading" : ""}>
-                  <div>
-                    <span>{index === 0 ? "Current best fit" : "Candidate"}</span>
-                    <h3>{scorecard.candidate}</h3>
-                  </div>
-                  <strong>{Math.round(scorecard.score * 100)}%</strong>
-                  <p>
-                    {scorecard.exact_cases}/{scorecard.cases_scored} exact cases · {scorecard.passed}/
-                    {scorecard.checks} meaning checks · {scorecard.elapsed_seconds}s
-                  </p>
-                  {scorecard.critical_failures.length > 0 && (
-                    <small>{scorecard.critical_failures.length} critical failures still need review.</small>
-                  )}
-                </article>
-              ))}
-              <p className="research-ase__hint">{payload.benchmark.scorecard.decision_hint}</p>
-            </div>
-          )}
-          <div className="research-ase__categories">
-            {benchmarkCategoryCounts.map(([category, count]) => (
-              <span key={category}>
-                {category} <strong>{count}</strong>
-              </span>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {tab === "corpus" && payload && (
-        <section className="research-ase__panel">
-          <div className="research-ase__panel-head">
-            <ListChecks className="h-5 w-5" />
-            <div>
-              <h2>Corpus candidates</h2>
-              <p>
-                These are dataset-derived and consent-scoped candidates. Model-populated fields are
-                drafts until you review and correct them.
-              </p>
-            </div>
-          </div>
-          <div className="research-ase__metrics">
-            <span>{payload.candidates.total} candidate rows</span>
-            <span>{payload.candidates.withAudio} with audio references</span>
-            <span>{payload.candidates.draftAnnotated} with draft annotations</span>
-            <span>{payload.candidates.completed} reviewed</span>
-            <span>{payload.candidates.trainingReady} training-ready</span>
-            <span>{corpusReviewSummary.unreviewed} left to review</span>
-            <span>
-              readiness {payload.candidates.readiness.required_passed}/
-              {payload.candidates.readiness.required_total}
-            </span>
-            <span>
-              train/dev/test {payload.candidates.splits.train}/{payload.candidates.splits.dev}/
-              {payload.candidates.splits.test}
-            </span>
-            <span>
-              available {payload.candidates.candidateSplits.train}/
-              {payload.candidates.candidateSplits.dev}/{payload.candidates.candidateSplits.test}
-            </span>
-          </div>
-          <div className="research-ase__readiness">
-            {payload.candidates.readiness.checks.map((check) => (
-              <span
-                key={check.id}
-                className={[
-                  check.passed ? "is-passed" : "is-failed",
-                  check.severity === "warning" ? "is-warning" : "",
-                ].join(" ")}
-              >
-                {check.label}: {String(check.value)}
-              </span>
-            ))}
-          </div>
-          <div className="research-ase__quick-actions">
-            <button
-              type="button"
-              onClick={() => {
-                setReviewMode("corpus");
-                setCorpusFilter("medical_large");
-                setSelectedIndex(nextCorpusReviewIndex);
-                setTab("review");
-              }}
-            >
-              Review next training row
-            </button>
-            <a
-              className="research-ase__export-link"
-              href="/api/research/understanding/export"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Open training export
-            </a>
-            <a
-              className="research-ase__export-link"
-              href="/api/research/understanding/review-sheet"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Download review sheet
-            </a>
-            <a
-              className="research-ase__export-link"
-              href="/api/research/understanding/review-sheet?scope=minimum-training"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Download 20-row training pack
-            </a>
-            <a
-              className="research-ase__export-link"
-              href="/api/research/understanding/review-sheet?scope=minimum-training&prefill=draft"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Download assisted pack
-            </a>
-            <label className="research-ase__upload">
-              <Upload className="h-4 w-4" />
-              {uploading ? "Importing..." : "Upload reviewed CSV"}
-              <input
-                type="file"
-                accept=".csv,text/csv"
-                disabled={uploading}
-                onChange={(event) => {
-                  const file = event.currentTarget.files?.[0] ?? null;
-                  void uploadReviewSheet(file);
-                  event.currentTarget.value = "";
-                }}
-              />
-            </label>
-          </div>
-          <div className="research-ase__filters" aria-label="Corpus row filters">
-            {corpusFilterOptions.map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                className={corpusFilter === value ? "is-active" : ""}
-                onClick={() => {
-                  setSelectedIndex(0);
-                  setCorpusFilter(value as CorpusFilter);
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <div className="research-ase__source-summary" aria-label="Corpus source summary">
-            {Object.entries(payload.candidates.sourceSummary).map(([source, stats]) => (
-              <article key={source}>
-                <strong>{source.replaceAll("_", " ")}</strong>
-                <span>{stats.total.toLocaleString()} rows</span>
-                <small>
-                  {stats.draftAnnotated.toLocaleString()} annotated · {stats.reviewed.toLocaleString()} reviewed ·{" "}
-                  {stats.excluded.toLocaleString()} excluded
-                </small>
-              </article>
-            ))}
-          </div>
-          {uploadStatus && <p className="research-ase__success">{uploadStatus}</p>}
-          <div className="research-ase__candidate-list">
-            {corpusReviewRows.slice(0, 24).map((row, index) => (
+      {selected ? (
+        <div className="research-ase__review">
+          <aside className="research-ase__queue" aria-label="Dataset queue">
+            {rows.map((row, index) => (
               <button
                 key={row.id}
+                className={index === selectedIndex ? "is-active" : ""}
+                onClick={() => setSelectedIndex(index)}
                 type="button"
-                onClick={() => {
-                  setReviewMode("corpus");
-                  setSelectedIndex(index);
-                  setTab("review");
-                }}
               >
-                <strong>{row.text}</strong>
-                <span>
-                  {row.category} · {row.split ?? "unknown split"} · {row.modelProposal?.status ?? "no draft"}
-                  {row.trainingSplit ? ` · ${row.trainingSplit}` : ""}
-                </span>
+                <strong>{row.text || row.id}</strong>
+                <small>
+                  {rowStatus(row)} · {sourceLabel(row)}
+                </small>
               </button>
             ))}
-          </div>
-        </section>
-      )}
+          </aside>
 
-      {tab === "review" && payload && selected && (
-        <ReviewEditor
-          key={selected.id}
-          rows={rows}
-          selected={selected}
-          selectedIndex={selectedIndex}
-          reviewMode={reviewMode}
-          trainingReady={payload.candidates.trainingReady}
-          corpusReviewSummary={corpusReviewSummary}
-          setReviewMode={setReviewMode}
-          benchmarkTotal={payload.benchmark.total}
-          corpusTotal={payload.candidates.total}
-          saving={saving}
-          setSelectedIndex={setSelectedIndex}
-          save={save}
-        />
+          <ReviewEditor
+            key={selected.id}
+            row={selected}
+            rowNumber={offset + selectedIndex + 1}
+            rowCount={payload?.candidates.total ?? rows.length}
+            pageIndex={selectedIndex}
+            pageLength={rows.length}
+            saving={saving}
+            setSelectedIndex={setSelectedIndex}
+            save={save}
+          />
+        </div>
+      ) : (
+        <p className="research-ase__empty">No rows found for this source.</p>
       )}
     </section>
   );
 }
 
 function ReviewEditor({
-  rows,
-  selected,
-  selectedIndex,
-  reviewMode,
-  trainingReady,
-  corpusReviewSummary,
-  setReviewMode,
-  benchmarkTotal,
-  corpusTotal,
+  row,
+  rowNumber,
+  rowCount,
+  pageIndex,
+  pageLength,
   saving,
   setSelectedIndex,
   save,
 }: {
-  rows: BenchmarkRow[];
-  selected: BenchmarkRow;
-  selectedIndex: number;
-  reviewMode: "benchmark" | "corpus";
-  trainingReady: number;
-  corpusReviewSummary: {
-    accepted: number;
-    secondReview: number;
-    excluded: number;
-    unreviewed: number;
-  };
-  setReviewMode: Dispatch<SetStateAction<"benchmark" | "corpus">>;
-  benchmarkTotal: number;
-  corpusTotal: number;
+  row: DatasetRow;
+  rowNumber: number;
+  rowCount: number;
+  pageIndex: number;
+  pageLength: number;
   saving: boolean;
   setSelectedIndex: Dispatch<SetStateAction<number>>;
   save: (review: Review, nextIndex?: number) => Promise<void>;
 }) {
-  const [form, setForm] = useState<Review>(selected.review ?? emptyReview(selected));
+  const [form, setForm] = useState<Review>(hydrateReview(row));
   const canAccept =
     form.normalizedTwi.trim().length > 0 &&
     form.naturalEnglish.trim().length > 0 &&
     form.intent.trim().length > 0;
-  const nextIndex = Math.min(rows.length - 1, selectedIndex + 1);
+  const nextIndex = Math.min(pageLength - 1, pageIndex + 1);
 
   return (
-    <section className="research-ase__review">
-          <div className="research-ase__review-topbar">
-            <div className="research-ase__review-switch">
-            <button
-              type="button"
-              className={reviewMode === "corpus" ? "is-active" : ""}
-              onClick={() => {
-                setReviewMode("corpus");
-                setSelectedIndex(0);
-              }}
-            >
-              Corpus candidates <span>{corpusTotal}</span>
-            </button>
-            <button
-              type="button"
-              className={reviewMode === "benchmark" ? "is-active" : ""}
-              onClick={() => {
-                setReviewMode("benchmark");
-                setSelectedIndex(0);
-              }}
-            >
-              Benchmark probes <span>{benchmarkTotal}</span>
-            </button>
-            </div>
-            {reviewMode === "corpus" && (
-              <div className="research-ase__review-progress">
-                <span>
-                  Row {selectedIndex + 1}/{rows.length}
-                </span>
-                <span>{trainingReady} ready</span>
-                <span>{corpusReviewSummary.unreviewed} unreviewed</span>
-              </div>
-            )}
-          </div>
-          {reviewMode === "benchmark" && (
-            <div className="research-ase__review-progress">
-            <span>
-              Row {selectedIndex + 1}/{rows.length}
-            </span>
-            <span>{trainingReady} training-ready</span>
-            <span>{corpusReviewSummary.unreviewed} unreviewed</span>
-            <span>{corpusReviewSummary.secondReview} second review</span>
-            <span>{corpusReviewSummary.excluded} excluded</span>
-            </div>
-          )}
-          <aside className="research-ase__queue" aria-label="Benchmark row queue">
-            {rows.slice(0, 120).map((row, index) => (
-              <button
-                key={row.id}
-                className={index === selectedIndex ? "is-active" : ""}
-                onClick={() => setSelectedIndex(index)}
-              >
-                <span>{row.text || row.id}</span>
-                <small>
-                  {row.source ?? row.kind} · {row.trainingSplit ?? row.split ?? "split?"}
-                </small>
-              </button>
-            ))}
-          </aside>
+    <main className="research-ase__editor">
+      <div className="research-ase__prompt">
+        <div>
+          <span>
+            Row {rowNumber.toLocaleString()} / {rowCount.toLocaleString()}
+          </span>
+          <strong>{rowStatus(row)}</strong>
+        </div>
+        <p>{row.text}</p>
+        <small>
+          {sourceLabel(row)} · {row.consentScope ?? "consent unknown"} ·{" "}
+          {row.speakerId ? `speaker ${row.speakerId}` : "speaker unknown"}
+        </small>
+        {row.audioArtifactId && <small>{row.audioArtifactId}</small>}
+      </div>
 
-          <div className="research-ase__editor">
-            <div className="research-ase__prompt">
-              <span>
-                {selected.category} · {selected.source ?? selected.kind} · {selected.trainingSplit ?? selected.split ?? "split?"}
-              </span>
-              <p>{selected.text}</p>
-              <details>
-                <summary>Source details</summary>
-                <small>
-                  {selected.kind === "corpus"
-                    ? `${selected.sourceRecordId ?? selected.id} · ${selected.consentScope ?? "unknown consent"} · ${selected.speakerId ?? "unknown speaker"}`
-                    : "Synthetic benchmark probe"}
-                </small>
-                {selected.audioArtifactId && <small>{selected.audioArtifactId}</small>}
-              </details>
-              <div className="research-ase__prompt-actions">
-                <button
-                  type="button"
-                  onClick={() => setForm((value) => ({ ...value, normalizedTwi: selected.text }))}
-                >
-                  Use transcript
-                </button>
-                {selected.modelProposal?.status === "draft" && (
-                  <button type="button" onClick={() => setForm((value) => fillFromDraft(selected, value))}>
-                    Use draft
-                  </button>
-                )}
-              </div>
-            </div>
+      <div className="research-ase__form-grid">
+        <label className="research-ase__field research-ase__field--wide">
+          Normalized Twi
+          <textarea
+            value={form.normalizedTwi}
+            onChange={(event) => setForm((value) => ({ ...value, normalizedTwi: event.target.value }))}
+          />
+        </label>
+        <label className="research-ase__field research-ase__field--wide">
+          Faithful English meaning
+          <textarea
+            value={form.naturalEnglish}
+            onChange={(event) => setForm((value) => ({ ...value, naturalEnglish: event.target.value }))}
+          />
+        </label>
+        <label className="research-ase__field">
+          Intent
+          <input
+            value={form.intent}
+            onChange={(event) => setForm((value) => ({ ...value, intent: event.target.value }))}
+            placeholder="health_symptom_report"
+          />
+        </label>
+        <label className="research-ase__field">
+          Decision
+          <select
+            value={form.decision}
+            onChange={(event) =>
+              setForm((value) => ({ ...value, decision: event.target.value as ReviewDecision }))
+            }
+          >
+            <option value="unreviewed">Unreviewed</option>
+            <option value="reviewed">Reviewed</option>
+            <option value="needs_second_review">Needs second review</option>
+            <option value="exclude">Exclude</option>
+          </select>
+        </label>
+        <label className="research-ase__field">
+          Entities
+          <textarea
+            value={form.entities}
+            onChange={(event) => setForm((value) => ({ ...value, entities: event.target.value }))}
+            placeholder='{"symptom":"eye pain"}'
+          />
+        </label>
+        <label className="research-ase__field">
+          Ambiguity
+          <textarea
+            value={form.ambiguities}
+            onChange={(event) => setForm((value) => ({ ...value, ambiguities: event.target.value }))}
+          />
+        </label>
+        <label className="research-ase__field">
+          Literal English
+          <textarea
+            value={form.literalEnglish}
+            onChange={(event) => setForm((value) => ({ ...value, literalEnglish: event.target.value }))}
+          />
+        </label>
+        <label className="research-ase__field">
+          Review notes
+          <textarea
+            value={form.notes}
+            onChange={(event) => setForm((value) => ({ ...value, notes: event.target.value }))}
+          />
+        </label>
+      </div>
 
-            <label>
-              Normalized Twi
-              <textarea
-                value={form.normalizedTwi}
-                onChange={(event) => setForm((value) => ({ ...value, normalizedTwi: event.target.value }))}
-              />
-            </label>
-            <label>
-              Faithful English meaning
-              <textarea
-                value={form.naturalEnglish}
-                onChange={(event) => setForm((value) => ({ ...value, naturalEnglish: event.target.value }))}
-              />
-            </label>
-            <label>
-              Literal English, if helpful
-              <textarea
-                value={form.literalEnglish}
-                onChange={(event) => setForm((value) => ({ ...value, literalEnglish: event.target.value }))}
-              />
-            </label>
-            <div className="research-ase__two">
-              <label>
-                Intent
-                <input
-                  value={form.intent}
-                  onChange={(event) => setForm((value) => ({ ...value, intent: event.target.value }))}
-                  placeholder="report_symptom"
-                />
-              </label>
-              <label>
-                Decision
-                <select
-                  value={form.decision}
-                  onChange={(event) =>
-                    setForm((value) => ({ ...value, decision: event.target.value as ReviewDecision }))
-                  }
-                >
-                  <option value="unreviewed">Unreviewed</option>
-                  <option value="reviewed">Reviewed</option>
-                  <option value="needs_second_review">Needs second review</option>
-                  <option value="exclude">Exclude</option>
-                </select>
-              </label>
-            </div>
-            <label>
-              Entities
-              <textarea
-                value={form.entities}
-                onChange={(event) => setForm((value) => ({ ...value, entities: event.target.value }))}
-                placeholder="symptom=headache; duration=since yesterday"
-              />
-            </label>
-            <label>
-              Ambiguity or uncertainty
-              <textarea
-                value={form.ambiguities}
-                onChange={(event) => setForm((value) => ({ ...value, ambiguities: event.target.value }))}
-              />
-            </label>
-            <label>
-              Review notes
-              <textarea
-                value={form.notes}
-                onChange={(event) => setForm((value) => ({ ...value, notes: event.target.value }))}
-              />
-            </label>
-
-            <div className="research-ase__actions">
-              <button type="button" onClick={() => setSelectedIndex((value) => Math.max(0, value - 1))}>
-                <ArrowLeft className="h-4 w-4" />
-                Previous
-              </button>
-              <button type="button" onClick={() => void save(form)} disabled={saving}>
-                <Save className="h-4 w-4" />
-                {saving ? "Saving" : "Save"}
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  void save(
-                    {
-                      ...form,
-                      decision: "needs_second_review",
-                    },
-                    nextIndex,
-                  )
-                }
-                disabled={saving}
-              >
-                Second review
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  void save(
-                    {
-                      ...form,
-                      decision: "exclude",
-                    },
-                    nextIndex,
-                  )
-                }
-                disabled={saving}
-              >
-                Exclude
-              </button>
-              <button
-                type="button"
-                className="research-ase__primary"
-                onClick={() =>
-                  void save(
-                    {
-                      ...form,
-                      decision: "reviewed",
-                    },
-                    nextIndex,
-                  )
-                }
-                disabled={saving || !canAccept}
-                title={canAccept ? "Mark reviewed and continue" : "Needs Twi, English meaning, and intent"}
-              >
-                <Check className="h-4 w-4" />
-                Accept and next
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-    </section>
+      <div className="research-ase__actions">
+        <button type="button" onClick={() => setSelectedIndex((value) => Math.max(0, value - 1))}>
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
+        <button type="button" onClick={() => void save(form)} disabled={saving}>
+          <Save className="h-4 w-4" />
+          {saving ? "Saving" : "Save"}
+        </button>
+        <button
+          type="button"
+          onClick={() => void save({ ...form, decision: "needs_second_review" }, nextIndex)}
+          disabled={saving}
+        >
+          Second review
+        </button>
+        <button
+          type="button"
+          onClick={() => void save({ ...form, decision: "exclude" }, nextIndex)}
+          disabled={saving}
+        >
+          Exclude
+        </button>
+        <button
+          type="button"
+          className="research-ase__primary"
+          onClick={() => void save({ ...form, decision: "reviewed" }, nextIndex)}
+          disabled={saving || !canAccept}
+          title={canAccept ? "Mark reviewed and continue" : "Needs Twi, English meaning, and intent"}
+        >
+          <Check className="h-4 w-4" />
+          Reviewed. Next
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      </div>
+    </main>
   );
 }

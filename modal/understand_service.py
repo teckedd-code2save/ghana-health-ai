@@ -49,8 +49,16 @@ gpu_image = (
     )
 )
 
-web_image = modal.Image.debian_slim(python_version="3.11").pip_install(
-    "fastapi[standard]==0.115.12"
+web_image = (
+    modal.Image.debian_slim(python_version="3.11")
+    .env(
+        {
+            "UNDERSTAND_BASE_MODEL": BASE_MODEL,
+            "UNDERSTAND_ADAPTER_ID": ADAPTER_ID,
+            "UNDERSTAND_SERVICE_NAME": APP_NAME,
+        }
+    )
+    .pip_install("fastapi[standard]==0.115.12")
 )
 
 try:

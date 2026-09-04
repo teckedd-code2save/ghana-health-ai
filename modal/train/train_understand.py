@@ -378,6 +378,8 @@ def push_saved(
     base_model: str = "Qwen/Qwen2.5-1.5B-Instruct",
     push_repo: str = _DEFAULT_PUSH_REPO,
     train_loss: Optional[float] = None,
+    eval_passed: Optional[int] = None,
+    eval_total: Optional[int] = None,
 ) -> dict[str, Any]:
     token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
     if not token:
@@ -408,6 +410,50 @@ def push_saved(
         token=token,
         commit_message="model: upload medical plus language adapter",
     )
+    eval_metrics: dict[str, Any] = {}
+    eval_markdown = ""
+    if eval_passed is not None and eval_total:
+        eval_rate = float(eval_passed) / float(eval_total)
+        eval_metrics = {
+            "product_fixture_pass_rate": eval_rate,
+            "product_fixture_passed": eval_passed,
+            "product_fixture_total": eval_total,
+        }
+        eval_payload = {
+            "status": "needs_review" if eval_passed < eval_total else "passed",
+            "passed": eval_passed,
+            "total": eval_total,
+            "pass_rate": eval_rate,
+            "eval_set": "project product fixtures",
+            "note": (
+                "Small product-critical fixture evaluation. Failed cases should be treated "
+                "as promotion blockers for production default use."
+            ),
+            "known_failed_cases": [
+                "tw-health-headache-pregnancy-danger",
+                "tw-health-eye-pain-not-emergency",
+                "tw-health-hospital-choice-asks-location",
+                "tw-health-migraine-serious-followup",
+            ]
+            if eval_passed < eval_total
+            else [],
+        }
+        api.upload_file(
+            path_or_fileobj=json.dumps(eval_payload, ensure_ascii=False, indent=2).encode("utf-8"),
+            path_in_repo="eval/product-fixtures.v0.json",
+            repo_id=push_repo,
+            repo_type="model",
+            token=token,
+            commit_message="eval: add product fixture results",
+        )
+        eval_markdown = (
+            "\n## Product fixture evaluation\n\n"
+            f"- Status: `{'needs_review' if eval_passed < eval_total else 'passed'}`\n"
+            f"- Passed: `{eval_passed}/{eval_total}`\n"
+            f"- Pass rate: `{eval_rate:.2%}`\n"
+            "- Artifact: `eval/product-fixtures.v0.json`\n"
+            "- Production note: this checkpoint is exposed only as an explicit research option.\n"
+        )
     write_and_push_model_card(
         push_repo,
         task="text-generation",
@@ -418,6 +464,7 @@ def push_saved(
             "n_train": 6329,
             "max_steps": 650,
             **({"train_loss": train_loss} if train_loss is not None else {}),
+            **eval_metrics,
         },
         summary=(
             "Twi/Akan semantic-recovery LoRA for Ghana Health AI. "
@@ -436,6 +483,7 @@ def push_saved(
             "- Steps: `650`\n"
             "- Corpus: `data/understanding-corpus/silver-medical-plus-language-v1`\n"
             + (f"- Final train loss: `{train_loss:.4f}`\n" if train_loss is not None else "")
+            + eval_markdown
         ),
         license_id="cc-by-nc-4.0",
         tags=["lora", "sft", "twi", "ghana-nlp", "semantic-recovery", "silver-corpus"],
@@ -447,6 +495,7 @@ def push_saved(
         "repo": push_repo,
         "url": f"https://huggingface.co/{push_repo}",
         "output_dir": out_dir,
+        "eval": eval_metrics,
     }
 
 
@@ -461,6 +510,8 @@ def main(
     max_steps: int = 500,
     push_only: bool = False,
     train_loss: Optional[float] = None,
+    eval_passed: Optional[int] = None,
+    eval_total: Optional[int] = None,
 ):
     if push_only:
         print(
@@ -468,6 +519,8 @@ def main(
                 base_model=base_model,
                 push_repo=push_repo or _DEFAULT_PUSH_REPO,
                 train_loss=train_loss,
+                eval_passed=eval_passed,
+                eval_total=eval_total,
             )
         )
         return

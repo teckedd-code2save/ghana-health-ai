@@ -43,6 +43,7 @@ export async function GET(request: Request) {
   if (!reviewer) return jsonError("Research review access is not enabled for this account.", 403);
   const { searchParams } = new URL(request.url);
   const summaryOnly = searchParams.get("summary") === "1" || searchParams.get("summary") === "true";
+  const datasetOnly = searchParams.get("dataset") === "1" || searchParams.get("dataset") === "true";
   const rowLimitValue = Number(searchParams.get("limit") ?? "");
   const rowLimit = Number.isFinite(rowLimitValue) && rowLimitValue >= 0 ? Math.floor(rowLimitValue) : 300;
   const rowOffsetValue = Number(searchParams.get("offset") ?? "0");
@@ -110,17 +111,17 @@ export async function GET(request: Request) {
   return jsonOk({
     reviewer,
     corpus: {
-      sourceInventory,
-      storageDecisions,
-      stages: corpusStages,
+      sourceInventory: datasetOnly ? [] : sourceInventory,
+      storageDecisions: datasetOnly ? [] : storageDecisions,
+      stages: datasetOnly ? [] : corpusStages,
     },
     benchmark: {
-      rows: summaryOnly ? [] : rows,
+      rows: summaryOnly || datasetOnly ? [] : rows,
       total: rows.length,
       completed,
       needsSecondReview,
       excluded,
-      scorecard,
+      scorecard: datasetOnly ? null : scorecard,
     },
     candidates: {
       rows: summaryOnly ? [] : corpusRows,

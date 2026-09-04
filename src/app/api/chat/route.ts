@@ -11,7 +11,7 @@ const schema = z.object({
   conversationId: z.string().uuid().optional(),
   language: z.enum(["tw", "en", "ga"]).optional(),
   speak: z.boolean().optional(),
-  understandingModelMode: z.enum(["shadow", "assist"]).optional(),
+  understandingModelMode: z.enum(["shadow", "assist", "assist_v1"]).optional(),
 });
 
 /**

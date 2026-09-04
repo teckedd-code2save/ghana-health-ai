@@ -6,6 +6,7 @@ import { clientIp, rateLimit } from "@/lib/rate-limit";
 import type { LanguageCode } from "@prisma/client";
 import { runConversationTurn } from "@/lib/conversation-turn";
 import { publicFailure, unclearRecording } from "@/lib/public-errors";
+import type { UnderstandingModelMode } from "@/lib/understanding-model";
 
 function languageFromAsr(
   asr: Awaited<ReturnType<typeof modalTranscribe>>,
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
     let focus: "health" | "commerce" | undefined;
     let instruction: string | undefined;
     let asrModel: string | undefined;
-    let understandingModelMode: "shadow" | "assist" | undefined;
+    let understandingModelMode: UnderstandingModelMode | undefined;
 
     if (contentType.includes("multipart/form-data")) {
       const form = await req.formData();
@@ -70,7 +71,11 @@ export async function POST(req: Request) {
         instruction = instructionValue.slice(0, 240);
       }
       const understandingValue = form.get("understandingModelMode");
-      if (understandingValue === "shadow" || understandingValue === "assist") {
+      if (
+        understandingValue === "shadow" ||
+        understandingValue === "assist" ||
+        understandingValue === "assist_v1"
+      ) {
         understandingModelMode = understandingValue;
       }
     } else {

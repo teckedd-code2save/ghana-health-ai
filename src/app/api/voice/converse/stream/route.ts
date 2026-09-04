@@ -148,7 +148,9 @@ export async function POST(req: Request) {
               ? asrModelValue
               : undefined;
           const understandingModelMode =
-            understandingModelValue === "shadow" || understandingModelValue === "assist"
+            understandingModelValue === "shadow" ||
+            understandingModelValue === "assist" ||
+            understandingModelValue === "assist_v1"
               ? understandingModelValue
               : undefined;
 
