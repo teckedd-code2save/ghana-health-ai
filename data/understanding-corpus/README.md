@@ -15,11 +15,11 @@ Current committed queue:
 - 12 translated Twi medical QA draft rows.
 - 210 curated health, commerce, and code-switch text prompts.
 - 35 local recording rows with audio artifact references.
-- 7,989 rows currently have model/source draft proposals; these are not gold
+- 9,245 rows currently have model/source draft proposals; these are not gold
   labels until reviewed.
 - Current draft coverage by large source:
   - Ghana Health Symptoms: 7,000 / 7,000
-  - GhanaNLP speech: 596 / 2,500
+  - GhanaNLP speech: 1,852 / 2,500
   - WAXAL: 120 / 2,450
 
 The 50-row benchmark under `data/understanding-benchmark/` is only for comparing
@@ -223,11 +223,11 @@ pnpm corpus:understanding:silver -- --include-language-coverage --out-dir tmp/un
 
 The current generated medical-plus-language review artifact contains:
 
-- `all.jsonl`: 7,312 rows
-- `train.jsonl`: 5,914 rows
-- `dev.jsonl`: 690 rows
-- `test.jsonl`: 708 rows
-- Source mix: 7,000 Ghana Health Symptoms, 219 GhanaNLP speech, 93 WAXAL
+- `all.jsonl`: 7,802 rows
+- `train.jsonl`: 6,317 rows
+- `dev.jsonl`: 725 rows
+- `test.jsonl`: 760 rows
+- Source mix: 7,000 Ghana Health Symptoms, 709 GhanaNLP speech, 93 WAXAL
 
 Rows from WAXAL/GhanaNLP are included only when they have usable draft semantic
 labels and do not require clarification.
