@@ -3,7 +3,7 @@ Ghana Health AI — Twi semantic recovery service on Modal.
 
 Loads the research LoRA adapter:
   base: Qwen/Qwen2.5-1.5B-Instruct
-  adapter: teckedd/gha-understand-twi-medical-silver-v1
+  adapter: teckedd/gha-understand-twi-medical-plus-language-v2
 
 This endpoint recovers structured meaning only. Product medical replies still go
 through the application response/safety pipeline.
@@ -15,6 +15,7 @@ through the application response/safety pipeline.
 # runtime annotation handling simple.
 import json
 import os
+import re
 import time
 from typing import Any, Optional
 
@@ -23,7 +24,7 @@ import modal
 APP_NAME = os.environ.get("UNDERSTAND_APP_NAME", "ghana-health-understand")
 BASE_MODEL = os.environ.get("UNDERSTAND_BASE_MODEL", "Qwen/Qwen2.5-1.5B-Instruct")
 ADAPTER_ID = os.environ.get(
-    "UNDERSTAND_ADAPTER_ID", "teckedd/gha-understand-twi-medical-silver-v1"
+    "UNDERSTAND_ADAPTER_ID", "teckedd/gha-understand-twi-medical-plus-language-v2"
 )
 MAX_NEW_TOKENS = int(os.environ.get("UNDERSTAND_MAX_NEW_TOKENS", "320"))
 
@@ -63,7 +64,8 @@ SYSTEM = (
     "English, or code-switched user utterance, output faithful structured "
     "understanding. Do not diagnose. Do not invent missing symptoms. Preserve "
     "uncertainty. Return JSON only with keys normalized_twi, natural_english, "
-    "literal_english, intent, entities, ambiguities, requires_clarification."
+    "literal_english, intent, entities, ambiguities, requires_clarification. "
+    "Use double quotes, lowercase true/false, and no markdown."
 )
 
 
@@ -72,7 +74,23 @@ def _json_from_text(text: str) -> dict[str, Any]:
     end = text.rfind("}")
     if start < 0 or end <= start:
         raise ValueError("no_json_object")
-    value = json.loads(text[start : end + 1])
+    raw = text[start : end + 1]
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError:
+        repaired = (
+            raw.replace("“", '"')
+            .replace("”", '"')
+            .replace("’", "'")
+            .replace(":=", ":")
+            .replace("=:", ":")
+        )
+        repaired = re.sub(r"\bTrue\b", "true", repaired)
+        repaired = re.sub(r"\bFalse\b", "false", repaired)
+        repaired = re.sub(r"([{,]\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*[=:])", r'\1"\2":', repaired)
+        repaired = re.sub(r'"\s*=', '":', repaired)
+        repaired = re.sub(r",\s*([}\]])", r"\1", repaired)
+        value = json.loads(repaired)
     if not isinstance(value, dict):
         raise ValueError("json_not_object")
     return value
@@ -167,6 +185,25 @@ class UnderstandEngine:
 
         messages = [
             {"role": "system", "content": SYSTEM},
+            {
+                "role": "user",
+                "content": (
+                    "language=tw\nfocus=health\nrecent_history=[]\n"
+                    "utterance=me ba no ho yɛ hyew"
+                ),
+            },
+            {
+                "role": "assistant",
+                "content": (
+                    '{"normalized_twi":"me ba no ho yɛ hyew",'
+                    '"natural_english":"My child has a fever or feels hot.",'
+                    '"literal_english":"My child body is hot.",'
+                    '"intent":"health_symptom_report",'
+                    '"entities":{"person":"child","symptom":"fever"},'
+                    '"ambiguities":"temperature not measured; child age unknown",'
+                    '"requires_clarification":true}'
+                ),
+            },
             {
                 "role": "user",
                 "content": (

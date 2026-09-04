@@ -248,6 +248,29 @@ That command pushes to `teckedd/gha-understand-twi-medical-plus-language-v2`
 with a model card. This remains a silver research checkpoint, not a gold
 medical model.
 
+Current v2 status:
+
+- Modal training run `ap-2KSkWjid8QokFtEE0EWoLt` completed 650 steps on the
+  6,317-row train split.
+- Final training loss was `1.7700`.
+- The adapter was uploaded to
+  `teckedd/gha-understand-twi-medical-plus-language-v2` with a corrected model
+  card.
+- Product-fixture eval after stricter prompting and parser repair passed `3/8`.
+  JSON formatting is now recoverable, but semantic recovery is still not strong
+  enough to trust as the primary health-understanding layer.
+
+Immediate v3 data targets:
+
+- Add targeted, reviewed rows for real product phrasings such as `m'ani kum`,
+  child fever follow-ups, infant age clarification, hospital-location questions,
+  malaria-confirmed context, and Twi commerce purchase/search requests.
+- Keep the large medical rows, but remove noisy ambiguity notes that contain
+  long unrelated `source_twi` transcript snippets. Those snippets teach the
+  model to associate symptoms with unrelated context.
+- Train the next adapter on strict JSON-only assistant targets using the same
+  system prompt as inference.
+
 For the fastest first pass toward a trainable corpus, download **Download 20-row
 training pack** in the workbench or run:
 

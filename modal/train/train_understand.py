@@ -36,6 +36,19 @@ _LOCAL_SILVER_DIR = os.path.join(
     "silver-medical-plus-language-v0",
 )
 _REMOTE_SILVER_DIR = "/root/gha_understanding_silver_medical_plus_language_v0"
+_OUTPUT_SUFFIX = "medical_plus_language_v0"
+_DEFAULT_PUSH_REPO = "teckedd/gha-understand-twi-medical-plus-language-v2"
+_VALID_HF_DATASETS = [
+    "ghananlpcommunity/ghana-health-symptoms:cc-by-nc-4.0",
+    "google/WaxalNLP:language coverage rows",
+]
+_SOURCE_NOTES = [
+    "Ghana Health Symptoms rows are the primary medical semantic-recovery source.",
+    "WAXAL rows are included only as language-coverage silver rows after filtering.",
+    "GhanaNLP speech-text rows are included as local language-coverage silver rows; "
+    "they are described in the card body, not HF front-matter, until the source id "
+    "and license are audited.",
+]
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -147,7 +160,7 @@ def train(
 ) -> dict[str, Any]:
     token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
     cache = "/data/hf"
-    out_dir = f"/data/sft/{base_model.replace('/', '_')}_medical_plus_language_v0"
+    out_dir = f"/data/sft/{base_model.replace('/', '_')}_{_OUTPUT_SUFFIX}"
     os.makedirs(out_dir, exist_ok=True)
 
     if smoke:
@@ -171,13 +184,7 @@ def train(
                     if "messages" in row and row["messages"]:
                         rows.append({"messages": row["messages"]})
             source = "local:understanding-corpus/silver-medical-plus-language-v0"
-            datasets_used.extend(
-                [
-                    "ghananlpcommunity/ghana-health-symptoms:cc-by-nc-4.0",
-                    "GhanaNLP speech text:source license audit required",
-                    "WAXAL Akan transcripts:source license audit required",
-                ]
-            )
+            datasets_used.extend(_VALID_HF_DATASETS)
         else:
             print(f"[understand-train] local silver dataset missing: {local_train}")
 
@@ -323,9 +330,10 @@ def train(
                     "## Dataset status\n\n"
                     "This is a research checkpoint trained from machine annotations. "
                     "Rows are not human-gold labels. The main medical source is CC-BY-NC-4.0, "
-                    "so use is non-commercial research unless separate permission is obtained. "
-                    "WAXAL and GhanaNLP rows are included as language-coverage silver rows only after "
-                    "draft semantic annotation and clarification filtering.\n"
+                    "so use is non-commercial research unless separate permission is obtained.\n\n"
+                    "## Source notes\n\n"
+                    + "\n".join(f"- {note}" for note in _SOURCE_NOTES)
+                    + "\n"
                 ),
                 license_id="cc-by-nc-4.0" if any("cc-by-nc" in d for d in datasets_used) else "apache-2.0",
                 tags=["lora", "sft", "twi", "ghana-nlp", "semantic-recovery", "silver-corpus"],
@@ -348,6 +356,87 @@ def train(
     }
 
 
+@app.function(
+    image=image,
+    timeout=30 * 60,
+    volumes={"/data": vol},
+    secrets=SECRETS,
+)
+def push_saved(
+    base_model: str = "Qwen/Qwen2.5-1.5B-Instruct",
+    push_repo: str = _DEFAULT_PUSH_REPO,
+) -> dict[str, Any]:
+    token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
+    if not token:
+        return {"status": "error", "message": "Missing HF_TOKEN secret"}
+
+    out_dir = f"/data/sft/{base_model.replace('/', '_')}_{_OUTPUT_SUFFIX}"
+    if not os.path.isdir(out_dir):
+        parent = os.path.dirname(out_dir)
+        available = os.listdir(parent) if os.path.isdir(parent) else []
+        return {
+            "status": "missing_model",
+            "output_dir": out_dir,
+            "available": available,
+        }
+
+    from huggingface_hub import HfApi
+    import sys
+
+    sys.path.insert(0, "/root/gha_train")
+    from model_card import write_and_push_model_card  # type: ignore
+
+    api = HfApi(token=token)
+    api.create_repo(repo_id=push_repo, repo_type="model", exist_ok=True, private=False)
+    api.upload_folder(
+        folder_path=out_dir,
+        repo_id=push_repo,
+        repo_type="model",
+        token=token,
+        commit_message="model: upload medical plus language adapter",
+    )
+    write_and_push_model_card(
+        push_repo,
+        task="text-generation",
+        language=["tw", "ak", "en"],
+        base_model=base_model,
+        datasets=_VALID_HF_DATASETS,
+        metrics={
+            "n_train": 6317,
+            "max_steps": 650,
+            "train_loss": 1.7700223159790038,
+        },
+        summary=(
+            "Twi/Akan semantic-recovery LoRA for Ghana Health AI. "
+            "Trained on a larger medical plus language-coverage silver corpus for research evaluation."
+        ),
+        extra_markdown=(
+            "## Dataset status\n\n"
+            "This is a research checkpoint trained from machine annotations. "
+            "Rows are not human-gold labels. The main medical source is CC-BY-NC-4.0, "
+            "so use is non-commercial research unless separate permission is obtained.\n\n"
+            "## Source notes\n\n"
+            + "\n".join(f"- {note}" for note in _SOURCE_NOTES)
+            + "\n\n"
+            "## Training run\n\n"
+            "- Modal run: `ap-2KSkWjid8QokFtEE0EWoLt`\n"
+            "- Train rows: `6317`\n"
+            "- Steps: `650`\n"
+            "- Final train loss: `1.7700`\n"
+        ),
+        license_id="cc-by-nc-4.0",
+        tags=["lora", "sft", "twi", "ghana-nlp", "semantic-recovery", "silver-corpus"],
+        pipeline_tag="text-generation",
+        token=token,
+    )
+    return {
+        "status": "pushed",
+        "repo": push_repo,
+        "url": f"https://huggingface.co/{push_repo}",
+        "output_dir": out_dir,
+    }
+
+
 @app.local_entrypoint()
 def main(
     dataset: str = "",
@@ -357,7 +446,17 @@ def main(
     smoke: bool = False,
     push_repo: str = "",
     max_steps: int = 500,
+    push_only: bool = False,
 ):
+    if push_only:
+        print(
+            push_saved.remote(
+                base_model=base_model,
+                push_repo=push_repo or _DEFAULT_PUSH_REPO,
+            )
+        )
+        return
+
     print(
         train.remote(
             dataset_name=dataset,

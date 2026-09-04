@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from typing import Any
 
 import modal
@@ -44,7 +45,8 @@ SYSTEM = (
     "English, or code-switched user utterance, output faithful structured "
     "understanding. Do not diagnose. Do not invent missing symptoms. Preserve "
     "uncertainty. Return JSON only with keys normalized_twi, natural_english, "
-    "literal_english, intent, entities, ambiguities, requires_clarification."
+    "literal_english, intent, entities, ambiguities, requires_clarification. "
+    "Use double quotes, lowercase true/false, and no markdown."
 )
 
 
@@ -53,7 +55,23 @@ def _json_from_text(text: str) -> dict[str, Any]:
     end = text.rfind("}")
     if start < 0 or end <= start:
         raise ValueError("no_json_object")
-    value = json.loads(text[start : end + 1])
+    raw = text[start : end + 1]
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError:
+        repaired = (
+            raw.replace("“", '"')
+            .replace("”", '"')
+            .replace("’", "'")
+            .replace(":=", ":")
+            .replace("=:", ":")
+        )
+        repaired = re.sub(r"\bTrue\b", "true", repaired)
+        repaired = re.sub(r"\bFalse\b", "false", repaired)
+        repaired = re.sub(r"([{,]\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*[=:])", r'\1"\2":', repaired)
+        repaired = re.sub(r'"\s*=', '":', repaired)
+        repaired = re.sub(r",\s*([}\]])", r"\1", repaired)
+        value = json.loads(repaired)
     if not isinstance(value, dict):
         raise ValueError("json_not_object")
     return value
@@ -73,7 +91,7 @@ def _contains_any(value: str, terms: list[str]) -> bool:
 )
 def evaluate(
     base_model: str = "Qwen/Qwen2.5-1.5B-Instruct",
-    adapter_id: str = "teckedd/gha-understand-twi-medical-silver-v1",
+    adapter_id: str = "teckedd/gha-understand-twi-medical-plus-language-v2",
     limit: int = 0,
 ) -> dict[str, Any]:
     import torch
@@ -105,6 +123,25 @@ def evaluate(
     for fixture in fixtures:
         messages = [
             {"role": "system", "content": SYSTEM},
+            {
+                "role": "user",
+                "content": (
+                    "language=tw\nfocus=health\nrecent_history=[]\n"
+                    "utterance=me ba no ho yɛ hyew"
+                ),
+            },
+            {
+                "role": "assistant",
+                "content": (
+                    '{"normalized_twi":"me ba no ho yɛ hyew",'
+                    '"natural_english":"My child has a fever or feels hot.",'
+                    '"literal_english":"My child body is hot.",'
+                    '"intent":"health_symptom_report",'
+                    '"entities":{"person":"child","symptom":"fever"},'
+                    '"ambiguities":"temperature not measured; child age unknown",'
+                    '"requires_clarification":true}'
+                ),
+            },
             {
                 "role": "user",
                 "content": (
@@ -184,7 +221,7 @@ def evaluate(
 @app.local_entrypoint()
 def main(
     base_model: str = "Qwen/Qwen2.5-1.5B-Instruct",
-    adapter_id: str = "teckedd/gha-understand-twi-medical-silver-v1",
+    adapter_id: str = "teckedd/gha-understand-twi-medical-plus-language-v2",
     limit: int = 0,
 ) -> None:
     print(
