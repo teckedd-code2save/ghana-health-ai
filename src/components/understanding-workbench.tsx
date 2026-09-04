@@ -197,8 +197,12 @@ export function UnderstandingWorkbench() {
   const [reviewMode, setReviewMode] = useState<"benchmark" | "corpus">("corpus");
   const [corpusFilter, setCorpusFilter] = useState<CorpusFilter>("medical_large");
 
-  async function load() {
-    const res = await fetch("/api/research/understanding", { cache: "no-store" });
+  async function load(filter: CorpusFilter = corpusFilter) {
+    const query = new URLSearchParams({
+      filter,
+      limit: "300",
+    });
+    const res = await fetch(`/api/research/understanding?${query}`, { cache: "no-store" });
     const data = await res.json();
     if (!res.ok) {
       setError(data.error ?? "Research workspace is unavailable.");
@@ -210,7 +214,11 @@ export function UnderstandingWorkbench() {
   useEffect(() => {
     let cancelled = false;
     async function run() {
-      const res = await fetch("/api/research/understanding", { cache: "no-store" });
+      const query = new URLSearchParams({
+        filter: corpusFilter,
+        limit: "300",
+      });
+      const res = await fetch(`/api/research/understanding?${query}`, { cache: "no-store" });
       const data = await res.json();
       if (cancelled) return;
       if (!res.ok) {
@@ -223,7 +231,7 @@ export function UnderstandingWorkbench() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [corpusFilter]);
 
   const filteredCorpusRows = useMemo(() => {
     const corpusRows = payload?.candidates.rows ?? [];
@@ -569,7 +577,10 @@ export function UnderstandingWorkbench() {
                 key={value}
                 type="button"
                 className={corpusFilter === value ? "is-active" : ""}
-                onClick={() => setCorpusFilter(value as CorpusFilter)}
+                onClick={() => {
+                  setSelectedIndex(0);
+                  setCorpusFilter(value as CorpusFilter);
+                }}
               >
                 {label}
               </button>
