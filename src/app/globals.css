@@ -582,6 +582,39 @@ select {
   min-height: clamp(9.5rem, 24vh, 14rem);
 }
 
+.live-text-composer {
+  width: min(100%, 42rem);
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.5rem 0.45rem 1rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.live-text-composer:focus-within {
+  border-color: rgba(24, 123, 94, 0.4);
+  box-shadow: 0 0 0 3px rgba(24, 123, 94, 0.1), var(--shadow-soft);
+}
+
+.live-text-composer input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+}
+
+.live-text-composer input::placeholder {
+  color: var(--muted);
+}
+
 .live-conversation {
   width: min(100%, 42rem);
   min-height: 7.5rem;
