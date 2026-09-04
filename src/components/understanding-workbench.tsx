@@ -107,6 +107,10 @@ function normalizeSafetyLevel(value?: string): Review["safetyLevel"] {
     : "";
 }
 
+function needsResponseReview(row: DatasetRow) {
+  return Boolean(row.modelProposal?.reply_twi.trim() || row.modelProposal?.safety_level.trim());
+}
+
 function hydrateReview(row: DatasetRow): Review {
   return row.review ?? emptyReview(row);
 }
@@ -389,11 +393,12 @@ function ReviewEditor({
   save: (review: Review, nextIndex?: number) => Promise<void>;
 }) {
   const [form, setForm] = useState<Review>(hydrateReview(row));
+  const responseReview = needsResponseReview(row);
   const canAccept =
     form.normalizedTwi.trim().length > 0 &&
     form.naturalEnglish.trim().length > 0 &&
     form.intent.trim().length > 0 &&
-    (!row.category.startsWith("health/") || (form.replyTwi.trim().length > 0 && Boolean(form.safetyLevel)));
+    (!responseReview || (form.replyTwi.trim().length > 0 && Boolean(form.safetyLevel)));
   const nextIndex = Math.min(pageLength - 1, pageIndex + 1);
 
   return (
@@ -472,7 +477,7 @@ function ReviewEditor({
             onChange={(event) => setForm((value) => ({ ...value, literalEnglish: event.target.value }))}
           />
         </label>
-        {row.category.startsWith("health/") && (
+        {responseReview && (
           <>
             <label className="research-ase__field research-ase__field--wide">
               Twi response

@@ -63,8 +63,9 @@ export async function GET(request: Request) {
     ...seed,
     review: reviewById.get(seed.id) ?? null,
   }));
-  const candidateRows = candidates
-    .filter((candidate) => matchesCorpusRowFilter(candidate, rowFilter))
+  const filteredCandidates = candidates
+    .filter((candidate) => matchesCorpusRowFilter(candidate, rowFilter));
+  const candidateRows = filteredCandidates
     .sort((left, right) => reviewQueuePriority(left, rowFilter) - reviewQueuePriority(right, rowFilter))
     .slice(rowOffset, rowOffset + rowLimit);
   const corpusRows = candidateRows.map((candidate) => ({
@@ -88,8 +89,8 @@ export async function GET(request: Request) {
   const completed = rows.filter((row) => row.review?.decision === "reviewed").length;
   const needsSecondReview = rows.filter((row) => row.review?.decision === "needs_second_review").length;
   const excluded = rows.filter((row) => row.review?.decision === "exclude").length;
-  const corpusCompleted = candidates.filter((row) => reviewById.get(row.id)?.decision === "reviewed").length;
-  const candidateSplits = candidates.reduce(
+  const corpusCompleted = filteredCandidates.filter((row) => reviewById.get(row.id)?.decision === "reviewed").length;
+  const candidateSplits = filteredCandidates.reduce(
     (acc, row) => {
       const split = getCandidateTrainingSplit(row);
       acc[split] += 1;
@@ -97,7 +98,7 @@ export async function GET(request: Request) {
     },
     { train: 0, dev: 0, test: 0 },
   );
-  const sourceSummary = candidates.reduce<
+  const sourceSummary = filteredCandidates.reduce<
     Record<string, { total: number; draftAnnotated: number; reviewed: number; excluded: number }>
   >((acc, row) => {
     const source = row.source ?? "unknown";
@@ -127,14 +128,14 @@ export async function GET(request: Request) {
     },
     candidates: {
       rows: summaryOnly ? [] : corpusRows,
-      total: candidates.length,
+      total: filteredCandidates.length,
       visible: corpusRows.length,
       offset: rowOffset,
       limit: rowLimit,
       filter: rowFilter,
       completed: corpusCompleted,
-      withAudio: candidates.filter((row) => row.audio_artifact_id).length,
-      draftAnnotated: candidates.filter((row) => row.model_proposal.status === "draft").length,
+      withAudio: filteredCandidates.filter((row) => row.audio_artifact_id).length,
+      draftAnnotated: filteredCandidates.filter((row) => row.model_proposal.status === "draft").length,
       trainingReady: trainingExport.accepted,
       splits: trainingExport.splits,
       candidateSplits,

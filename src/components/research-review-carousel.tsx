@@ -6,6 +6,7 @@ import { recordUntilSilence } from "@/lib/browser-audio";
 
 type Decision = "unreviewed" | "reviewed" | "needs_second_review" | "exclude";
 type SafetyLevel = "" | "routine" | "same_day" | "urgent" | "emergency";
+type CorpusFilter = "medical_large" | "language_sources" | "local_audio" | "product_text" | "all";
 
 type Review = {
   normalizedTwi: string;
@@ -25,6 +26,7 @@ type Row = {
   text: string;
   domain: string;
   language: string;
+  source: string;
   modelProposal: {
     normalized_twi: string;
     natural_english: string;
@@ -38,7 +40,18 @@ type Row = {
   review: (Review & { id: string }) | null;
 };
 
-type Payload = { candidates?: { rows?: Row[] } };
+type Payload = {
+  candidates?: { rows?: Row[]; total?: number };
+};
+
+const PAGE_SIZE = 50;
+const corpusOptions: Array<{ value: CorpusFilter; label: string; kind: string }> = [
+  { value: "medical_large", label: "Medical corpus", kind: "Semantic corpus" },
+  { value: "language_sources", label: "WAXAL + GhanaNLP", kind: "Language corpus" },
+  { value: "local_audio", label: "Consented recordings", kind: "Voice corpus" },
+  { value: "all", label: "All training drafts", kind: "Combined corpus" },
+  { value: "product_text", label: "Response drafts", kind: "Direct response" },
+];
 
 function safetyLevel(value?: string): SafetyLevel {
   return value === "routine" || value === "same_day" || value === "urgent" || value === "emergency"
@@ -61,8 +74,15 @@ function formFor(row: Row): Review {
   };
 }
 
+function needsResponseReview(row: Row) {
+  return Boolean(row.modelProposal.reply_twi.trim() || row.modelProposal.safety_level.trim());
+}
+
 export function ResearchReviewCarousel({ onClose }: { onClose: () => void }) {
+  const [filter, setFilter] = useState<CorpusFilter>("medical_large");
+  const [offset, setOffset] = useState(0);
   const [rows, setRows] = useState<Row[]>([]);
+  const [total, setTotal] = useState(0);
   const [index, setIndex] = useState(0);
   const [form, setForm] = useState<Review | null>(null);
   const [speakerId, setSpeakerId] = useState("sp001");
@@ -73,25 +93,28 @@ export function ResearchReviewCarousel({ onClose }: { onClose: () => void }) {
   const [notice, setNotice] = useState("");
 
   const row = rows[index];
+  const option = corpusOptions.find((item) => item.value === filter)!;
 
   useEffect(() => {
     let cancelled = false;
-    void fetch("/api/research/understanding?dataset=1&filter=product_text&limit=24", {
+    void fetch(`/api/research/understanding?dataset=1&filter=${filter}&limit=${PAGE_SIZE}&offset=${offset}`, {
       cache: "no-store",
     })
       .then(async (res) => {
         const data = (await res.json()) as Payload & { error?: string };
-        if (!res.ok) throw new Error(data.error || "Review samples are unavailable.");
-        return data.candidates?.rows ?? [];
+        if (!res.ok) throw new Error(data.error || "Corpus rows are unavailable.");
+        return data.candidates ?? {};
       })
-      .then((nextRows) => {
+      .then((candidates) => {
         if (cancelled) return;
+        const nextRows = candidates.rows ?? [];
         setRows(nextRows);
+        setTotal(candidates.total ?? 0);
         setIndex(0);
         setForm(nextRows[0] ? formFor(nextRows[0]) : null);
       })
       .catch((error: unknown) => {
-        if (!cancelled) setNotice(error instanceof Error ? error.message : "Review samples are unavailable.");
+        if (!cancelled) setNotice(error instanceof Error ? error.message : "Corpus rows are unavailable.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -99,7 +122,7 @@ export function ResearchReviewCarousel({ onClose }: { onClose: () => void }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [filter, offset]);
 
   const rowId = row?.id;
 
@@ -113,12 +136,35 @@ export function ResearchReviewCarousel({ onClose }: { onClose: () => void }) {
       .catch(() => setRecordingCount(0));
   }, [rowId]);
 
+  function selectCorpus(nextFilter: CorpusFilter) {
+    setLoading(true);
+    setNotice("");
+    setFilter(nextFilter);
+    setOffset(0);
+  }
+
   function move(nextIndex: number) {
     if (!rows.length) return;
     const bounded = Math.max(0, Math.min(rows.length - 1, nextIndex));
     setIndex(bounded);
     setForm(formFor(rows[bounded]!));
     setNotice("");
+  }
+
+  function moveNext() {
+    if (index < rows.length - 1) return move(index + 1);
+    if (offset + rows.length < total) {
+      setLoading(true);
+      setOffset((current) => current + PAGE_SIZE);
+    }
+  }
+
+  function movePrevious() {
+    if (index > 0) return move(index - 1);
+    if (offset > 0) {
+      setLoading(true);
+      setOffset((current) => Math.max(0, current - PAGE_SIZE));
+    }
   }
 
   async function save(decision?: Decision) {
@@ -136,7 +182,7 @@ export function ResearchReviewCarousel({ onClose }: { onClose: () => void }) {
       if (!res.ok) throw new Error(data.error || "Review could not be saved.");
       setForm((current) => current ? { ...current, decision: review.decision } : current);
       setNotice(review.decision === "reviewed" ? "Reviewed" : "Saved");
-      if (decision === "reviewed") move(index + 1);
+      if (decision === "reviewed") moveNext();
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Review could not be saved.");
     } finally {
@@ -174,50 +220,78 @@ export function ResearchReviewCarousel({ onClose }: { onClose: () => void }) {
     }
   }
 
-  if (loading) return <section className="research-review-card"><p>Loading review sample…</p></section>;
-  if (!row || !form) return <section className="research-review-card"><p>{notice || "No review samples available."}</p></section>;
+  if (loading) return <section className="research-review-card"><p>Loading corpus row…</p></section>;
+  if (!row || !form) return <section className="research-review-card"><p>{notice || "No corpus rows available."}</p></section>;
 
+  const responseReview = needsResponseReview(row);
   const ready = form.normalizedTwi.trim() && form.naturalEnglish.trim() && form.intent.trim() &&
-    (row.domain !== "health" || (form.replyTwi.trim() && form.safetyLevel));
+    (!responseReview || (form.replyTwi.trim() && form.safetyLevel));
+  const rowNumber = offset + index + 1;
 
   return (
-    <section className="research-review-card" aria-label="Research sample review">
+    <section className="research-review-card" aria-label="Training corpus review">
       <header className="research-review-card__header">
         <div>
-          <span>Research sample {index + 1} of {rows.length}</span>
-          <strong>{row.domain === "health" ? "Health response review" : "Language review"}</strong>
+          <span>{option.kind} · Row {rowNumber.toLocaleString()} of {total.toLocaleString()}</span>
+          <strong>Review training row</strong>
         </div>
         <button type="button" className="research-review-card__close" onClick={onClose} aria-label="Close review">
           <X className="h-4 w-4" />
         </button>
       </header>
 
+      <label className="research-review-card__corpus">
+        Corpus
+        <select value={filter} onChange={(event) => selectCorpus(event.target.value as CorpusFilter)}>
+          {corpusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+        </select>
+      </label>
       <p className="research-review-card__source">{row.text}</p>
 
       <div className="research-review-card__fields">
-        <label>
-          Meaning
+        <label className="research-review-card__wide">
+          Normalized Twi
+          <textarea value={form.normalizedTwi} onChange={(event) => setForm({ ...form, normalizedTwi: event.target.value })} />
+        </label>
+        <label className="research-review-card__wide">
+          English meaning
           <textarea value={form.naturalEnglish} onChange={(event) => setForm({ ...form, naturalEnglish: event.target.value })} />
         </label>
         <label>
           Intent
           <input value={form.intent} onChange={(event) => setForm({ ...form, intent: event.target.value })} />
         </label>
-        <label className="research-review-card__wide">
-          Twi response
-          <textarea value={form.replyTwi} onChange={(event) => setForm({ ...form, replyTwi: event.target.value })} />
-        </label>
-        <label>
-          Safety
-          <select value={form.safetyLevel} onChange={(event) => setForm({ ...form, safetyLevel: safetyLevel(event.target.value) })}>
-            <option value="">Choose</option>
-            <option value="routine">Routine</option>
-            <option value="same_day">Same day</option>
-            <option value="urgent">Urgent</option>
-            <option value="emergency">Emergency</option>
-          </select>
-        </label>
+        {responseReview && <>
+          <label className="research-review-card__wide">
+            Twi response
+            <textarea value={form.replyTwi} onChange={(event) => setForm({ ...form, replyTwi: event.target.value })} />
+          </label>
+          <label>
+            Safety
+            <select value={form.safetyLevel} onChange={(event) => setForm({ ...form, safetyLevel: safetyLevel(event.target.value) })}>
+              <option value="">Choose</option>
+              <option value="routine">Routine</option>
+              <option value="same_day">Same day</option>
+              <option value="urgent">Urgent</option>
+              <option value="emergency">Emergency</option>
+            </select>
+          </label>
+        </>}
       </div>
+
+      <details className="research-review-card__details">
+        <summary>More labels</summary>
+        <div className="research-review-card__fields">
+          <label>
+            Entities
+            <textarea value={form.entities} onChange={(event) => setForm({ ...form, entities: event.target.value })} />
+          </label>
+          <label>
+            Ambiguity
+            <textarea value={form.ambiguities} onChange={(event) => setForm({ ...form, ambiguities: event.target.value })} />
+          </label>
+        </div>
+      </details>
 
       <footer className="research-review-card__footer">
         <div className="research-review-card__record">
@@ -229,12 +303,12 @@ export function ResearchReviewCarousel({ onClose }: { onClose: () => void }) {
           {recordingCount > 0 && <span>{recordingCount} clip{recordingCount === 1 ? "" : "s"}</span>}
         </div>
         <div className="research-review-card__actions">
-          <button type="button" onClick={() => move(index - 1)} disabled={index === 0} aria-label="Previous sample"><ChevronLeft className="h-4 w-4" /></button>
+          <button type="button" onClick={movePrevious} disabled={offset === 0 && index === 0} aria-label="Previous corpus row"><ChevronLeft className="h-4 w-4" /></button>
           <button type="button" onClick={() => void save()} disabled={saving} title="Save review"><Save className="h-4 w-4" /></button>
           <button type="button" onClick={() => void save("reviewed")} disabled={saving || !ready} className="research-review-card__approve">
             <Check className="h-4 w-4" /> Review
           </button>
-          <button type="button" onClick={() => move(index + 1)} disabled={index === rows.length - 1} aria-label="Next sample"><ChevronRight className="h-4 w-4" /></button>
+          <button type="button" onClick={moveNext} disabled={offset + index + 1 >= total} aria-label="Next corpus row"><ChevronRight className="h-4 w-4" /></button>
         </div>
       </footer>
       {notice && <p className="research-review-card__notice" role="status">{notice}</p>}

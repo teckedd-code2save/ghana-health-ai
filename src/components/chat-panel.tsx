@@ -558,8 +558,8 @@ export function ChatPanel() {
             <button
               type="button"
               className={reviewMode ? "icon-action chat-review-action chat-review-action--active" : "icon-action chat-review-action"}
-              aria-label="Review research samples"
-              title="Review research samples"
+              aria-label="Review training corpus"
+              title="Review training corpus"
               disabled={recording || loading || voicePending}
               onClick={() => setReviewMode((current) => !current)}
             >
