@@ -34,7 +34,7 @@ _LOCAL_SILVER_DIR = os.path.join(
     "understanding-corpus",
     "silver-medical-plus-language-v0",
 )
-_REMOTE_SILVER_DIR = "/root/gha_understanding_silver"
+_REMOTE_SILVER_DIR = "/root/gha_understanding_silver_medical_plus_language_v0"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -146,7 +146,7 @@ def train(
 ) -> dict[str, Any]:
     token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
     cache = "/data/hf"
-    out_dir = f"/data/sft/{base_model.replace('/', '_')}"
+    out_dir = f"/data/sft/{base_model.replace('/', '_')}_medical_plus_language_v0"
     os.makedirs(out_dir, exist_ok=True)
 
     if smoke:
