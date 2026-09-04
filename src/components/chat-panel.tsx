@@ -34,7 +34,7 @@ type ChatMessage = {
 };
 
 type StoredMessage = {
-  meta?: UnderstandingDetailsData;
+  metadata?: UnderstandingDetailsData;
   id: string;
   role: "USER" | "ASSISTANT" | "SYSTEM";
   content: string;
@@ -180,7 +180,7 @@ export function ChatPanel() {
               id: message.id,
               role: message.role,
               content: message.content,
-              understanding: message.meta,
+              understanding: message.metadata,
             })),
         );
       })

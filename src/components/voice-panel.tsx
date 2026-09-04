@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Mic, Pencil, ShoppingCart, Volume2, X } from "lucide-react";
+import { Check, Mic, Pencil, Send, ShoppingCart, Volume2, X } from "lucide-react";
 import { UnderstandingDetails, type UnderstandingDetailsData } from "@/components/understanding-details";
 import { useLang } from "@/components/lang-provider";
 import { useAsrModel } from "@/lib/asr-model-store";
@@ -58,7 +58,7 @@ type VoiceStreamEvent = VoiceTurnData & {
 };
 
 type StoredMessage = {
-  meta?: UnderstandingDetailsData;
+  metadata?: UnderstandingDetailsData;
   id: string;
   role: "USER" | "ASSISTANT" | "SYSTEM";
   content: string;
@@ -224,6 +224,7 @@ export function VoicePanel() {
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [heard, setHeard] = useState<string | null>(null);
   const [reply, setReply] = useState<string | null>(null);
+  const [input, setInput] = useState("");
   const [messages, setMessages] = useState<VoiceMessage[]>([]);
   const [status, setStatus] = useState<string | null>(null);
   const [ttsB64, setTtsB64] = useState<string | null>(null);
@@ -305,7 +306,7 @@ export function VoicePanel() {
         setMessages(
           messages.flatMap((message) =>
             message.role === "USER" || message.role === "ASSISTANT"
-              ? [{ id: message.id, role: message.role, content: message.content, understanding: message.meta }]
+              ? [{ id: message.id, role: message.role, content: message.content, understanding: message.metadata }]
               : [],
           ),
         );
@@ -542,6 +543,69 @@ export function VoicePanel() {
     };
   });
 
+  async function sendText() {
+    const text = input.trim();
+    if (!text || busy || recording || speaking) return;
+    const localUserId = crypto.randomUUID();
+    const localAssistantId = crypto.randomUUID();
+    setInput("");
+    setStatus(null);
+    setHeard(text);
+    setReply(null);
+    setMessages((current) => [...current, { id: localUserId, role: "USER", content: text }]);
+    setBusy(true);
+    try {
+      const res = await fetch("/api/chat/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          conversationId,
+          language: lang,
+          speak: true,
+          understandingModelMode,
+        }),
+      });
+      if (!res.ok) throw new Error("Couldn’t start chat turn");
+      let streamedReply = "";
+      const data = await readVoiceStream(
+        res,
+        () => {},
+        (chunk) => {
+          streamedReply += chunk;
+          setReply(streamedReply);
+          setMessages((current) => upsertVoiceMessage(current, {
+            id: localAssistantId,
+            role: "ASSISTANT",
+            content: streamedReply,
+          }));
+        },
+        () => {},
+      );
+      const finalReply = data.message?.content ?? data.understanding?.reply ?? streamedReply;
+      setConversationId(data.conversationId);
+      if (data.conversationId) {
+        window.localStorage.setItem(homeSessionKey, data.conversationId);
+        registerConversation(data.conversationId);
+      }
+      setReply(finalReply);
+      setMessages((current) => upsertVoiceMessage(current, {
+        id: data.message?.id ?? localAssistantId,
+        role: "ASSISTANT",
+        content: finalReply,
+        understanding: data.understanding,
+      }, localAssistantId));
+      if (data.tts?.audioBase64) {
+        setTtsB64(data.tts.audioBase64);
+        playWav(data.tts.audioBase64);
+      }
+    } catch (error) {
+      setStatus(friendlyVoiceError(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function submitTranscriptCorrection() {
     const corrected = correctionText.trim();
     if (!conversationId || !heard || !corrected || corrected === heard.trim()) {
@@ -646,7 +710,6 @@ export function VoicePanel() {
             }
             if (speaking) {
               stopPlayback();
-              window.setTimeout(() => void listenAndRespond(), 120);
               return;
             }
             if (!busy) void listenAndRespond();
@@ -655,6 +718,26 @@ export function VoicePanel() {
           showLabel={false}
         />
       </div>
+
+      <form
+        className="live-text-composer"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void sendText();
+        }}
+      >
+        <label className="sr-only" htmlFor="home-chat-input">Type a message</label>
+        <input
+          id="home-chat-input"
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          placeholder={lang === "en" ? "Type or speak…" : "Twerɛ anaa kasa…"}
+          disabled={busy || recording}
+        />
+        <button type="submit" className="icon-action" disabled={!input.trim() || busy || recording} aria-label="Send message">
+          <Send className="h-4 w-4" />
+        </button>
+      </form>
 
       {showConversation && (
         <div className="live-conversation" aria-live="polite">
@@ -741,10 +824,11 @@ export function VoicePanel() {
                     <button
                       type="button"
                       className="icon-action"
-                      aria-label="Play again"
-                      onClick={() => playWav(ttsB64)}
+                      aria-label={speaking ? "Stop reading" : "Read aloud"}
+                      title={speaking ? "Stop reading" : "Read aloud"}
+                      onClick={() => speaking ? stopPlayback() : playWav(ttsB64)}
                     >
-                      <Volume2 className="h-4 w-4" />
+                      {speaking ? <X className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                     </button>
                   )}
                 </div>
