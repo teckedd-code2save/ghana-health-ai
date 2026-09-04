@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Mic, Send } from "lucide-react";
+import { UnderstandingDetails, type UnderstandingDetailsData } from "@/components/understanding-details";
 import { useLang } from "@/components/lang-provider";
 import { useAsrModel } from "@/lib/asr-model-store";
 import { useUnderstandingModelMode } from "@/lib/understanding-model-store";
@@ -15,6 +16,7 @@ import {
 } from "@/lib/conversation-store";
 
 type ChatMessage = {
+  understanding?: UnderstandingDetailsData;
   id: string;
   role: "USER" | "ASSISTANT" | "SYSTEM" | "local-user" | "local-assistant";
   content: string;
@@ -32,6 +34,7 @@ type ChatMessage = {
 };
 
 type StoredMessage = {
+  meta?: UnderstandingDetailsData;
   id: string;
   role: "USER" | "ASSISTANT" | "SYSTEM";
   content: string;
@@ -53,7 +56,7 @@ type ChatTurnData = {
     id?: string;
     content?: string;
   };
-  understanding?: {
+  understanding?: UnderstandingDetailsData & {
     reply?: string;
     intent?: string;
     engine?: string;
@@ -61,7 +64,6 @@ type ChatTurnData = {
       mode?: "live_model" | "degraded_fallback";
       model?: string;
     };
-    comprehension?: { understood?: boolean };
   };
   tts?: {
     audioBase64?: string;
@@ -178,6 +180,7 @@ export function ChatPanel() {
               id: message.id,
               role: message.role,
               content: message.content,
+              understanding: message.meta,
             })),
         );
       })
@@ -292,6 +295,7 @@ export function ChatPanel() {
           id: messageId,
           role: "ASSISTANT",
           content: messageContent,
+          understanding: data.understanding,
           meta: {
             intent: data.understanding?.intent,
             engine: data.understanding?.engine,
@@ -415,6 +419,7 @@ export function ChatPanel() {
           id: data.message?.id ?? localAssistantId,
           role: "ASSISTANT",
           content: data.message?.content ?? data.understanding?.reply ?? streamedReply,
+          understanding: data.understanding,
           meta: {
             intent: data.understanding?.intent,
             engine: data.understanding?.engine,
@@ -484,6 +489,7 @@ export function ChatPanel() {
                 key={m.id}
                 className={`flex ${isUser ? "justify-end" : "justify-start"}`}
               >
+                <div className={isUser ? "contents" : "chat-assistant-turn"}>
                 <div
                   className={`chat-bubble ${
                     isUser
@@ -494,6 +500,8 @@ export function ChatPanel() {
                   }`}
                 >
                   {m.content}
+                </div>
+                {!isUser && <UnderstandingDetails data={m.understanding} />}
                 </div>
               </div>
             );
