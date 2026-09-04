@@ -18,6 +18,7 @@ Language policy: this model is for semantic recovery, not direct medical advice.
 from __future__ import annotations
 
 import os
+import json
 import random
 from typing import Any, Optional
 
@@ -161,10 +162,14 @@ def train(
     if use_local_silver:
         local_train = os.path.join(_REMOTE_SILVER_DIR, "train.jsonl")
         if os.path.exists(local_train):
-            raw = load_dataset("json", data_files={"train": local_train}, cache_dir=cache)
-            for row in raw["train"]:
-                if "messages" in row and row["messages"]:
-                    rows.append({"messages": row["messages"]})
+            with open(local_train, "r", encoding="utf-8") as handle:
+                for line in handle:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    row = json.loads(line)
+                    if "messages" in row and row["messages"]:
+                        rows.append({"messages": row["messages"]})
             source = "local:understanding-corpus/silver-medical-plus-language-v0"
             datasets_used.extend(
                 [
