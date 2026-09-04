@@ -160,6 +160,8 @@ const corpusCandidateSchema = z.object({
       intent: z.string().default(""),
       entities: z.string().default(""),
       ambiguities: z.string().default(""),
+      reply_twi: z.string().default(""),
+      safety_level: z.string().default(""),
       requires_clarification: z.boolean().default(false),
       model: z.string().default("none"),
       status: z.enum(["not_requested", "draft"]).default("not_requested"),
@@ -171,6 +173,8 @@ const corpusCandidateSchema = z.object({
       intent: "",
       entities: "",
       ambiguities: "",
+      reply_twi: "",
+      safety_level: "",
       requires_clarification: false,
       model: "none",
       status: "not_requested",
@@ -185,6 +189,8 @@ const reviewSchema = z.object({
   intent: z.string().max(120).default(""),
   entities: z.string().max(2500).default(""),
   ambiguities: z.string().max(2000).default(""),
+  replyTwi: z.string().max(4000).default(""),
+  safetyLevel: z.enum(["", "routine", "same_day", "urgent", "emergency"]).default(""),
   decision: z.enum(["unreviewed", "reviewed", "needs_second_review", "exclude"]).default("unreviewed"),
   notes: z.string().max(2000).default(""),
   reviewer: z.string().max(200).default("local_reviewer"),
@@ -248,6 +254,8 @@ export type UnderstandingTrainingRow = {
   intent: string;
   entities: unknown;
   ambiguities: string;
+  reply_twi: string;
+  safety_level: "" | "routine" | "same_day" | "urgent" | "emergency";
   reviewer: string;
   reviewed_at: string | null;
   eligible_for_training: true;
@@ -285,12 +293,16 @@ const reviewSheetColumns = [
   "draft_intent",
   "draft_entities",
   "draft_ambiguities",
+  "draft_reply_twi",
+  "draft_safety_level",
   "review_normalized_twi",
   "review_natural_english",
   "review_literal_english",
   "review_intent",
   "review_entities",
   "review_ambiguities",
+  "review_reply_twi",
+  "review_safety_level",
   "decision",
   "review_notes",
   "reviewer",
@@ -392,6 +404,8 @@ export function parseUnderstandingReviewSheetCsv(raw: string, fallbackReviewer: 
         intent: rowValue(row, "review_intent"),
         entities: rowValue(row, "review_entities"),
         ambiguities: rowValue(row, "review_ambiguities"),
+        replyTwi: rowValue(row, "review_reply_twi"),
+        safetyLevel: rowValue(row, "review_safety_level"),
         decision,
         notes: rowValue(row, "review_notes"),
         reviewer: rowValue(row, "reviewer") || fallbackReviewer,
@@ -420,12 +434,35 @@ export async function readCorpusCandidates(): Promise<CorpusCandidate[]> {
   for (const filePath of [candidatePath, committedCandidatePath]) {
     try {
       const raw = await readFile(filePath, "utf8");
-      return parseJsonl(raw, (value) => corpusCandidateSchema.parse(value));
+      return parseJsonl(raw, (value) => hydrateCandidateResponseProposal(corpusCandidateSchema.parse(value)));
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
   }
   return [];
+}
+
+function proposalNoteValue(value: string, key: string) {
+  const match = value.match(new RegExp(`(?:^|\\n)${key}=([\\s\\S]*?)(?=\\n[a-z_]+=?|$)`));
+  return match?.[1]?.trim() ?? "";
+}
+
+// Older candidate manifests retained source response drafts inside the reviewer
+// notes. Promote those fields on read so the new review flow remains useful
+// without rewriting the full, provenance-preserving source manifest.
+function hydrateCandidateResponseProposal(candidate: CorpusCandidate): CorpusCandidate {
+  const proposal = candidate.model_proposal;
+  const replyTwi = proposal.reply_twi || proposalNoteValue(proposal.ambiguities, "twi_answer");
+  const safetyLevel = proposal.safety_level || proposalNoteValue(proposal.ambiguities, "safety_level");
+  if (replyTwi === proposal.reply_twi && safetyLevel === proposal.safety_level) return candidate;
+  return {
+    ...candidate,
+    model_proposal: {
+      ...proposal,
+      reply_twi: replyTwi,
+      safety_level: safetyLevel,
+    },
+  };
 }
 
 export async function readUnderstandingReviews(): Promise<UnderstandingReview[]> {
@@ -442,6 +479,8 @@ export async function readUnderstandingReviews(): Promise<UnderstandingReview[]>
         intent: row.intent,
         entities: row.entities,
         ambiguities: row.ambiguities,
+        replyTwi: row.replyTwi,
+        safetyLevel: row.safetyLevel,
         decision: row.decision,
         notes: row.notes,
         reviewer: row.reviewer,
@@ -514,6 +553,8 @@ export async function saveUnderstandingReview(
         intent: next.intent,
         entities: next.entities,
         ambiguities: next.ambiguities,
+        replyTwi: next.replyTwi,
+        safetyLevel: next.safetyLevel,
         decision: next.decision,
         notes: next.notes,
         reviewer,
@@ -527,6 +568,8 @@ export async function saveUnderstandingReview(
         intent: next.intent,
         entities: next.entities,
         ambiguities: next.ambiguities,
+        replyTwi: next.replyTwi,
+        safetyLevel: next.safetyLevel,
         decision: next.decision,
         notes: next.notes,
         reviewer,
@@ -680,12 +723,16 @@ export function buildUnderstandingReviewSheetCsvFromReviews(
       candidate.model_proposal.intent,
       candidate.model_proposal.entities,
       candidate.model_proposal.ambiguities,
+      candidate.model_proposal.reply_twi,
+      candidate.model_proposal.safety_level,
       review?.normalizedTwi ?? (options.prefillDrafts ? candidate.model_proposal.normalized_twi : ""),
       review?.naturalEnglish ?? (options.prefillDrafts ? candidate.model_proposal.natural_english : ""),
       review?.literalEnglish ?? (options.prefillDrafts ? candidate.model_proposal.literal_english : ""),
       review?.intent ?? (options.prefillDrafts ? candidate.model_proposal.intent : ""),
       review?.entities ?? (options.prefillDrafts ? candidate.model_proposal.entities : ""),
       review?.ambiguities ?? (options.prefillDrafts ? candidate.model_proposal.ambiguities : ""),
+      review?.replyTwi ?? (options.prefillDrafts ? candidate.model_proposal.reply_twi : ""),
+      review?.safetyLevel ?? (options.prefillDrafts ? candidate.model_proposal.safety_level : ""),
       review?.decision ?? "unreviewed",
       review?.notes ?? "",
       review?.reviewer ?? "",
@@ -827,6 +874,8 @@ export function buildUnderstandingTrainingExportFromReviews(
       intent: review.intent.trim(),
       entities: parseEntities(review.entities),
       ambiguities: review.ambiguities.trim(),
+      reply_twi: review.replyTwi.trim(),
+      safety_level: review.safetyLevel,
       reviewer: review.reviewer,
       reviewed_at: review.updatedAt ?? null,
       eligible_for_training: true,

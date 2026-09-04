@@ -949,6 +949,171 @@ select {
   color: #b83f34;
 }
 
+.chat-review-action {
+  background: transparent;
+  border-color: transparent;
+  color: var(--fg-muted);
+}
+
+.chat-review-action:hover:not(:disabled),
+.chat-review-action--active {
+  background: rgba(25, 183, 140, 0.1);
+  border-color: rgba(25, 183, 140, 0.18);
+  color: var(--teal-deep);
+}
+
+.research-review-card {
+  width: min(100%, 42rem);
+  margin: 0 auto 1.25rem;
+  border: 1px solid rgba(23, 35, 29, 0.12);
+  border-radius: 0.85rem;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 0.9rem 2.2rem rgba(49, 43, 28, 0.09);
+  overflow: hidden;
+}
+
+.research-review-card__header,
+.research-review-card__footer,
+.research-review-card__record,
+.research-review-card__actions {
+  display: flex;
+  align-items: center;
+}
+
+.research-review-card__header {
+  justify-content: space-between;
+  padding: 0.8rem 0.9rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.research-review-card__header span,
+.research-review-card__record span,
+.research-review-card__notice {
+  color: var(--fg-muted);
+  font-size: 0.72rem;
+}
+
+.research-review-card__header strong {
+  display: block;
+  margin-top: 0.14rem;
+  font-size: 0.86rem;
+}
+
+.research-review-card__close,
+.research-review-card__actions button,
+.research-review-card__record button {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.45rem;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.research-review-card__close,
+.research-review-card__actions button {
+  width: 2rem;
+}
+
+.research-review-card__source {
+  margin: 0;
+  padding: 1rem 0.9rem;
+  color: var(--fg);
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.08rem;
+  line-height: 1.35;
+}
+
+.research-review-card__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 8.2rem;
+  gap: 0.55rem;
+  padding: 0 0.9rem 0.9rem;
+}
+
+.research-review-card__fields label {
+  display: grid;
+  gap: 0.28rem;
+  color: var(--fg-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.research-review-card__fields textarea,
+.research-review-card__fields input,
+.research-review-card__fields select,
+.research-review-card__record input {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 0.45rem;
+  outline: 0;
+  background: rgba(248, 246, 239, 0.72);
+  color: var(--fg);
+  padding: 0.45rem 0.5rem;
+  font-size: 0.82rem;
+}
+
+.research-review-card__fields textarea {
+  min-height: 4.3rem;
+  resize: vertical;
+}
+
+.research-review-card__fields textarea:focus,
+.research-review-card__fields input:focus,
+.research-review-card__fields select:focus,
+.research-review-card__record input:focus {
+  border-color: rgba(25, 183, 140, 0.6);
+  box-shadow: 0 0 0 3px rgba(25, 183, 140, 0.1);
+}
+
+.research-review-card__wide {
+  grid-column: 1 / -1;
+}
+
+.research-review-card__footer {
+  justify-content: space-between;
+  gap: 0.6rem;
+  border-top: 1px solid var(--line);
+  padding: 0.65rem 0.9rem;
+}
+
+.research-review-card__record,
+.research-review-card__actions {
+  gap: 0.35rem;
+}
+
+.research-review-card__record input {
+  width: 4.8rem;
+  min-height: 2rem;
+}
+
+.research-review-card__record button {
+  padding: 0 0.62rem;
+}
+
+.research-review-card__approve {
+  width: auto !important;
+  padding: 0 0.62rem;
+  border-color: transparent !important;
+  background: #17231d !important;
+  color: #fff !important;
+}
+
+.research-review-card__actions button:disabled,
+.research-review-card__record button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.research-review-card__notice {
+  margin: 0;
+  padding: 0 0.9rem 0.7rem;
+}
+
 .chat-composer {
   position: relative;
   z-index: 4;

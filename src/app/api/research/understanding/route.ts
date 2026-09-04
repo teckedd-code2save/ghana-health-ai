@@ -65,11 +65,13 @@ export async function GET(request: Request) {
   }));
   const candidateRows = candidates
     .filter((candidate) => matchesCorpusRowFilter(candidate, rowFilter))
+    .sort((left, right) => reviewQueuePriority(left, rowFilter) - reviewQueuePriority(right, rowFilter))
     .slice(rowOffset, rowOffset + rowLimit);
   const corpusRows = candidateRows.map((candidate) => ({
     kind: "corpus" as const,
     id: candidate.id,
     category: `${candidate.domain}/${candidate.source}`,
+    domain: candidate.domain,
     text: candidate.text,
     review_status: candidate.review_status,
     source: candidate.source,
@@ -153,6 +155,14 @@ function parseCorpusRowFilter(value: string | null): CorpusRowFilter {
     return value;
   }
   return "all";
+}
+
+function reviewQueuePriority(candidate: CorpusCandidate, filter: CorpusRowFilter) {
+  if (filter !== "product_text") return 0;
+  const responseReady = candidate.model_proposal.reply_twi.trim() && candidate.model_proposal.safety_level.trim();
+  if (responseReady) return 0;
+  if (candidate.source === "product_failure_seed") return 1;
+  return 2;
 }
 
 function matchesCorpusRowFilter(candidate: CorpusCandidate, filter: CorpusRowFilter) {

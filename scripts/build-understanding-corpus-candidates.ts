@@ -34,6 +34,8 @@ type Candidate = {
     intent: string;
     entities: string;
     ambiguities: string;
+    reply_twi: string;
+    safety_level: string;
     requires_clarification: boolean;
     model: string;
     status: "not_requested" | "draft";
@@ -290,7 +292,9 @@ function buildCandidate(input: {
       literal_english: "",
       intent: initialIntent,
       entities: initialEntities,
-      ambiguities: initialNotes,
+    ambiguities: initialNotes,
+      reply_twi: asString(input.row.twi_answer),
+      safety_level: asString(input.row.safety_level),
       requires_clarification: input.row.requires_clarification === true,
       model: initialEnglish ? "source_seed_or_translation_draft" : "none",
       status: initialEnglish ? "draft" : "not_requested",
@@ -340,6 +344,8 @@ async function propose(candidate: Candidate): Promise<Candidate> {
           typeof json.ambiguities === "string"
             ? json.ambiguities
             : JSON.stringify(json.ambiguities ?? [], null, 0),
+        reply_twi: asString(json.reply_twi) || candidate.model_proposal.reply_twi,
+        safety_level: asString(json.safety_level) || candidate.model_proposal.safety_level,
         requires_clarification: json.requires_clarification === true,
         model: `${provider.provider}:${provider.model}`,
         status: "draft",
@@ -351,6 +357,8 @@ async function propose(candidate: Candidate): Promise<Candidate> {
       model_proposal: {
         ...candidate.model_proposal,
         ambiguities: "Draft model returned non-JSON output.",
+        reply_twi: candidate.model_proposal.reply_twi,
+        safety_level: candidate.model_proposal.safety_level,
         model: `${provider.provider}:${provider.model}`,
         status: "not_requested",
       },

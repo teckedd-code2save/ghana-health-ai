@@ -15,6 +15,8 @@ type Review = {
   intent: string;
   entities: string;
   ambiguities: string;
+  replyTwi: string;
+  safetyLevel: "" | "routine" | "same_day" | "urgent" | "emergency";
   decision: "unreviewed" | "reviewed" | "needs_second_review" | "exclude";
   notes: string;
   reviewer: string;

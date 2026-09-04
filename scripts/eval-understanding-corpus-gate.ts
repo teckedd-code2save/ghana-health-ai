@@ -19,6 +19,14 @@ function reviewFromCandidate(candidate: CorpusCandidate): UnderstandingReview {
     intent: candidate.model_proposal.intent || "gate_check",
     entities: candidate.model_proposal.entities,
     ambiguities: candidate.model_proposal.ambiguities,
+    replyTwi: candidate.model_proposal.reply_twi,
+    safetyLevel:
+      candidate.model_proposal.safety_level === "routine" ||
+      candidate.model_proposal.safety_level === "same_day" ||
+      candidate.model_proposal.safety_level === "urgent" ||
+      candidate.model_proposal.safety_level === "emergency"
+        ? candidate.model_proposal.safety_level
+        : "",
     decision: "reviewed",
     notes: "Synthetic gate validation row; not training data.",
     reviewer: "gate_check",

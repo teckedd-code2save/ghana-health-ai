@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Mic, Send } from "lucide-react";
+import { ClipboardCheck, Mic, Send } from "lucide-react";
 import { UnderstandingDetails, type UnderstandingDetailsData } from "@/components/understanding-details";
+import { ResearchReviewCarousel } from "@/components/research-review-carousel";
 import { useLang } from "@/components/lang-provider";
 import { useAsrModel } from "@/lib/asr-model-store";
 import { useUnderstandingModelMode } from "@/lib/understanding-model-store";
@@ -136,6 +137,7 @@ export function ChatPanel() {
   const [threadScrolled, setThreadScrolled] = useState(false);
   const [level, setLevel] = useState(0);
   const [vadState, setVadState] = useState<string | null>(null);
+  const [reviewMode, setReviewMode] = useState(false);
   const [asrModel, changeAsrModel] = useAsrModel();
   const [understandingModelMode, changeUnderstandingModelMode] = useUnderstandingModelMode();
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -482,6 +484,7 @@ export function ChatPanel() {
         </div>
 
         <div className="chat-scroll space-y-3 px-4 py-5">
+          {reviewMode && <ResearchReviewCarousel onClose={() => setReviewMode(false)} />}
           {messages.map((m) => {
             const isUser = m.role === "USER" || m.role === "local-user";
             return (
@@ -552,6 +555,16 @@ export function ChatPanel() {
               </select>
             </label>
             <span className="chat-composer__spacer" />
+            <button
+              type="button"
+              className={reviewMode ? "icon-action chat-review-action chat-review-action--active" : "icon-action chat-review-action"}
+              aria-label="Review research samples"
+              title="Review research samples"
+              disabled={recording || loading || voicePending}
+              onClick={() => setReviewMode((current) => !current)}
+            >
+              <ClipboardCheck className="h-4 w-4" />
+            </button>
             <button
               type="button"
               disabled={loading || voicePending || speaking}

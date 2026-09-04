@@ -401,6 +401,8 @@ model ResearchUnderstandingReview {
   intent         String   @default("")
   entities       String   @default("") @db.Text
   ambiguities    String   @default("") @db.Text
+  replyTwi       String   @default("") @map("reply_twi") @db.Text
+  safetyLevel    String   @default("") @map("safety_level")
   decision       String   @default("unreviewed")
   notes          String   @default("") @db.Text
   reviewer       String   @default("local_reviewer")
@@ -410,6 +412,24 @@ model ResearchUnderstandingReview {
   @@index([decision])
   @@index([updatedAt])
   @@map("research_understanding_reviews")
+}
+
+model ResearchCorpusRecording {
+  id          String   @id @default(uuid()) @db.Uuid
+  rowId       String   @map("row_id")
+  speakerId   String   @map("speaker_id")
+  language    LanguageCode @default(tw)
+  transcript  String   @db.Text
+  mimeType    String   @map("mime_type")
+  audioBytes  Bytes    @map("audio_bytes")
+  sizeBytes   Int      @map("size_bytes")
+  durationMs  Int?     @map("duration_ms")
+  reviewer    String   @default("local_reviewer")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([rowId, createdAt])
+  @@index([speakerId, createdAt])
+  @@map("research_corpus_recordings")
 }
 
 model AuditLog {

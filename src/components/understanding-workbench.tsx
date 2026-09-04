@@ -14,6 +14,8 @@ type Review = {
   intent: string;
   entities: string;
   ambiguities: string;
+  replyTwi: string;
+  safetyLevel: "" | "routine" | "same_day" | "urgent" | "emergency";
   decision: ReviewDecision;
   notes: string;
 };
@@ -22,6 +24,7 @@ type DatasetRow = {
   kind: "benchmark" | "corpus";
   id: string;
   category: string;
+  domain?: string;
   text: string;
   review_status: string;
   source?: string;
@@ -39,6 +42,8 @@ type DatasetRow = {
     intent: string;
     entities: string;
     ambiguities: string;
+    reply_twi: string;
+    safety_level: string;
     requires_clarification: boolean;
     model: string;
     status: "not_requested" | "draft";
@@ -89,9 +94,17 @@ function emptyReview(row?: DatasetRow): Review {
     intent: row?.modelProposal?.intent ?? "",
     entities: row?.modelProposal?.entities ?? "",
     ambiguities: row?.modelProposal?.ambiguities ?? "",
+    replyTwi: row?.modelProposal?.reply_twi ?? "",
+    safetyLevel: normalizeSafetyLevel(row?.modelProposal?.safety_level),
     decision: row?.review?.decision ?? "unreviewed",
     notes: row?.review?.notes ?? "",
   };
+}
+
+function normalizeSafetyLevel(value?: string): Review["safetyLevel"] {
+  return value === "routine" || value === "same_day" || value === "urgent" || value === "emergency"
+    ? value
+    : "";
 }
 
 function hydrateReview(row: DatasetRow): Review {
@@ -379,7 +392,8 @@ function ReviewEditor({
   const canAccept =
     form.normalizedTwi.trim().length > 0 &&
     form.naturalEnglish.trim().length > 0 &&
-    form.intent.trim().length > 0;
+    form.intent.trim().length > 0 &&
+    (!row.category.startsWith("health/") || (form.replyTwi.trim().length > 0 && Boolean(form.safetyLevel)));
   const nextIndex = Math.min(pageLength - 1, pageIndex + 1);
 
   return (
@@ -458,6 +472,33 @@ function ReviewEditor({
             onChange={(event) => setForm((value) => ({ ...value, literalEnglish: event.target.value }))}
           />
         </label>
+        {row.category.startsWith("health/") && (
+          <>
+            <label className="research-ase__field research-ase__field--wide">
+              Twi response
+              <textarea
+                value={form.replyTwi}
+                onChange={(event) => setForm((value) => ({ ...value, replyTwi: event.target.value }))}
+                placeholder="Short, direct Twi response"
+              />
+            </label>
+            <label className="research-ase__field">
+              Safety level
+              <select
+                value={form.safetyLevel}
+                onChange={(event) =>
+                  setForm((value) => ({ ...value, safetyLevel: normalizeSafetyLevel(event.target.value) }))
+                }
+              >
+                <option value="">Choose level</option>
+                <option value="routine">Routine</option>
+                <option value="same_day">Same day</option>
+                <option value="urgent">Urgent</option>
+                <option value="emergency">Emergency</option>
+              </select>
+            </label>
+          </>
+        )}
         <label className="research-ase__field">
           Review notes
           <textarea
