@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, Mic, Pencil, ShoppingCart, Volume2, X } from "lucide-react";
+import { UnderstandingDetails, type UnderstandingDetailsData } from "@/components/understanding-details";
 import { useLang } from "@/components/lang-provider";
 import { useAsrModel } from "@/lib/asr-model-store";
 import { useUnderstandingModelMode } from "@/lib/understanding-model-store";
@@ -18,7 +19,7 @@ type VoiceFocus = "health" | "commerce";
 type VoiceTurnData = {
   conversationId?: string;
   asr?: { text?: string };
-  understanding?: {
+  understanding?: UnderstandingDetailsData & {
     reply?: string;
     commerceExecution?: CommerceExecution;
     synthesis?: { mode?: "live_model" | "degraded_fallback"; model?: string };
@@ -57,12 +58,14 @@ type VoiceStreamEvent = VoiceTurnData & {
 };
 
 type StoredMessage = {
+  meta?: UnderstandingDetailsData;
   id: string;
   role: "USER" | "ASSISTANT" | "SYSTEM";
   content: string;
 };
 
 type VoiceMessage = {
+  understanding?: UnderstandingDetailsData;
   id: string;
   role: "USER" | "ASSISTANT";
   content: string;
@@ -302,7 +305,7 @@ export function VoicePanel() {
         setMessages(
           messages.flatMap((message) =>
             message.role === "USER" || message.role === "ASSISTANT"
-              ? [{ id: message.id, role: message.role, content: message.content }]
+              ? [{ id: message.id, role: message.role, content: message.content, understanding: message.meta }]
               : [],
           ),
         );
@@ -511,7 +514,7 @@ export function VoicePanel() {
         if (finalReply.trim()) {
           next = upsertVoiceMessage(
             next,
-            { id: data.message?.id ?? localAssistantId, role: "ASSISTANT", content: finalReply },
+            { id: data.message?.id ?? localAssistantId, role: "ASSISTANT", content: finalReply, understanding: data.understanding },
             localAssistantId,
           );
         }
@@ -730,7 +733,10 @@ export function VoicePanel() {
 
               return (
                 <div key={message.id} className="live-reply-wrap">
+                  <div className="min-w-0">
                   <p className="live-reply">{message.content}</p>
+                  <UnderstandingDetails data={message.understanding} />
+                  </div>
                   {ttsB64 && message.id === latestAssistantId && (
                     <button
                       type="button"
