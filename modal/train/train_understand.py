@@ -304,7 +304,8 @@ def train(
         peft_config=peft_config,
         processing_class=tokenizer,
     )
-    trainer.train()
+    train_output = trainer.train()
+    train_metrics = dict(getattr(train_output, "metrics", {}) or {})
     trainer.save_model(out_dir)
     tokenizer.save_pretrained(out_dir)
     vol.commit()
@@ -323,7 +324,15 @@ def train(
                 language=["tw", "ak", "en"],
                 base_model=base_model,
                 datasets=datasets_used or [source],
-                metrics={"n_train": len(train_ds), "max_steps": max_steps},
+                metrics={
+                    "n_train": len(train_ds),
+                    "max_steps": max_steps,
+                    **(
+                        {"train_loss": float(train_metrics["train_loss"])}
+                        if "train_loss" in train_metrics
+                        else {}
+                    ),
+                },
                 summary=(
                     "Twi/Akan semantic-recovery LoRA for Ghana Health AI. "
                     "Trained on large medical plus language-coverage silver corpus for research evaluation."
@@ -354,6 +363,7 @@ def train(
         "output_dir": out_dir,
         "push_repo": push_repo,
         "hub": hub_status,
+        "train_metrics": train_metrics,
         "research": "docs/research-stack.md",
     }
 
@@ -367,6 +377,7 @@ def train(
 def push_saved(
     base_model: str = "Qwen/Qwen2.5-1.5B-Instruct",
     push_repo: str = _DEFAULT_PUSH_REPO,
+    train_loss: Optional[float] = None,
 ) -> dict[str, Any]:
     token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
     if not token:
@@ -406,6 +417,7 @@ def push_saved(
         metrics={
             "n_train": 6329,
             "max_steps": 650,
+            **({"train_loss": train_loss} if train_loss is not None else {}),
         },
         summary=(
             "Twi/Akan semantic-recovery LoRA for Ghana Health AI. "
@@ -423,6 +435,7 @@ def push_saved(
             "- Train rows: `6329`\n"
             "- Steps: `650`\n"
             "- Corpus: `data/understanding-corpus/silver-medical-plus-language-v1`\n"
+            + (f"- Final train loss: `{train_loss:.4f}`\n" if train_loss is not None else "")
         ),
         license_id="cc-by-nc-4.0",
         tags=["lora", "sft", "twi", "ghana-nlp", "semantic-recovery", "silver-corpus"],
@@ -447,12 +460,14 @@ def main(
     push_repo: str = "",
     max_steps: int = 500,
     push_only: bool = False,
+    train_loss: Optional[float] = None,
 ):
     if push_only:
         print(
             push_saved.remote(
                 base_model=base_model,
                 push_repo=push_repo or _DEFAULT_PUSH_REPO,
+                train_loss=train_loss,
             )
         )
         return

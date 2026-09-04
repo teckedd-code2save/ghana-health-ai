@@ -91,7 +91,7 @@ def _contains_any(value: str, terms: list[str]) -> bool:
 )
 def evaluate(
     base_model: str = "Qwen/Qwen2.5-1.5B-Instruct",
-    adapter_id: str = "teckedd/gha-understand-twi-medical-plus-language-v2",
+    adapter_id: str = "teckedd/gha-understand-twi-medical-plus-language-v3",
     limit: int = 0,
 ) -> dict[str, Any]:
     import torch
@@ -221,7 +221,7 @@ def evaluate(
 @app.local_entrypoint()
 def main(
     base_model: str = "Qwen/Qwen2.5-1.5B-Instruct",
-    adapter_id: str = "teckedd/gha-understand-twi-medical-plus-language-v2",
+    adapter_id: str = "teckedd/gha-understand-twi-medical-plus-language-v3",
     limit: int = 0,
 ) -> None:
     print(

@@ -272,6 +272,18 @@ Current v3 corpus fixes:
 - The next adapter trains on strict JSON-only assistant targets using the same
   system prompt as inference.
 
+Current v3 model status:
+
+- Modal training run `ap-uo6rKyNwqQRPizIyJGbObv` completed 650 steps on the
+  6,329-row v1 train split.
+- Final training loss was `0.7946`.
+- The adapter was uploaded to
+  `teckedd/gha-understand-twi-medical-plus-language-v3` with a model card.
+- Product-fixture eval passed `7/11`, up from v2's `3/8` after parser repair.
+- The model is still not promoted to the live Research endpoint because it
+  still maps `mani kum paa` to cough and misreads
+  `yɛsɛ yɛhospital bɛn na menkɔ`.
+
 For the fastest first pass toward a trainable corpus, download **Download 20-row
 training pack** in the workbench or run:
 
