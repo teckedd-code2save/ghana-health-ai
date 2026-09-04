@@ -193,7 +193,7 @@ cp tmp/understanding-corpus/candidates.v0.jsonl data/understanding-corpus/candid
 
 ## Delivered silver corpus
 
-The current quick-skim/training corpus is:
+The current medical-only baseline corpus is:
 
 ```text
 data/understanding-corpus/silver-medical-v0/
@@ -214,14 +214,20 @@ Generate it with:
 pnpm corpus:understanding:silver -- --out-dir data/understanding-corpus/silver-medical-v0
 ```
 
-To skim the same corpus plus currently annotated WAXAL/GhanaNLP language
+The current default research-training corpus is:
+
+```text
+data/understanding-corpus/silver-medical-plus-language-v0/
+```
+
+It contains the same medical rows plus currently usable WAXAL/GhanaNLP language
 coverage rows:
 
 ```bash
-pnpm corpus:understanding:silver -- --include-language-coverage --out-dir tmp/understanding-corpus/silver-medical-plus-language-v0
+pnpm corpus:understanding:silver -- --include-language-coverage --out-dir data/understanding-corpus/silver-medical-plus-language-v0
 ```
 
-The current generated medical-plus-language review artifact contains:
+The current generated medical-plus-language artifact contains:
 
 - `all.jsonl`: 7,802 rows
 - `train.jsonl`: 6,317 rows
@@ -231,6 +237,16 @@ The current generated medical-plus-language review artifact contains:
 
 Rows from WAXAL/GhanaNLP are included only when they have usable draft semantic
 labels and do not require clarification.
+
+Train the next Modal understanding adapter from this corpus with:
+
+```bash
+pnpm train:understanding:modal
+```
+
+That command pushes to `teckedd/gha-understand-twi-medical-plus-language-v2`
+with a model card. This remains a silver research checkpoint, not a gold
+medical model.
 
 For the fastest first pass toward a trainable corpus, download **Download 20-row
 training pack** in the workbench or run:

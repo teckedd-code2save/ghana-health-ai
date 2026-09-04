@@ -2,7 +2,7 @@
 Twi understand SFT — research path.
 
 Data sources (priority):
-  1. --use-local-silver → data/understanding-corpus/silver-medical-v0
+  1. --use-local-silver → data/understanding-corpus/silver-medical-plus-language-v0
   2. --dataset HF chat JSONL (messages column)
   3. --use-ghananlp-parallel → Ghana-NLP/TWI_ENGLISH_PARALLEL_TEXT
      converted to Twi-first health-style chat turns
@@ -10,7 +10,7 @@ Data sources (priority):
   modal run modal/train/train_understand.py --use-local-silver --smoke
   modal run --detach modal/train/train_understand.py \\
     --use-local-silver --max-steps 500 \\
-    --push-repo teckedd/gha-understand-twi-medical-silver-v1
+    --push-repo teckedd/gha-understand-twi-medical-plus-language-v2
 
 Language policy: this model is for semantic recovery, not direct medical advice.
 """
@@ -28,7 +28,12 @@ vol = modal.Volume.from_name("ghana-health-understand-train", create_if_missing=
 
 _TRAIN_DIR = os.path.dirname(os.path.abspath(__file__))
 _REPO_ROOT = os.path.dirname(os.path.dirname(_TRAIN_DIR))
-_LOCAL_SILVER_DIR = os.path.join(_REPO_ROOT, "data", "understanding-corpus", "silver-medical-v0")
+_LOCAL_SILVER_DIR = os.path.join(
+    _REPO_ROOT,
+    "data",
+    "understanding-corpus",
+    "silver-medical-plus-language-v0",
+)
 _REMOTE_SILVER_DIR = "/root/gha_understanding_silver"
 
 image = (
@@ -160,8 +165,14 @@ def train(
             for row in raw["train"]:
                 if "messages" in row and row["messages"]:
                     rows.append({"messages": row["messages"]})
-            source = "local:understanding-corpus/silver-medical-v0"
-            datasets_used.append("ghananlpcommunity/ghana-health-symptoms:cc-by-nc-4.0")
+            source = "local:understanding-corpus/silver-medical-plus-language-v0"
+            datasets_used.extend(
+                [
+                    "ghananlpcommunity/ghana-health-symptoms:cc-by-nc-4.0",
+                    "GhanaNLP speech text:source license audit required",
+                    "WAXAL Akan transcripts:source license audit required",
+                ]
+            )
         else:
             print(f"[understand-train] local silver dataset missing: {local_train}")
 
@@ -300,14 +311,16 @@ def train(
                 datasets=datasets_used or [source],
                 metrics={"n_train": len(train_ds), "max_steps": max_steps},
                 summary=(
-                    "Twi medical semantic-recovery LoRA for Ghana Health AI. "
-                    "Trained on machine-annotated silver corpus for research evaluation."
+                    "Twi/Akan semantic-recovery LoRA for Ghana Health AI. "
+                    "Trained on large medical plus language-coverage silver corpus for research evaluation."
                 ),
                 extra_markdown=(
                     "## Dataset status\n\n"
                     "This is a research checkpoint trained from machine annotations. "
-                    "Rows are not human-gold labels. The main source is CC-BY-NC-4.0, "
-                    "so use is non-commercial research unless separate permission is obtained.\n"
+                    "Rows are not human-gold labels. The main medical source is CC-BY-NC-4.0, "
+                    "so use is non-commercial research unless separate permission is obtained. "
+                    "WAXAL and GhanaNLP rows are included as language-coverage silver rows only after "
+                    "draft semantic annotation and clarification filtering.\n"
                 ),
                 license_id="cc-by-nc-4.0" if any("cc-by-nc" in d for d in datasets_used) else "apache-2.0",
                 tags=["lora", "sft", "twi", "ghana-nlp", "semantic-recovery", "silver-corpus"],
