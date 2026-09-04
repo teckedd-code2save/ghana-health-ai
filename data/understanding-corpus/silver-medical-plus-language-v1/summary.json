@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-04T01:00:48.416Z",
+  "outDir": "data/understanding-corpus/silver-medical-plus-language-v1",
+  "candidates": 12235,
+  "selected": 7814,
+  "splits": {
+    "train": 6329,
+    "dev": 725,
+    "test": 760
+  },
+  "bySource": {
+    "ghana_health_symptoms": 7000,
+    "ghana_nlp_speech": 709,
+    "waxal": 93,
+    "product_failure_seed": 12
+  },
+  "byTrainingLane": {
+    "medical_research_silver": 7000,
+    "language_coverage_silver": 814
+  },
+  "excludedPolicy": {
+    "curated_prompt": "excluded from silver export because sampled rows showed weak synthetic quality",
+    "local_recording": "excluded from this corpus because user requested large corpus only",
+    "medical_response_seed": "excluded from this corpus because it is a small seed",
+    "medical_qa_twi_draft": "excluded from this corpus until the translated QA set is scaled and audited",
+    "general_waxal_ghana_nlp": "included only with --include-language-coverage after machine annotation",
+    "requires_clarification": "excluded except targeted product-failure seeds"
+  }
+}

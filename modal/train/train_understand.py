@@ -2,7 +2,7 @@
 Twi understand SFT — research path.
 
 Data sources (priority):
-  1. --use-local-silver → data/understanding-corpus/silver-medical-plus-language-v0
+  1. --use-local-silver → data/understanding-corpus/silver-medical-plus-language-v1
   2. --dataset HF chat JSONL (messages column)
   3. --use-ghananlp-parallel → Ghana-NLP/TWI_ENGLISH_PARALLEL_TEXT
      converted to Twi-first health-style chat turns
@@ -10,7 +10,7 @@ Data sources (priority):
   modal run modal/train/train_understand.py --use-local-silver --smoke
   modal run --detach modal/train/train_understand.py \\
     --use-local-silver --max-steps 500 \\
-    --push-repo teckedd/gha-understand-twi-medical-plus-language-v2
+    --push-repo teckedd/gha-understand-twi-medical-plus-language-v3
 
 Language policy: this model is for semantic recovery, not direct medical advice.
 """
@@ -33,11 +33,11 @@ _LOCAL_SILVER_DIR = os.path.join(
     _REPO_ROOT,
     "data",
     "understanding-corpus",
-    "silver-medical-plus-language-v0",
+    "silver-medical-plus-language-v1",
 )
-_REMOTE_SILVER_DIR = "/root/gha_understanding_silver_medical_plus_language_v0"
-_OUTPUT_SUFFIX = "medical_plus_language_v0"
-_DEFAULT_PUSH_REPO = "teckedd/gha-understand-twi-medical-plus-language-v2"
+_REMOTE_SILVER_DIR = "/root/gha_understanding_silver_medical_plus_language_v1"
+_OUTPUT_SUFFIX = "medical_plus_language_v1"
+_DEFAULT_PUSH_REPO = "teckedd/gha-understand-twi-medical-plus-language-v3"
 _VALID_HF_DATASETS = [
     "ghananlpcommunity/ghana-health-symptoms:cc-by-nc-4.0",
     "google/WaxalNLP:language coverage rows",
@@ -48,6 +48,8 @@ _SOURCE_NOTES = [
     "GhanaNLP speech-text rows are included as local language-coverage silver rows; "
     "they are described in the card body, not HF front-matter, until the source id "
     "and license are audited.",
+    "Product-failure seed rows cover observed app failures such as eye pain, child fever, "
+    "hospital navigation, malaria follow-ups, and Twi commerce purchase/search requests.",
 ]
 
 image = (
@@ -183,7 +185,7 @@ def train(
                     row = json.loads(line)
                     if "messages" in row and row["messages"]:
                         rows.append({"messages": row["messages"]})
-            source = "local:understanding-corpus/silver-medical-plus-language-v0"
+            source = "local:understanding-corpus/silver-medical-plus-language-v1"
             datasets_used.extend(_VALID_HF_DATASETS)
         else:
             print(f"[understand-train] local silver dataset missing: {local_train}")
@@ -402,13 +404,12 @@ def push_saved(
         base_model=base_model,
         datasets=_VALID_HF_DATASETS,
         metrics={
-            "n_train": 6317,
+            "n_train": 6329,
             "max_steps": 650,
-            "train_loss": 1.7700223159790038,
         },
         summary=(
             "Twi/Akan semantic-recovery LoRA for Ghana Health AI. "
-            "Trained on a larger medical plus language-coverage silver corpus for research evaluation."
+            "Trained on a cleaned medical plus language-coverage silver corpus for research evaluation."
         ),
         extra_markdown=(
             "## Dataset status\n\n"
@@ -419,10 +420,9 @@ def push_saved(
             + "\n".join(f"- {note}" for note in _SOURCE_NOTES)
             + "\n\n"
             "## Training run\n\n"
-            "- Modal run: `ap-2KSkWjid8QokFtEE0EWoLt`\n"
-            "- Train rows: `6317`\n"
+            "- Train rows: `6329`\n"
             "- Steps: `650`\n"
-            "- Final train loss: `1.7700`\n"
+            "- Corpus: `data/understanding-corpus/silver-medical-plus-language-v1`\n"
         ),
         license_id="cc-by-nc-4.0",
         tags=["lora", "sft", "twi", "ghana-nlp", "semantic-recovery", "silver-corpus"],

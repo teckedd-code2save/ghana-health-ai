@@ -51,6 +51,12 @@ const localDatasetRoot = path.join(root, "..", "gha-language-models", "datasets"
 
 const sources = [
   {
+    source: "product_failure_seed" as const,
+    path: path.join(root, "data", "understanding-corpus", "product-failure-seeds.v0.jsonl"),
+    limit: 200,
+    domain: "mixed",
+  },
+  {
     source: "curated_prompt" as const,
     path: path.join(root, "tmp", "asr-collection-pack", "prompts.corpus-v2.health_twi.jsonl"),
     limit: 126,
@@ -244,10 +250,10 @@ function buildCandidate(input: {
     asString(input.row.english_answer) ? `english_answer=${asString(input.row.english_answer)}` : "",
     asString(input.row.safety_level) ? `safety_level=${asString(input.row.safety_level)}` : "",
     asString(input.row.body_system) ? `body_system=${asString(input.row.body_system)}` : "",
-    asString(input.row.source_twi) ? `source_twi=${asString(input.row.source_twi)}` : "",
     Array.isArray(input.row.source_urls) ? `sources=${input.row.source_urls.join(" | ")}` : "",
     asString(input.row.source_url) ? `source=${asString(input.row.source_url)}` : "",
     asString(input.row.training_use) ? `training_use=${asString(input.row.training_use)}` : "",
+    asString(input.row.notes) ? `notes=${asString(input.row.notes)}` : "",
   ]
     .filter(Boolean)
     .join("\n");
@@ -260,7 +266,7 @@ function buildCandidate(input: {
     source_path: portableSourcePath(input.sourcePath),
     language,
     dialect: "unknown",
-    domain: input.domain,
+    domain: asString(input.row.domain) || input.domain,
     split,
     text,
     normalized_text: normalized,
@@ -285,7 +291,7 @@ function buildCandidate(input: {
       intent: initialIntent,
       entities: initialEntities,
       ambiguities: initialNotes,
-      requires_clarification: false,
+      requires_clarification: input.row.requires_clarification === true,
       model: initialEnglish ? "source_seed_or_translation_draft" : "none",
       status: initialEnglish ? "draft" : "not_requested",
     },

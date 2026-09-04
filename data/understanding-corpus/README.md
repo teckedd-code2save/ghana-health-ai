@@ -217,23 +217,24 @@ pnpm corpus:understanding:silver -- --out-dir data/understanding-corpus/silver-m
 The current default research-training corpus is:
 
 ```text
-data/understanding-corpus/silver-medical-plus-language-v0/
+data/understanding-corpus/silver-medical-plus-language-v1/
 ```
 
 It contains the same medical rows plus currently usable WAXAL/GhanaNLP language
 coverage rows:
 
 ```bash
-pnpm corpus:understanding:silver -- --include-language-coverage --out-dir data/understanding-corpus/silver-medical-plus-language-v0
+pnpm corpus:understanding:silver -- --include-language-coverage --out-dir data/understanding-corpus/silver-medical-plus-language-v1
 ```
 
 The current generated medical-plus-language artifact contains:
 
-- `all.jsonl`: 7,802 rows
-- `train.jsonl`: 6,317 rows
+- `all.jsonl`: 7,814 rows
+- `train.jsonl`: 6,329 rows
 - `dev.jsonl`: 725 rows
 - `test.jsonl`: 760 rows
-- Source mix: 7,000 Ghana Health Symptoms, 709 GhanaNLP speech, 93 WAXAL
+- Source mix: 7,000 Ghana Health Symptoms, 709 GhanaNLP speech, 93 WAXAL,
+  12 product-failure seed rows
 
 Rows from WAXAL/GhanaNLP are included only when they have usable draft semantic
 labels and do not require clarification.
@@ -244,7 +245,7 @@ Train the next Modal understanding adapter from this corpus with:
 pnpm train:understanding:modal
 ```
 
-That command pushes to `teckedd/gha-understand-twi-medical-plus-language-v2`
+That command pushes to `teckedd/gha-understand-twi-medical-plus-language-v3`
 with a model card. This remains a silver research checkpoint, not a gold
 medical model.
 
@@ -260,15 +261,15 @@ Current v2 status:
   JSON formatting is now recoverable, but semantic recovery is still not strong
   enough to trust as the primary health-understanding layer.
 
-Immediate v3 data targets:
+Current v3 corpus fixes:
 
-- Add targeted, reviewed rows for real product phrasings such as `m'ani kum`,
+- Added targeted rows for real product phrasings such as `m'ani kum`,
   child fever follow-ups, infant age clarification, hospital-location questions,
   malaria-confirmed context, and Twi commerce purchase/search requests.
-- Keep the large medical rows, but remove noisy ambiguity notes that contain
+- Kept the large medical rows, but removed noisy ambiguity notes that contain
   long unrelated `source_twi` transcript snippets. Those snippets teach the
   model to associate symptoms with unrelated context.
-- Train the next adapter on strict JSON-only assistant targets using the same
+- The next adapter trains on strict JSON-only assistant targets using the same
   system prompt as inference.
 
 For the fastest first pass toward a trainable corpus, download **Download 20-row

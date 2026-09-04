@@ -102,9 +102,20 @@ function isResearchOnly(candidate: CorpusCandidate) {
 
 function shouldIncludeSource(candidate: CorpusCandidate) {
   const includeLanguageCoverage = process.argv.includes("--include-language-coverage");
+  if (candidate.source === "product_failure_seed") return true;
   if (candidate.source === "ghana_health_symptoms") return true;
   if (includeLanguageCoverage && ["ghana_nlp_speech", "waxal"].includes(candidate.source)) return true;
   return false;
+}
+
+function cleanAmbiguities(value: string) {
+  return value
+    .split("\n")
+    .filter((line) => {
+      const trimmed = line.trim();
+      return trimmed && !trimmed.startsWith("source_twi=");
+    })
+    .join("\n");
 }
 
 function isUseful(candidate: CorpusCandidate) {
@@ -114,7 +125,7 @@ function isUseful(candidate: CorpusCandidate) {
   if (!proposal.normalized_twi.trim()) return false;
   if (!proposal.natural_english.trim()) return false;
   if (!proposal.intent.trim()) return false;
-  if (proposal.requires_clarification) return false;
+  if (proposal.requires_clarification && candidate.source !== "product_failure_seed") return false;
   return true;
 }
 
@@ -124,6 +135,8 @@ function systemPrompt(row: CorpusCandidate) {
       "You are Ghana Health AI's semantic recovery model.",
       "Given a Twi/Akan or code-switched user utterance, output faithful structured understanding.",
       "Do not diagnose. Do not invent missing symptoms. Preserve uncertainty.",
+      "Return JSON only with keys normalized_twi, natural_english, literal_english, intent, entities, ambiguities, requires_clarification.",
+      "Use double quotes, lowercase true/false, and no markdown.",
     ].join(" ");
   }
   if (row.domain === "commerce") {
@@ -131,9 +144,16 @@ function systemPrompt(row: CorpusCandidate) {
       "You are Ghana Health AI's commerce understanding model.",
       "Extract the shopping intent, item, quantity, delivery or pickup need, and location from Twi/Akan or code-switched text.",
       "Do not invent products, prices, or stores.",
+      "Return JSON only with keys normalized_twi, natural_english, literal_english, intent, entities, ambiguities, requires_clarification.",
+      "Use double quotes, lowercase true/false, and no markdown.",
     ].join(" ");
   }
-  return "You are Ghana Health AI's semantic recovery model. Output faithful structured understanding without answering the user.";
+  return [
+    "You are Ghana Health AI's semantic recovery model.",
+    "Output faithful structured understanding without answering the user.",
+    "Return JSON only with keys normalized_twi, natural_english, literal_english, intent, entities, ambiguities, requires_clarification.",
+    "Use double quotes, lowercase true/false, and no markdown.",
+  ].join(" ");
 }
 
 function toSilverRow(candidate: CorpusCandidate): SilverRow {
@@ -145,7 +165,7 @@ function toSilverRow(candidate: CorpusCandidate): SilverRow {
     literal_english: proposal.literal_english,
     intent: proposal.intent,
     entities: parseEntities(proposal.entities),
-    ambiguities: proposal.ambiguities,
+    ambiguities: cleanAmbiguities(proposal.ambiguities),
     requires_clarification: proposal.requires_clarification,
   };
   const researchOnly = isResearchOnly(candidate);
@@ -167,7 +187,7 @@ function toSilverRow(candidate: CorpusCandidate): SilverRow {
     literal_english: proposal.literal_english,
     intent: proposal.intent,
     entities: assistant.entities,
-    ambiguities: proposal.ambiguities,
+    ambiguities: assistant.ambiguities,
     requires_clarification: proposal.requires_clarification,
     label_source: proposal.model,
     messages: [
@@ -236,7 +256,7 @@ async function main() {
       medical_response_seed: "excluded from this corpus because it is a small seed",
       medical_qa_twi_draft: "excluded from this corpus until the translated QA set is scaled and audited",
       general_waxal_ghana_nlp: "included only with --include-language-coverage after machine annotation",
-      requires_clarification: "excluded from first training run",
+      requires_clarification: "excluded except targeted product-failure seeds",
     },
   };
   await fs.writeFile(path.join(outDir, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`, "utf8");
