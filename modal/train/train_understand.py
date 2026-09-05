@@ -2,7 +2,7 @@
 Twi understand SFT — research path.
 
 Data sources (priority):
-  1. --use-local-silver → data/understanding-corpus/silver-medical-plus-language-v1
+  1. --use-local-silver → data/understanding-corpus/silver-medical-paired-v2
   2. --dataset HF chat JSONL (messages column)
   3. --use-ghananlp-parallel → Ghana-NLP/TWI_ENGLISH_PARALLEL_TEXT
      converted to Twi-first health-style chat turns
@@ -10,7 +10,7 @@ Data sources (priority):
   modal run modal/train/train_understand.py --use-local-silver --smoke
   modal run --detach modal/train/train_understand.py \\
     --use-local-silver --max-steps 500 \\
-    --push-repo teckedd/gha-understand-twi-medical-plus-language-v3
+    --push-repo teckedd/gha-understand-twi-medical-v4
 
 Language policy: this model is for semantic recovery, not direct medical advice.
 """
@@ -33,23 +33,19 @@ _LOCAL_SILVER_DIR = os.path.join(
     _REPO_ROOT,
     "data",
     "understanding-corpus",
-    "silver-medical-plus-language-v1",
+    "silver-medical-paired-v2",
 )
-_REMOTE_SILVER_DIR = "/root/gha_understanding_silver_medical_plus_language_v1"
-_OUTPUT_SUFFIX = "medical_plus_language_v1"
-_DEFAULT_PUSH_REPO = "teckedd/gha-understand-twi-medical-plus-language-v3"
+_REMOTE_SILVER_DIR = "/root/gha_understanding_silver_medical_paired_v2"
+_OUTPUT_SUFFIX = "medical_paired_v2"
+_DEFAULT_PUSH_REPO = "teckedd/gha-understand-twi-medical-v4"
 _VALID_HF_DATASETS = [
-    "ghananlpcommunity/ghana-health-symptoms:cc-by-nc-4.0",
-    "google/WaxalNLP:language coverage rows",
+    "ghananlpcommunity/ghana-health-symptoms",
 ]
 _SOURCE_NOTES = [
-    "Ghana Health Symptoms rows are the primary medical semantic-recovery source.",
-    "WAXAL rows are included only as language-coverage silver rows after filtering.",
-    "GhanaNLP speech-text rows are included as local language-coverage silver rows; "
-    "they are described in the card body, not HF front-matter, until the source id "
-    "and license are audited.",
-    "Product-failure seed rows cover observed app failures such as eye pain, child fever, "
-    "hospital navigation, malaria follow-ups, and Twi commerce purchase/search requests.",
+    "Exactly 7,000 Ghana Health Symptoms rows are used: 5,659 train, 669 dev, and 672 test.",
+    "The Twi and concise English meanings are source-paired silver labels, not human-gold annotations.",
+    "WAXAL, GhanaNLP speech rows, synthetic prompt seeds, and product-failure fixtures are not mixed into this release.",
+    "The source is CC-BY-NC-4.0, so this checkpoint is non-commercial research only.",
 ]
 
 image = (
@@ -151,12 +147,12 @@ def _parallel_to_messages(row: dict[str, Any], rng: random.Random) -> dict[str, 
     secrets=SECRETS,
 )
 def train(
-    base_model: str = "Qwen/Qwen2.5-1.5B-Instruct",
+    base_model: str = "Qwen/Qwen2.5-3B-Instruct",
     dataset_name: str = "",
     use_local_silver: bool = True,
     use_ghananlp_parallel: bool = False,
     max_steps: int = 500,
-    learning_rate: float = 2e-4,
+    learning_rate: float = 1e-4,
     push_repo: Optional[str] = None,
     smoke: bool = False,
 ) -> dict[str, Any]:
@@ -185,7 +181,7 @@ def train(
                     row = json.loads(line)
                     if "messages" in row and row["messages"]:
                         rows.append({"messages": row["messages"]})
-            source = "local:understanding-corpus/silver-medical-plus-language-v1"
+            source = "local:understanding-corpus/silver-medical-paired-v2"
             datasets_used.extend(_VALID_HF_DATASETS)
         else:
             print(f"[understand-train] local silver dataset missing: {local_train}")
@@ -233,10 +229,25 @@ def train(
             "research": "docs/research-stack.md",
         }
 
+    eval_rows: list[dict[str, Any]] = []
+    if use_local_silver:
+        local_dev = os.path.join(_REMOTE_SILVER_DIR, "dev.jsonl")
+        if os.path.exists(local_dev):
+            with open(local_dev, "r", encoding="utf-8") as handle:
+                for line in handle:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    row = json.loads(line)
+                    if "messages" in row and row["messages"]:
+                        eval_rows.append({"messages": row["messages"]})
+
     if smoke:
         rows = rows[:24]
+        eval_rows = eval_rows[:8]
 
     train_ds = Dataset.from_list(rows)
+    eval_ds = Dataset.from_list(eval_rows) if eval_rows else None
 
     from peft import LoraConfig
     from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -290,7 +301,9 @@ def train(
         gradient_accumulation_steps=8,
         learning_rate=learning_rate,
         logging_steps=5,
-        save_steps=max(50, max_steps // 5),
+        save_steps=max(25, max_steps // 5),
+        eval_strategy="steps" if eval_ds is not None else "no",
+        eval_steps=max(25, max_steps // 5) if eval_ds is not None else None,
         bf16=True,
         push_to_hub=bool(push_repo) and not smoke,
         hub_model_id=push_repo,
@@ -301,11 +314,14 @@ def train(
         model=model,
         args=args,
         train_dataset=train_ds,
+        eval_dataset=eval_ds,
         peft_config=peft_config,
         processing_class=tokenizer,
     )
     train_output = trainer.train()
     train_metrics = dict(getattr(train_output, "metrics", {}) or {})
+    if eval_ds is not None:
+        train_metrics.update(trainer.evaluate())
     trainer.save_model(out_dir)
     tokenizer.save_pretrained(out_dir)
     vol.commit()
@@ -326,29 +342,46 @@ def train(
                 datasets=datasets_used or [source],
                 metrics={
                     "n_train": len(train_ds),
+                    "n_eval": len(eval_ds) if eval_ds is not None else 0,
                     "max_steps": max_steps,
                     **(
                         {"train_loss": float(train_metrics["train_loss"])}
                         if "train_loss" in train_metrics
                         else {}
                     ),
+                    **(
+                        {"eval_loss": float(train_metrics["eval_loss"])}
+                        if "eval_loss" in train_metrics
+                        else {}
+                    ),
                 },
                 summary=(
-                    "Twi/Akan semantic-recovery LoRA for Ghana Health AI. "
-                    "Trained on large medical plus language-coverage silver corpus for research evaluation."
+                    "Twi/Akan medical semantic-recovery LoRA for Ghana Health AI. "
+                    "Trained on a 7,000-row paired medical silver corpus for research evaluation."
                 ),
                 extra_markdown=(
                     "## Dataset status\n\n"
-                    "This is a research checkpoint trained from machine annotations. "
-                    "Rows are not human-gold labels. The main medical source is CC-BY-NC-4.0, "
+                    "This is a research checkpoint trained from source-paired silver labels. "
+                    "Rows are not human-gold annotations. The medical source is CC-BY-NC-4.0, "
                     "so use is non-commercial research unless separate permission is obtained.\n\n"
                     "## Source notes\n\n"
                     + "\n".join(f"- {note}" for note in _SOURCE_NOTES)
                     + "\n"
                 ),
-                license_id="cc-by-nc-4.0" if any("cc-by-nc" in d for d in datasets_used) else "apache-2.0",
+                license_id="cc-by-nc-4.0"
+                if "ghananlpcommunity/ghana-health-symptoms" in datasets_used
+                else "apache-2.0",
                 tags=["lora", "sft", "twi", "ghana-nlp", "semantic-recovery", "silver-corpus"],
                 pipeline_tag="text-generation",
+                intended_use=[
+                    "Recover structured Twi/Akan medical meaning for research evaluation.",
+                    "Produce English meaning, intent, body-system entities, and ambiguity fields for a downstream response model.",
+                ],
+                out_of_scope=[
+                    "Direct medical advice or patient-facing response generation.",
+                    "Clinical diagnosis, triage, or autonomous medical decisions.",
+                    "Commercial use of this checkpoint without separate permission for the CC-BY-NC-4.0 source data.",
+                ],
                 token=token,
             )
             hub_status = f"pushed:{push_repo}+card"
@@ -375,11 +408,33 @@ def train(
     secrets=SECRETS,
 )
 def push_saved(
-    base_model: str = "Qwen/Qwen2.5-1.5B-Instruct",
+    base_model: str = "Qwen/Qwen2.5-3B-Instruct",
     push_repo: str = _DEFAULT_PUSH_REPO,
     train_loss: Optional[float] = None,
+    eval_loss: Optional[float] = None,
     eval_passed: Optional[int] = None,
     eval_total: Optional[int] = None,
+    eval_failed_cases: str = "",
+    eval_health_passed: Optional[int] = None,
+    eval_health_total: Optional[int] = None,
+    eval_commerce_passed: Optional[int] = None,
+    eval_commerce_total: Optional[int] = None,
+    test_total: Optional[int] = None,
+    test_parse_passed: Optional[int] = None,
+    test_intent_passed: Optional[int] = None,
+    test_body_system_passed: Optional[int] = None,
+    test_strict_passed: Optional[int] = None,
+    test_mean_english_f1: Optional[float] = None,
+    baseline_eval_passed: Optional[int] = None,
+    baseline_eval_total: Optional[int] = None,
+    baseline_test_total: Optional[int] = None,
+    baseline_test_parse_passed: Optional[int] = None,
+    baseline_test_intent_passed: Optional[int] = None,
+    baseline_test_body_system_passed: Optional[int] = None,
+    baseline_test_strict_passed: Optional[int] = None,
+    baseline_test_mean_english_f1: Optional[float] = None,
+    train_rows: int = 5659,
+    dev_rows: int = 669,
 ) -> dict[str, Any]:
     token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGING_FACE_HUB_TOKEN")
     if not token:
@@ -408,35 +463,70 @@ def push_saved(
         repo_id=push_repo,
         repo_type="model",
         token=token,
-        commit_message="model: upload medical plus language adapter",
+        commit_message="model: upload paired medical understanding adapter",
+        ignore_patterns=["checkpoint-*"],
+        delete_patterns=["checkpoint-*/*"],
     )
     eval_metrics: dict[str, Any] = {}
     eval_markdown = ""
     if eval_passed is not None and eval_total:
         eval_rate = float(eval_passed) / float(eval_total)
+        failed_case_ids = [case.strip() for case in eval_failed_cases.split(",") if case.strip()]
         eval_metrics = {
             "product_fixture_pass_rate": eval_rate,
             "product_fixture_passed": eval_passed,
             "product_fixture_total": eval_total,
+            **(
+                {"health_fixture_pass_rate": float(eval_health_passed) / float(eval_health_total)}
+                if eval_health_passed is not None and eval_health_total
+                else {}
+            ),
+            **(
+                {"commerce_fixture_pass_rate": float(eval_commerce_passed) / float(eval_commerce_total)}
+                if eval_commerce_passed is not None and eval_commerce_total
+                else {}
+            ),
+            **(
+                {"base_product_fixture_pass_rate": float(baseline_eval_passed or 0) / float(baseline_eval_total)}
+                if baseline_eval_total
+                else {}
+            ),
         }
         eval_payload = {
-            "status": "needs_review" if eval_passed < eval_total else "passed",
+            "status": "rejected_for_product" if eval_passed < eval_total else "passed",
+            "promotion_decision": "do_not_promote" if eval_passed < eval_total else "eligible_for_review",
             "passed": eval_passed,
             "total": eval_total,
             "pass_rate": eval_rate,
             "eval_set": "project product fixtures",
             "note": (
                 "Small product-critical fixture evaluation. Failed cases should be treated "
-                "as promotion blockers for production default use."
+                "as promotion blockers for any product routing, including an opt-in research route."
             ),
-            "known_failed_cases": [
-                "tw-health-headache-pregnancy-danger",
-                "tw-health-eye-pain-not-emergency",
-                "tw-health-hospital-choice-asks-location",
-                "tw-health-migraine-serious-followup",
-            ]
-            if eval_passed < eval_total
-            else [],
+            "failed_case_ids": failed_case_ids,
+            "by_focus": {
+                **(
+                    {"health": {"passed": eval_health_passed, "total": eval_health_total}}
+                    if eval_health_passed is not None and eval_health_total
+                    else {}
+                ),
+                **(
+                    {"commerce": {"passed": eval_commerce_passed, "total": eval_commerce_total}}
+                    if eval_commerce_passed is not None and eval_commerce_total
+                    else {}
+                ),
+            },
+            **(
+                {
+                    "base_model_comparison": {
+                        "passed": baseline_eval_passed,
+                        "total": baseline_eval_total,
+                        "pass_rate": float(baseline_eval_passed or 0) / float(baseline_eval_total),
+                    }
+                }
+                if baseline_eval_total
+                else {}
+            ),
         }
         api.upload_file(
             path_or_fileobj=json.dumps(eval_payload, ensure_ascii=False, indent=2).encode("utf-8"),
@@ -448,12 +538,123 @@ def push_saved(
         )
         eval_markdown = (
             "\n## Product fixture evaluation\n\n"
-            f"- Status: `{'needs_review' if eval_passed < eval_total else 'passed'}`\n"
+            f"- Status: `{'rejected_for_product' if eval_passed < eval_total else 'passed'}`\n"
             f"- Passed: `{eval_passed}/{eval_total}`\n"
             f"- Pass rate: `{eval_rate:.2%}`\n"
-            "- Artifact: `eval/product-fixtures.v0.json`\n"
-            "- Production note: this checkpoint is exposed only as an explicit research option.\n"
+            + (
+                f"- Health fixtures: `{eval_health_passed}/{eval_health_total}`\n"
+                if eval_health_passed is not None and eval_health_total
+                else ""
+            )
+            + (
+                f"- Commerce fixtures: `{eval_commerce_passed}/{eval_commerce_total}`\n"
+                if eval_commerce_passed is not None and eval_commerce_total
+                else ""
+            )
+            + "- Artifact: `eval/product-fixtures.v0.json`\n"
+            + (
+                f"- Unadapted base comparison: `{baseline_eval_passed or 0}/{baseline_eval_total}`\n"
+                if baseline_eval_total
+                else ""
+            )
+            + "- Promotion decision: **do not route product traffic to this checkpoint.**\n"
         )
+    test_metrics: dict[str, Any] = {}
+    test_markdown = ""
+    if test_total:
+        def _rate(value: Optional[int]) -> float:
+            return float(value or 0) / float(test_total)
+
+        test_metrics = {
+            "test_rows": test_total,
+            "test_parse_rate": _rate(test_parse_passed),
+            "test_intent_accuracy": _rate(test_intent_passed),
+            "test_body_system_accuracy": _rate(test_body_system_passed),
+            "test_strict_pass_rate": _rate(test_strict_passed),
+            **(
+                {"test_mean_natural_english_token_f1": test_mean_english_f1}
+                if test_mean_english_f1 is not None
+                else {}
+            ),
+        }
+        test_payload = {
+            "status": "evaluation_only",
+            "promotion_decision": "do_not_promote",
+            "test_set": "silver-medical-paired-v2/test.jsonl",
+            "total": test_total,
+            "parse_passed": test_parse_passed,
+            "intent_passed": test_intent_passed,
+            "body_system_passed": test_body_system_passed,
+            "strict_passed": test_strict_passed,
+            "mean_natural_english_token_f1": test_mean_english_f1,
+            "strict_definition": (
+                "parseable JSON, exact intent, exact body system, and natural-English token F1 >= 0.5"
+            ),
+            "intent_metric_limitation": (
+                "Every row has the same health_symptom_report intent, so exact intent accuracy "
+                "does not demonstrate intent generalization."
+            ),
+            **(
+                {
+                    "base_model_comparison": {
+                        "total": baseline_test_total,
+                        "parse_passed": baseline_test_parse_passed,
+                        "intent_passed": baseline_test_intent_passed,
+                        "body_system_passed": baseline_test_body_system_passed,
+                        "strict_passed": baseline_test_strict_passed,
+                        "mean_natural_english_token_f1": baseline_test_mean_english_f1,
+                    }
+                }
+                if baseline_test_total
+                else {}
+            ),
+        }
+        api.upload_file(
+            path_or_fileobj=json.dumps(test_payload, ensure_ascii=False, indent=2).encode("utf-8"),
+            path_in_repo="eval/held-out-test.v0.json",
+            repo_id=push_repo,
+            repo_type="model",
+            token=token,
+            commit_message="eval: add held-out corpus test results",
+        )
+        test_markdown = (
+            "\n## Held-out corpus evaluation\n\n"
+            f"- Rows: `{test_total}`\n"
+            f"- Parseable JSON: `{test_parse_passed or 0}/{test_total}`\n"
+            f"- Exact intent: `{test_intent_passed or 0}/{test_total}`\n"
+            "  This is not evidence of intent generalization because all test rows share one intent.\n"
+            f"- Exact body system: `{test_body_system_passed or 0}/{test_total}`\n"
+            f"- Strict semantic pass: `{test_strict_passed or 0}/{test_total}`\n"
+            + (
+                f"- Mean natural-English token F1: `{test_mean_english_f1:.4f}`\n"
+                if test_mean_english_f1 is not None
+                else ""
+            )
+            + "- Artifact: `eval/held-out-test.v0.json`\n"
+            + (
+                "- Unadapted base comparison: "
+                f"parse `{baseline_test_parse_passed or 0}/{baseline_test_total}`, "
+                f"strict `{baseline_test_strict_passed or 0}/{baseline_test_total}`, "
+                f"mean English F1 `{baseline_test_mean_english_f1 or 0:.4f}`\n"
+                if baseline_test_total
+                else ""
+            )
+            + "- Promotion decision: **do not promote; semantic recovery is not reliable.**\n"
+        )
+        if baseline_test_total:
+            test_metrics.update(
+                {
+                    "base_test_parse_rate": float(baseline_test_parse_passed or 0)
+                    / float(baseline_test_total),
+                    "base_test_strict_pass_rate": float(baseline_test_strict_passed or 0)
+                    / float(baseline_test_total),
+                    **(
+                        {"base_test_mean_natural_english_token_f1": baseline_test_mean_english_f1}
+                        if baseline_test_mean_english_f1 is not None
+                        else {}
+                    ),
+                }
+            )
     write_and_push_model_card(
         push_repo,
         task="text-generation",
@@ -461,33 +662,53 @@ def push_saved(
         base_model=base_model,
         datasets=_VALID_HF_DATASETS,
         metrics={
-            "n_train": 6329,
-            "max_steps": 650,
+            "n_train": train_rows,
+            "n_eval": dev_rows,
             **({"train_loss": train_loss} if train_loss is not None else {}),
+            **({"eval_loss": eval_loss} if eval_loss is not None else {}),
             **eval_metrics,
+            **test_metrics,
         },
         summary=(
-            "Twi/Akan semantic-recovery LoRA for Ghana Health AI. "
-            "Trained on a cleaned medical plus language-coverage silver corpus for research evaluation."
+            "Twi/Akan medical semantic-recovery LoRA for Ghana Health AI. "
+            "Trained on a 7,000-row paired medical silver corpus for research evaluation."
         ),
         extra_markdown=(
             "## Dataset status\n\n"
-            "This is a research checkpoint trained from machine annotations. "
-            "Rows are not human-gold labels. The main medical source is CC-BY-NC-4.0, "
+            "This is a research checkpoint trained from source-paired silver labels. "
+            "Rows are not human-gold annotations. The medical source is CC-BY-NC-4.0, "
             "so use is non-commercial research unless separate permission is obtained.\n\n"
             "## Source notes\n\n"
             + "\n".join(f"- {note}" for note in _SOURCE_NOTES)
             + "\n\n"
             "## Training run\n\n"
-            "- Train rows: `6329`\n"
-            "- Steps: `650`\n"
-            "- Corpus: `data/understanding-corpus/silver-medical-plus-language-v1`\n"
+            f"- Train rows: `{train_rows}`\n"
+            f"- Development rows: `{dev_rows}`\n"
+            "- Corpus: `data/understanding-corpus/silver-medical-paired-v2`\n"
             + (f"- Final train loss: `{train_loss:.4f}`\n" if train_loss is not None else "")
+            + (f"- Development loss: `{eval_loss:.4f}`\n" if eval_loss is not None else "")
             + eval_markdown
+            + test_markdown
+            + "\n## Research decision\n\n"
+            "This checkpoint is rejected for product use. It learned the JSON schema and the "
+            "single medical intent, but it did not learn reliable Twi-to-English semantics and "
+            "failed all commerce fixtures. Do not use it to generate or ground patient-facing "
+            "responses. The frozen base comparison confirms a measurable medical adaptation, "
+            "but not enough semantic reliability for product use. The next experiment requires "
+            "a mixed-domain, semantically varied corpus, not additional epochs on this corpus.\n"
         ),
         license_id="cc-by-nc-4.0",
         tags=["lora", "sft", "twi", "ghana-nlp", "semantic-recovery", "silver-corpus"],
         pipeline_tag="text-generation",
+        intended_use=[
+            "Recover structured Twi/Akan medical meaning for research evaluation.",
+            "Produce English meaning, intent, body-system entities, and ambiguity fields for a downstream response model.",
+        ],
+        out_of_scope=[
+            "Direct medical advice or patient-facing response generation.",
+            "Clinical diagnosis, triage, or autonomous medical decisions.",
+            "Commercial use of this checkpoint without separate permission for the CC-BY-NC-4.0 source data.",
+        ],
         token=token,
     )
     return {
@@ -495,7 +716,7 @@ def push_saved(
         "repo": push_repo,
         "url": f"https://huggingface.co/{push_repo}",
         "output_dir": out_dir,
-        "eval": eval_metrics,
+        "eval": {**eval_metrics, **test_metrics},
     }
 
 
@@ -504,14 +725,36 @@ def main(
     dataset: str = "",
     use_local_silver: bool = True,
     use_ghananlp_parallel: bool = False,
-    base_model: str = "Qwen/Qwen2.5-1.5B-Instruct",
+    base_model: str = "Qwen/Qwen2.5-3B-Instruct",
     smoke: bool = False,
     push_repo: str = "",
     max_steps: int = 500,
     push_only: bool = False,
     train_loss: Optional[float] = None,
+    eval_loss: Optional[float] = None,
     eval_passed: Optional[int] = None,
     eval_total: Optional[int] = None,
+    eval_failed_cases: str = "",
+    eval_health_passed: Optional[int] = None,
+    eval_health_total: Optional[int] = None,
+    eval_commerce_passed: Optional[int] = None,
+    eval_commerce_total: Optional[int] = None,
+    test_total: Optional[int] = None,
+    test_parse_passed: Optional[int] = None,
+    test_intent_passed: Optional[int] = None,
+    test_body_system_passed: Optional[int] = None,
+    test_strict_passed: Optional[int] = None,
+    test_mean_english_f1: Optional[float] = None,
+    baseline_eval_passed: Optional[int] = None,
+    baseline_eval_total: Optional[int] = None,
+    baseline_test_total: Optional[int] = None,
+    baseline_test_parse_passed: Optional[int] = None,
+    baseline_test_intent_passed: Optional[int] = None,
+    baseline_test_body_system_passed: Optional[int] = None,
+    baseline_test_strict_passed: Optional[int] = None,
+    baseline_test_mean_english_f1: Optional[float] = None,
+    train_rows: int = 5659,
+    dev_rows: int = 669,
 ):
     if push_only:
         print(
@@ -519,8 +762,30 @@ def main(
                 base_model=base_model,
                 push_repo=push_repo or _DEFAULT_PUSH_REPO,
                 train_loss=train_loss,
+                eval_loss=eval_loss,
                 eval_passed=eval_passed,
                 eval_total=eval_total,
+                eval_failed_cases=eval_failed_cases,
+                eval_health_passed=eval_health_passed,
+                eval_health_total=eval_health_total,
+                eval_commerce_passed=eval_commerce_passed,
+                eval_commerce_total=eval_commerce_total,
+                test_total=test_total,
+                test_parse_passed=test_parse_passed,
+                test_intent_passed=test_intent_passed,
+                test_body_system_passed=test_body_system_passed,
+                test_strict_passed=test_strict_passed,
+                test_mean_english_f1=test_mean_english_f1,
+                baseline_eval_passed=baseline_eval_passed,
+                baseline_eval_total=baseline_eval_total,
+                baseline_test_total=baseline_test_total,
+                baseline_test_parse_passed=baseline_test_parse_passed,
+                baseline_test_intent_passed=baseline_test_intent_passed,
+                baseline_test_body_system_passed=baseline_test_body_system_passed,
+                baseline_test_strict_passed=baseline_test_strict_passed,
+                baseline_test_mean_english_f1=baseline_test_mean_english_f1,
+                train_rows=train_rows,
+                dev_rows=dev_rows,
             )
         )
         return

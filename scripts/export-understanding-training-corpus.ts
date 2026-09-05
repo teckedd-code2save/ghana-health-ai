@@ -17,6 +17,8 @@ type Review = {
   ambiguities: string;
   replyTwi: string;
   safetyLevel: "" | "routine" | "same_day" | "urgent" | "emergency";
+  selectedProposalId: string;
+  synthesisVersion: string;
   decision: "unreviewed" | "reviewed" | "needs_second_review" | "exclude";
   notes: string;
   reviewer: string;
@@ -55,7 +57,11 @@ async function main() {
       readCorpusCandidates(),
       fs
         .readFile(reviewPath, "utf8")
-        .then((raw) => parseJsonl<Review>(raw))
+        .then((raw) => parseJsonl<Review>(raw).map((review) => ({
+          ...review,
+          selectedProposalId: review.selectedProposalId || "",
+          synthesisVersion: review.synthesisVersion || "",
+        })))
         .catch((error) => {
           if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
           throw error;

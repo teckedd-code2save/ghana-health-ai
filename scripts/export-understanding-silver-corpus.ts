@@ -34,6 +34,8 @@ type SilverRow = {
   source_record_id: string;
   consent_scope: string;
   training_lane: "medical_research_silver" | "language_coverage_silver";
+  quality_tier: "paired_source_silver";
+  verification_status: "source_paired_unreviewed";
   license_policy: string;
   original_text: string;
   normalized_twi: string;
@@ -102,7 +104,6 @@ function isResearchOnly(candidate: CorpusCandidate) {
 
 function shouldIncludeSource(candidate: CorpusCandidate) {
   const includeLanguageCoverage = process.argv.includes("--include-language-coverage");
-  if (candidate.source === "product_failure_seed") return true;
   if (candidate.source === "ghana_health_symptoms") return true;
   if (includeLanguageCoverage && ["ghana_nlp_speech", "waxal"].includes(candidate.source)) return true;
   return false;
@@ -113,7 +114,7 @@ function cleanAmbiguities(value: string) {
     .split("\n")
     .filter((line) => {
       const trimmed = line.trim();
-      return trimmed && !trimmed.startsWith("source_twi=");
+      return trimmed && !/^(source|sources|source_twi|training_use|body_system|license|notes)=/i.test(trimmed);
     })
     .join("\n");
 }
@@ -160,7 +161,7 @@ function toSilverRow(candidate: CorpusCandidate): SilverRow {
   const proposal = candidate.model_proposal;
   const split = getCandidateTrainingSplit(candidate);
   const assistant = {
-    normalized_twi: proposal.normalized_twi,
+    normalized_twi: candidate.text,
     natural_english: proposal.natural_english,
     literal_english: proposal.literal_english,
     intent: proposal.intent,
@@ -178,18 +179,22 @@ function toSilverRow(candidate: CorpusCandidate): SilverRow {
     source_record_id: candidate.source_record_id,
     consent_scope: candidate.consent_scope,
     training_lane: researchOnly ? "medical_research_silver" : "language_coverage_silver",
+    quality_tier: "paired_source_silver",
+    verification_status: "source_paired_unreviewed",
     license_policy: researchOnly
       ? "noncommercial_research_only"
       : "source_license_or_project_controlled",
     original_text: candidate.text,
-    normalized_twi: proposal.normalized_twi,
+    normalized_twi: candidate.text,
     natural_english: proposal.natural_english,
     literal_english: proposal.literal_english,
     intent: proposal.intent,
     entities: assistant.entities,
     ambiguities: assistant.ambiguities,
     requires_clarification: proposal.requires_clarification,
-    label_source: proposal.model,
+    label_source: candidate.source === "ghana_health_symptoms"
+      ? "source_paired_english"
+      : proposal.model,
     messages: [
       { role: "system", content: systemPrompt(candidate) },
       { role: "user", content: candidate.text },
@@ -253,10 +258,11 @@ async function main() {
     excludedPolicy: {
       curated_prompt: "excluded from silver export because sampled rows showed weak synthetic quality",
       local_recording: "excluded from this corpus because user requested large corpus only",
+      product_failure_seed: "excluded from the large medical corpus; retained only as a product regression fixture",
       medical_response_seed: "excluded from this corpus because it is a small seed",
       medical_qa_twi_draft: "excluded from this corpus until the translated QA set is scaled and audited",
       general_waxal_ghana_nlp: "included only with --include-language-coverage after machine annotation",
-      requires_clarification: "excluded except targeted product-failure seeds",
+      requires_clarification: "excluded from the large paired-source corpus",
     },
   };
   await fs.writeFile(path.join(outDir, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`, "utf8");

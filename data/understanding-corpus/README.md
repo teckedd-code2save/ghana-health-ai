@@ -8,14 +8,14 @@ status, draft model proposals, consent scope, and training eligibility flags.
 
 Current committed queue:
 
-- 12,223 candidates.
+- 12,235 candidates.
 - 2,500 GhanaNLP Twi speech-text rows.
 - 2,450 WAXAL Akan rows across train/dev/test manifests.
 - 7,000 Ghana Health Symptoms Twi medical rows.
 - 12 translated Twi medical QA draft rows.
 - 210 curated health, commerce, and code-switch text prompts.
 - 35 local recording rows with audio artifact references.
-- 9,245 rows currently have model/source draft proposals; these are not gold
+- 9,257 rows currently have model/source draft proposals; these are not gold
   labels until reviewed.
 - Current draft coverage by large source:
   - Ghana Health Symptoms: 7,000 / 7,000
@@ -42,6 +42,65 @@ Important boundaries:
 Next step: review rows in `/research/ase`, correct the Twi/English meaning and
 semantic fields, then export only reviewed rows into a versioned training or
 evaluation manifest.
+
+## Agentic synthesis
+
+`model_proposal` remains the immutable first/source proposal. The synthesis
+pipeline writes a separate, versioned sidecar so model output never overwrites
+source evidence:
+
+```bash
+pnpm corpus:understanding:synthesize -- \
+  --source ghana_health_symptoms \
+  --max-new 20 \
+  --chunk-size 1
+```
+
+For each row, the pipeline attempts three independently sourced alternatives:
+
+- the source annotation;
+- a translation-focused proposal;
+- a semantic/entity-focused proposal.
+
+An adjudicator selects one or creates a synthesis. Deterministic validators
+score completeness, source alignment, Twi preservation, intent ontology,
+entity structure, cross-agent agreement, and response grounding. Only
+source-backed rows may receive `reply_twi` or `safety_level` values.
+
+The output checkpoints after every chunk at
+`tmp/understanding-corpus/synthesis.v1.jsonl`. Runs are resumable and skip rows
+already produced by the current prompt version. After inspecting a batch,
+validate source hashes and promote only the current synthesis version with:
+
+```bash
+pnpm corpus:understanding:synthesis:promote
+```
+
+That creates `data/understanding-corpus/synthesis.v1.jsonl`, which powers the
+annotation selector in the chat review card. Do not promote a run that failed
+semantic spot checks. The saved review retains the selected proposal ID and
+synthesis version through the training export.
+
+Current open-model synthesis finding (`v9`):
+
+- AfriqueQwen 9B, NLLB Twi-English, and a Qwen 7B adjudicator all run on Modal
+  with source hashes and private raw artifacts.
+- The 20-row stratified `v7` checkpoint parsed all three stages, but only 3/20
+  rows cleared the conservative gate.
+- AfriqueQwen and NLLB both made material Twi meaning errors. The adjudicator
+  also failed the known `aduro bi` (unspecified medicine) versus `herbal
+  treatment` conflict after prompt hardening.
+- These open-model proposals are therefore audit evidence only. They are not
+  trusted labels and were not scaled across the 7,000 rows.
+- The parser now rejects prompt echoes and schema placeholders as incomplete
+  model output.
+
+Re-run deterministic scoring without spending model credits:
+
+```bash
+pnpm corpus:understanding:synthesize -- --rescore-only
+pnpm eval:understanding:synthesis
+```
 
 ## Training export gate
 
@@ -193,96 +252,101 @@ cp tmp/understanding-corpus/candidates.v0.jsonl data/understanding-corpus/candid
 
 ## Delivered silver corpus
 
-The current medical-only baseline corpus is:
+The current source-grounded research corpus is:
 
 ```text
-data/understanding-corpus/silver-medical-v0/
+data/understanding-corpus/silver-medical-paired-v2/
 ```
 
-It intentionally excludes the small seed rows, local recordings, translated
-12-row QA pilot, and weak curated synthetic rows. It contains only the large Twi
-medical symptom source:
+It contains exactly the 7,000 source-paired Ghana Health Symptoms rows:
 
-- `all.jsonl`: 7,000 rows
 - `train.jsonl`: 5,659 rows
 - `dev.jsonl`: 669 rows
 - `test.jsonl`: 672 rows
+- zero duplicate IDs or normalized utterances
+- 17 body-system categories
+- no WAXAL, GhanaNLP speech, local recordings, generated prompt seeds,
+  translated QA pilots, or product-failure fixtures
+- original punctuated Twi preserved as `normalized_twi`
+- source URLs, licence notes, and body-system metadata removed from the model's
+  ambiguity target
 
-Generate it with:
+Every row is marked `quality_tier=paired_source_silver` and
+`verification_status=source_paired_unreviewed`. This is a real research training
+lane, but it is not human gold and must not be represented as such.
 
-```bash
-pnpm corpus:understanding:silver -- --out-dir data/understanding-corpus/silver-medical-v0
-```
-
-The current default research-training corpus is:
-
-```text
-data/understanding-corpus/silver-medical-plus-language-v1/
-```
-
-It contains the same medical rows plus currently usable WAXAL/GhanaNLP language
-coverage rows:
+Regenerate and validate it with:
 
 ```bash
-pnpm corpus:understanding:silver -- --include-language-coverage --out-dir data/understanding-corpus/silver-medical-plus-language-v1
+pnpm corpus:understanding:silver -- \
+  --out-dir data/understanding-corpus/silver-medical-paired-v2
+pnpm eval:understanding:silver
 ```
 
-The current generated medical-plus-language artifact contains:
+The validator requires exactly 7,000 rows, complete split coverage, no duplicate
+IDs/text, valid intents and entities, matching chat targets, 10+ body-system
+categories, no split leakage, and no metadata contamination.
 
-- `all.jsonl`: 7,814 rows
-- `train.jsonl`: 6,329 rows
-- `dev.jsonl`: 725 rows
-- `test.jsonl`: 760 rows
-- Source mix: 7,000 Ghana Health Symptoms, 709 GhanaNLP speech, 93 WAXAL,
-  12 product-failure seed rows
-
-Rows from WAXAL/GhanaNLP are included only when they have usable draft semantic
-labels and do not require clarification.
-
-Train the next Modal understanding adapter from this corpus with:
+The next adapter uses `Qwen/Qwen2.5-3B-Instruct` rather than the previous 1.5B
+base and pushes to `teckedd/gha-understand-twi-medical-v4` with source, licence,
+row counts, training loss, and held-out development loss in its model card:
 
 ```bash
 pnpm train:understanding:modal
 ```
 
-That command pushes to `teckedd/gha-understand-twi-medical-plus-language-v3`
-with a model card. This remains a silver research checkpoint, not a gold
-medical model.
+The full run completed in Modal app `ap-1nIwJgPPwgMaQbsmjlPtJK` at 1,200 steps:
 
-Current v2 status:
+- final training loss: `0.7776`
+- final development loss: `0.6560`
+- public adapter: `teckedd/gha-understand-twi-medical-v4`
 
-- Modal training run `ap-2KSkWjid8QokFtEE0EWoLt` completed 650 steps on the
-  6,317-row train split.
-- Final training loss was `1.7700`.
-- The adapter was uploaded to
-  `teckedd/gha-understand-twi-medical-plus-language-v2` with a corrected model
-  card.
-- Product-fixture eval after stricter prompting and parser repair passed `3/8`.
-  JSON formatting is now recoverable, but semantic recovery is still not strong
-  enough to trust as the primary health-understanding layer.
+The complete 672-row held-out test ran in Modal app
+`ap-VBCFWCEnygrgqJbgxzdYma`:
 
-Current v3 corpus fixes:
+- parseable JSON: `672/672` (`100%`)
+- exact intent: `672/672` (`100%`), but every row has the same
+  `health_symptom_report` label, so this does not measure intent generalization
+- exact body system: `259/672` (`38.54%`)
+- strict semantic pass: `79/672` (`11.76%`)
+- mean natural-English token F1: `0.3425`
 
-- Added targeted rows for real product phrasings such as `m'ani kum`,
-  child fever follow-ups, infant age clarification, hospital-location questions,
-  malaria-confirmed context, and Twi commerce purchase/search requests.
-- Kept the large medical rows, but removed noisy ambiguity notes that contain
-  long unrelated `source_twi` transcript snippets. Those snippets teach the
-  model to associate symptoms with unrelated context.
-- The next adapter trains on strict JSON-only assistant targets using the same
-  system prompt as inference.
+The corrected 11-row product fixture evaluation ran in Modal app
+`ap-F2cPX9VDMcSyGdMtreG4GU`:
 
-Current v3 model status:
+- overall: `1/11`
+- health: `1/6`
+- commerce: `0/5`
 
-- Modal training run `ap-uo6rKyNwqQRPizIyJGbObv` completed 650 steps on the
-  6,329-row v1 train split.
-- Final training loss was `0.7946`.
-- The adapter was uploaded to
-  `teckedd/gha-understand-twi-medical-plus-language-v3` with a model card.
-- Product-fixture eval passed `7/11`, up from v2's `3/8` after parser repair.
-- The model is still not promoted to the live Research endpoint because it
-  still maps `mani kum paa` to cough and misreads
-  `yɛsɛ yɛhospital bɛn na menkɔ`.
+The unadapted base comparison ran against the same frozen inputs:
+
+- product fixtures: `0/11`
+- held-out parseable JSON: `278/672` (`41.37%`)
+- held-out strict semantic pass: `0/672`
+- held-out mean natural-English token F1: `0.0295`
+- Modal product app: `ap-p8bh0KAnUk0kWoF0PWDqgm`
+- Modal held-out app: `ap-SfY0cEY1VOLbvqTwJfGWXy`
+
+The adapter therefore produced a measurable medical-domain improvement over
+the base model, but the absolute quality remains unusable. Its schema gains
+must not be confused with robust semantics.
+
+**Decision: do not promote or route product traffic to v4.** It learned the
+output schema and the repeated medical label, but it did not learn reliable
+Twi semantics. It frequently hallucinated common symptom patterns and converted
+commerce requests into medical complaints. More steps on this corpus are not a
+valid next experiment.
+
+This remains an understanding checkpoint; the 7,000 symptom rows do not contain
+grounded Twi answers, so the model must not be described as response-capable.
+The next corpus must add varied health and commerce intents, faithful semantic
+targets, real product-failure paraphrases, context turns, and a separately
+reviewed patient-response lane. Keep the same frozen base-versus-adapter test
+design for the next promotion decision.
+
+Previous v3 remains at `teckedd/gha-understand-twi-medical-plus-language-v3`.
+It passed 7/11 product fixtures but was not promoted because it still
+misunderstood `mani kum paa` and hospital-choice phrasing.
 
 For the fastest first pass toward a trainable corpus, download **Download 20-row
 training pack** in the workbench or run:

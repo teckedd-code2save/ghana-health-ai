@@ -4,6 +4,7 @@
     "focus": "health",
     "language": "tw",
     "text": "Me nyinsɛn na me ti yɛ me yaw paa, m'anim nso ahonhon.",
+    "expectedEnglishConcepts": [["pregnant", "pregnancy"], ["headache", "head pain"], ["face swelling", "facial swelling", "swollen face"]],
     "transcript": { "language": "tw", "languageProbability": 0.92, "duration": 4.1, "rms": 0.06 },
     "expectedIntent": "HEALTH",
     "expectedEscalate": true,
@@ -19,6 +20,7 @@
     "focus": "health",
     "language": "tw",
     "text": "ɛɛ me... yare no... hmm",
+    "expectedEnglishConcepts": [],
     "transcript": { "language": "tw", "languageProbability": 0.36, "duration": 1.1, "rms": 0.012 },
     "expectedClarifying": true,
     "expectedHealth": {
@@ -32,6 +34,7 @@
     "focus": "health",
     "language": "en",
     "text": "My child has fever and chills since last night.",
+    "expectedEnglishConcepts": [["child"], ["fever", "hot"], ["chills"]],
     "transcript": { "language": "en", "languageProbability": 0.9, "duration": 3.6, "rms": 0.05 },
     "expectedIntent": "HEALTH",
     "expectedHealth": {}
@@ -41,6 +44,8 @@
     "focus": "health",
     "language": "tw",
     "text": "mani kum paa",
+    "expectedEnglishConcepts": [["eye"], ["pain", "ache", "hurt"]],
+    "forbiddenUnderstandingTerms": ["cough", "death"],
     "transcript": { "language": "tw", "languageProbability": 0.9, "duration": 2.2, "rms": 0.05 },
     "expectedIntent": "HEALTH",
     "expectedSeverity": "MEDIUM",
@@ -59,6 +64,7 @@
     "focus": "health",
     "language": "tw",
     "text": "yɛsɛ yɛhospital bɛn na menkɔ",
+    "expectedEnglishConcepts": [["hospital", "clinic"], ["which", "where", "choose", "choice"]],
     "transcript": { "language": "tw", "languageProbability": 0.91, "duration": 2.5, "rms": 0.05 },
     "expectedIntent": "HEALTH",
     "expectedSeverity": "MEDIUM",
@@ -77,6 +83,7 @@
     "focus": "health",
     "language": "tw",
     "text": "3y3 serius paa",
+    "expectedEnglishConcepts": [["migraine"], ["serious", "severe", "bad"]],
     "history": [
       { "role": "user", "content": "migraine dabi aaa" },
       { "role": "assistant", "content": "Sɛ migraine no yɛ den a, ɛbɛyɛ papa sɛ doctor hwɛ wo." }
@@ -99,6 +106,7 @@
     "focus": "commerce",
     "language": "tw",
     "text": "Mepɛ sɛ metɔ tomatoes ma stew.",
+    "expectedEnglishConcepts": [["tomato"], ["buy", "want"]],
     "transcript": { "language": "tw", "languageProbability": 0.88, "duration": 2.9, "rms": 0.05 },
     "expectedIntent": "ECOMMERCE",
     "expectedShoppingIntent": "tomatoes",
@@ -114,6 +122,7 @@
     "focus": "commerce",
     "language": "tw",
     "text": "Hwehwɛ tomatoes a ɛbɛn Madina ma me.",
+    "expectedEnglishConcepts": [["tomato"], ["Madina"], ["find", "search", "near"]],
     "memory": [
       {
         "scope": "COMMERCE",
@@ -139,6 +148,7 @@
     "focus": "commerce",
     "language": "tw",
     "text": "Mepɛ sɛ metɔ tomato 2 kg, fa brɛ me wɔ Adenta.",
+    "expectedEnglishConcepts": [["tomato"], ["2 kg", "two kilograms"], ["Adenta"], ["deliver", "delivery", "bring"]],
     "transcript": { "language": "tw", "languageProbability": 0.88, "duration": 3.4, "rms": 0.05 },
     "expectedIntent": "ECOMMERCE",
     "expectedCommerce": {
@@ -157,6 +167,7 @@
     "focus": "commerce",
     "language": "en",
     "text": "Can you order tomatoes for me online?",
+    "expectedEnglishConcepts": [["tomato"], ["order", "buy"], ["online"]],
     "transcript": { "language": "en", "languageProbability": 0.9, "duration": 2.7, "rms": 0.05 },
     "expectedIntent": "ECOMMERCE",
     "expectedCommerce": {
@@ -172,6 +183,7 @@
     "focus": "commerce",
     "language": "en",
     "text": "How much is a bag of rice near East Legon?",
+    "expectedEnglishConcepts": [["rice"], ["price", "cost", "how much"], ["East Legon"]],
     "transcript": { "language": "en", "languageProbability": 0.9, "duration": 2.9, "rms": 0.05 },
     "expectedIntent": "ECOMMERCE",
     "expectedCommerce": {

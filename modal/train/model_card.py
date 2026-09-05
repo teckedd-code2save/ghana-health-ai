@@ -53,11 +53,21 @@ def build_model_card_md(
     tags: Optional[list[str]] = None,
     library_name: str = "transformers",
     pipeline_tag: Optional[str] = None,
+    intended_use: Optional[list[str]] = None,
+    out_of_scope: Optional[list[str]] = None,
 ) -> str:
     """YAML front-matter + human README for HF model hubs."""
     metrics = metrics or {}
     datasets = datasets or []
     tags = tags or []
+    intended_use = intended_use or [
+        "In-product ASR / TTS / chat for Twi (Akan) and English health conversations in Ghana.",
+        "Research on low-resource Ghanaian language speech and health dialogue.",
+    ]
+    out_of_scope = out_of_scope or [
+        "Clinical diagnosis or autonomous medical decisions.",
+        "Claiming near-native quality without reporting held-out WER/CER or human A/B scores.",
+    ]
     pipeline = pipeline_tag or task
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
@@ -168,20 +178,18 @@ tags:
 - **Card generated:** {now} (UTC)
 - **Product:** [ghanahealth.serendepify.com](https://ghanahealth.serendepify.com)
 
-> Not a medical device. Outputs support community health guidance only.
+> Research model only. Not a medical device and not approved for clinical decisions.
 
 {metric_table}
 {ds_section}
 
 ## Intended use
 
-- In-product ASR / TTS / chat for Twi (Akan) and English health conversations in Ghana.
-- Research on low-resource Ghanaian language speech and health dialogue.
+{chr(10).join(f"- {item}" for item in intended_use)}
 
 ## Out of scope
 
-- Clinical diagnosis or autonomous medical decisions.
-- Claiming near-native quality without reporting held-out WER/CER or human A/B scores.
+{chr(10).join(f"- {item}" for item in out_of_scope)}
 
 ## How to load
 
@@ -215,6 +223,8 @@ def write_and_push_model_card(
     tags: Optional[list[str]] = None,
     library_name: str = "transformers",
     pipeline_tag: Optional[str] = None,
+    intended_use: Optional[list[str]] = None,
+    out_of_scope: Optional[list[str]] = None,
     token: Optional[str] = None,
     private: bool = False,
 ) -> str:
@@ -237,6 +247,8 @@ def write_and_push_model_card(
         tags=tags,
         library_name=library_name,
         pipeline_tag=pipeline_tag,
+        intended_use=intended_use,
+        out_of_scope=out_of_scope,
     )
     api = HfApi(token=token)
     api.create_repo(repo_id=repo_id, private=private, exist_ok=True, repo_type="model")

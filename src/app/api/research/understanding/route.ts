@@ -1,6 +1,7 @@
 import { getEnv } from "@/config/env";
 import { jsonError, jsonOk } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth";
+import type { CorpusSynthesis } from "@/lib/research-synthesis";
 import {
   type CorpusCandidate,
   corpusStages,
@@ -8,6 +9,7 @@ import {
   getCandidateTrainingSplit,
   readBenchmarkSeeds,
   readCorpusCandidates,
+  readCorpusSyntheses,
   readUnderstandingScorecard,
   readUnderstandingReviews,
   saveUnderstandingReview,
@@ -50,13 +52,15 @@ export async function GET(request: Request) {
   const rowOffset = Number.isFinite(rowOffsetValue) && rowOffsetValue >= 0 ? Math.floor(rowOffsetValue) : 0;
   const rowFilter = parseCorpusRowFilter(searchParams.get("filter"));
 
-  const [seeds, candidates, reviews, scorecard, trainingExport] = await Promise.all([
+  const [seeds, candidates, syntheses, reviews, scorecard, trainingExport] = await Promise.all([
     readBenchmarkSeeds(),
     readCorpusCandidates(),
+    readCorpusSyntheses(),
     readUnderstandingReviews(),
     readUnderstandingScorecard(),
     buildUnderstandingTrainingExport(),
   ]);
+  const synthesisById = new Map(syntheses.map((synthesis) => [synthesis.row_id, synthesis]));
   const reviewById = new Map(reviews.map((review) => [review.id, review]));
   const rows = seeds.map((seed) => ({
     kind: "benchmark" as const,
@@ -66,7 +70,10 @@ export async function GET(request: Request) {
   const filteredCandidates = candidates
     .filter((candidate) => matchesCorpusRowFilter(candidate, rowFilter));
   const candidateRows = filteredCandidates
-    .sort((left, right) => reviewQueuePriority(left, rowFilter) - reviewQueuePriority(right, rowFilter))
+    .sort((left, right) =>
+      synthesisReviewPriority(synthesisById.get(left.id)) - synthesisReviewPriority(synthesisById.get(right.id)) ||
+      reviewQueuePriority(left, rowFilter) - reviewQueuePriority(right, rowFilter),
+    )
     .slice(rowOffset, rowOffset + rowLimit);
   const corpusRows = candidateRows.map((candidate) => ({
     kind: "corpus" as const,
@@ -84,6 +91,7 @@ export async function GET(request: Request) {
     audioArtifactId: candidate.audio_artifact_id,
     consentScope: candidate.consent_scope,
     modelProposal: candidate.model_proposal,
+    annotationSet: synthesisById.get(candidate.id) ?? null,
     review: reviewById.get(candidate.id) ?? null,
   }));
   const completed = rows.filter((row) => row.review?.decision === "reviewed").length;
@@ -136,6 +144,7 @@ export async function GET(request: Request) {
       completed: corpusCompleted,
       withAudio: filteredCandidates.filter((row) => row.audio_artifact_id).length,
       draftAnnotated: filteredCandidates.filter((row) => row.model_proposal.status === "draft").length,
+      synthesized: filteredCandidates.filter((row) => synthesisById.has(row.id)).length,
       trainingReady: trainingExport.accepted,
       splits: trainingExport.splits,
       candidateSplits,
@@ -143,6 +152,12 @@ export async function GET(request: Request) {
       readiness: trainingExport.readiness,
     },
   });
+}
+
+function synthesisReviewPriority(synthesis: CorpusSynthesis | undefined) {
+  if (synthesis?.adjudication.status === "needs_human_review") return 0;
+  if (synthesis) return 1;
+  return 2;
 }
 
 function parseCorpusRowFilter(value: string | null): CorpusRowFilter {

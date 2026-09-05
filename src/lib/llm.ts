@@ -5,7 +5,7 @@
 
 export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
-function resolveProvider(): {
+function resolveProvider(modelOverride?: string): {
   apiKey: string;
   baseUrl: string;
   model: string;
@@ -16,7 +16,7 @@ function resolveProvider(): {
     return {
       apiKey: groq,
       baseUrl: "https://api.groq.com/openai/v1",
-      model: process.env.LLM_MODEL || "llama-3.3-70b-versatile",
+      model: modelOverride?.trim() || process.env.LLM_MODEL || "llama-3.3-70b-versatile",
     };
   }
   const openai = process.env.OPENAI_API_KEY;
@@ -27,7 +27,7 @@ function resolveProvider(): {
       baseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
       // Keep the language model independent from the historical provider-wide
       // override so an old gpt-4o-mini setting cannot silently pin this path.
-      model: process.env.OPENAI_LANGUAGE_MODEL?.trim() || "gpt-5.6-sol",
+      model: modelOverride?.trim() || process.env.OPENAI_LANGUAGE_MODEL?.trim() || "gpt-5.6-sol",
       fallbackModel:
         legacyModel && !["gpt-5.6-sol", "gpt-5.4-mini"].includes(legacyModel)
           ? legacyModel
@@ -37,8 +37,8 @@ function resolveProvider(): {
   return null;
 }
 
-export function llmProviderInfo(): { provider: "groq" | "openai"; model: string } | null {
-  const resolved = resolveProvider();
+export function llmProviderInfo(modelOverride?: string): { provider: "groq" | "openai"; model: string } | null {
+  const resolved = resolveProvider(modelOverride);
   if (!resolved) return null;
   return {
     provider: process.env.GROQ_API_KEY ? "groq" : "openai",
@@ -52,12 +52,12 @@ export function isLlmConfigured(): boolean {
 
 export async function chatComplete(
   messages: ChatMessage[],
-  opts?: { temperature?: number; maxTokens?: number },
+  opts?: { temperature?: number; maxTokens?: number; model?: string; allowFallback?: boolean },
 ): Promise<string | null> {
-  const provider = resolveProvider();
+  const provider = resolveProvider(opts?.model);
   if (!provider) return null;
 
-  const models = [provider.model, provider.fallbackModel].filter(
+  const models = [provider.model, ...(opts?.allowFallback === false ? [] : [provider.fallbackModel])].filter(
     (model, index, all): model is string =>
       Boolean(model) && all.indexOf(model) === index,
   );

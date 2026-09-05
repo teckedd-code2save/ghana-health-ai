@@ -1,12 +1,40 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Mic, Save, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Flag, Mic, Save, X } from "lucide-react";
 import { recordUntilSilence } from "@/lib/browser-audio";
 
 type Decision = "unreviewed" | "reviewed" | "needs_second_review" | "exclude";
 type SafetyLevel = "" | "routine" | "same_day" | "urgent" | "emergency";
 type CorpusFilter = "medical_large" | "language_sources" | "local_audio" | "product_text" | "all";
+
+type AnnotationProposal = {
+  proposal_id: string;
+  agent_role: "source" | "translator" | "semantic_annotator" | "adjudicator";
+  model: string;
+  normalized_twi: string;
+  natural_english: string;
+  literal_english: string;
+  intent: string;
+  entities: string;
+  ambiguities: string;
+  reply_twi: string;
+  safety_level: string;
+  requires_clarification: boolean;
+  score?: { total: number; flags: string[] };
+};
+
+type AnnotationSet = {
+  prompt_version: string;
+  proposals: AnnotationProposal[];
+  recommended_proposal_id: string;
+  synthesized_proposal: AnnotationProposal | null;
+  adjudication: {
+    confidence: number;
+    status: "recommended" | "synthesized" | "needs_human_review";
+    disagreement_fields: string[];
+  };
+};
 
 type Review = {
   normalizedTwi: string;
@@ -17,6 +45,8 @@ type Review = {
   ambiguities: string;
   replyTwi: string;
   safetyLevel: SafetyLevel;
+  selectedProposalId: string;
+  synthesisVersion: string;
   decision: Decision;
   notes: string;
 };
@@ -37,6 +67,7 @@ type Row = {
     reply_twi: string;
     safety_level: string;
   };
+  annotationSet: AnnotationSet | null;
   review: (Review & { id: string }) | null;
 };
 
@@ -59,19 +90,49 @@ function safetyLevel(value?: string): SafetyLevel {
     : "";
 }
 
-function formFor(row: Row): Review {
-  return row.review ?? {
-    normalizedTwi: row.modelProposal.normalized_twi || row.text,
-    naturalEnglish: row.modelProposal.natural_english,
-    literalEnglish: row.modelProposal.literal_english,
-    intent: row.modelProposal.intent,
-    entities: row.modelProposal.entities,
-    ambiguities: row.modelProposal.ambiguities,
-    replyTwi: row.modelProposal.reply_twi,
-    safetyLevel: safetyLevel(row.modelProposal.safety_level),
+function proposalOptions(row: Row) {
+  if (!row.annotationSet) return [];
+  return [
+    ...(row.annotationSet.synthesized_proposal ? [row.annotationSet.synthesized_proposal] : []),
+    ...row.annotationSet.proposals,
+  ];
+}
+
+function recommendedProposal(row: Row) {
+  const options = proposalOptions(row);
+  return options.find((proposal) => proposal.proposal_id === row.annotationSet?.recommended_proposal_id) ?? null;
+}
+
+function formFromProposal(row: Row, proposal: AnnotationProposal | null): Review {
+  return {
+    normalizedTwi: proposal?.normalized_twi || row.modelProposal.normalized_twi || row.text,
+    naturalEnglish: proposal ? proposal.natural_english : row.modelProposal.natural_english,
+    literalEnglish: proposal ? proposal.literal_english : row.modelProposal.literal_english,
+    intent: proposal ? proposal.intent : row.modelProposal.intent,
+    entities: proposal ? proposal.entities : row.modelProposal.entities,
+    ambiguities: proposal ? proposal.ambiguities : row.modelProposal.ambiguities,
+    replyTwi: proposal ? proposal.reply_twi : row.modelProposal.reply_twi,
+    safetyLevel: safetyLevel(proposal ? proposal.safety_level : row.modelProposal.safety_level),
+    selectedProposalId: proposal?.proposal_id ?? "",
+    synthesisVersion: proposal ? row.annotationSet?.prompt_version ?? "" : "",
     decision: "unreviewed",
     notes: "",
   };
+}
+
+function formFor(row: Row): Review {
+  return row.review ?? formFromProposal(row, recommendedProposal(row));
+}
+
+function proposalLabel(proposal: AnnotationProposal, recommendedId?: string) {
+  const role = proposal.agent_role === "semantic_annotator"
+    ? "Semantic agent"
+    : proposal.agent_role === "translator"
+      ? "Translation agent"
+      : proposal.agent_role === "adjudicator"
+        ? "Synthesis"
+        : "Source annotation";
+  return `${role}${proposal.proposal_id === recommendedId ? " · recommended" : ""}`;
 }
 
 function needsResponseReview(row: Row) {
@@ -148,6 +209,15 @@ export function ResearchReviewCarousel({ onClose }: { onClose: () => void }) {
     const bounded = Math.max(0, Math.min(rows.length - 1, nextIndex));
     setIndex(bounded);
     setForm(formFor(rows[bounded]!));
+    setNotice("");
+  }
+
+  function chooseProposal(proposalId: string) {
+    if (!row) return;
+    const proposal = proposalOptions(row).find((item) => item.proposal_id === proposalId);
+    if (!proposal) return;
+    const next = formFromProposal(row, proposal);
+    setForm((current) => ({ ...next, decision: current?.decision ?? "unreviewed", notes: current?.notes ?? "" }));
     setNotice("");
   }
 
@@ -248,6 +318,30 @@ export function ResearchReviewCarousel({ onClose }: { onClose: () => void }) {
       </label>
       <p className="research-review-card__source">{row.text}</p>
 
+      {row.annotationSet && (
+        <div className="research-review-card__proposal">
+          <label>
+            Annotation option
+            <select
+              value={form.selectedProposalId || recommendedProposal(row)?.proposal_id || ""}
+              onChange={(event) => chooseProposal(event.target.value)}
+            >
+              {proposalOptions(row).map((proposal) => (
+                <option key={proposal.proposal_id} value={proposal.proposal_id}>
+                  {proposalLabel(proposal, row.annotationSet?.recommended_proposal_id)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span>
+            {Math.round(row.annotationSet.adjudication.confidence * 100)}% confidence
+            {row.annotationSet.adjudication.disagreement_fields.length > 0
+              ? ` · check ${row.annotationSet.adjudication.disagreement_fields.join(", ")}`
+              : ""}
+          </span>
+        </div>
+      )}
+
       <div className="research-review-card__fields">
         <label className="research-review-card__wide">
           Normalized Twi
@@ -305,6 +399,7 @@ export function ResearchReviewCarousel({ onClose }: { onClose: () => void }) {
         <div className="research-review-card__actions">
           <button type="button" onClick={movePrevious} disabled={offset === 0 && index === 0} aria-label="Previous corpus row"><ChevronLeft className="h-4 w-4" /></button>
           <button type="button" onClick={() => void save()} disabled={saving} title="Save review"><Save className="h-4 w-4" /></button>
+          <button type="button" onClick={() => void save("needs_second_review")} disabled={saving} title="Flag all options for another review" aria-label="Flag all options for another review"><Flag className="h-4 w-4" /></button>
           <button type="button" onClick={() => void save("reviewed")} disabled={saving || !ready} className="research-review-card__approve">
             <Check className="h-4 w-4" /> Review
           </button>

@@ -27,6 +27,8 @@ function reviewFromCandidate(candidate: CorpusCandidate): UnderstandingReview {
       candidate.model_proposal.safety_level === "emergency"
         ? candidate.model_proposal.safety_level
         : "",
+    selectedProposalId: "",
+    synthesisVersion: "",
     decision: "reviewed",
     notes: "Synthetic gate validation row; not training data.",
     reviewer: "gate_check",

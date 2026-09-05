@@ -403,6 +403,8 @@ model ResearchUnderstandingReview {
   ambiguities    String   @default("") @db.Text
   replyTwi       String   @default("") @map("reply_twi") @db.Text
   safetyLevel    String   @default("") @map("safety_level")
+  selectedProposalId String @default("") @map("selected_proposal_id")
+  synthesisVersion String @default("") @map("synthesis_version")
   decision       String   @default("unreviewed")
   notes          String   @default("") @db.Text
   reviewer       String   @default("local_reviewer")

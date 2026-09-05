@@ -1,6 +1,11 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { prisma } from "@/db/prisma";
+import {
+  corpusSynthesisPromptVersion,
+  corpusSynthesisSchema,
+  type CorpusSynthesis,
+} from "@/lib/research-synthesis";
 import { z } from "zod";
 
 const seedPath = path.join(
@@ -34,6 +39,18 @@ const committedCandidatePath = path.join(
   "data",
   "understanding-corpus",
   "candidates.v0.jsonl",
+);
+const synthesisPath = path.join(
+  /* turbopackIgnore: true */ process.cwd(),
+  "tmp",
+  "understanding-corpus",
+  "synthesis.v1.jsonl",
+);
+const committedSynthesisPath = path.join(
+  /* turbopackIgnore: true */ process.cwd(),
+  "data",
+  "understanding-corpus",
+  "synthesis.v1.jsonl",
 );
 
 export const sourceInventory = [
@@ -191,6 +208,8 @@ const reviewSchema = z.object({
   ambiguities: z.string().max(2000).default(""),
   replyTwi: z.string().max(4000).default(""),
   safetyLevel: z.enum(["", "routine", "same_day", "urgent", "emergency"]).default(""),
+  selectedProposalId: z.string().max(120).default(""),
+  synthesisVersion: z.string().max(120).default(""),
   decision: z.enum(["unreviewed", "reviewed", "needs_second_review", "exclude"]).default("unreviewed"),
   notes: z.string().max(2000).default(""),
   reviewer: z.string().max(200).default("local_reviewer"),
@@ -256,6 +275,8 @@ export type UnderstandingTrainingRow = {
   ambiguities: string;
   reply_twi: string;
   safety_level: "" | "routine" | "same_day" | "urgent" | "emergency";
+  selected_proposal_id: string;
+  synthesis_version: string;
   reviewer: string;
   reviewed_at: string | null;
   eligible_for_training: true;
@@ -303,6 +324,8 @@ const reviewSheetColumns = [
   "review_ambiguities",
   "review_reply_twi",
   "review_safety_level",
+  "selected_proposal_id",
+  "synthesis_version",
   "decision",
   "review_notes",
   "reviewer",
@@ -406,6 +429,8 @@ export function parseUnderstandingReviewSheetCsv(raw: string, fallbackReviewer: 
         ambiguities: rowValue(row, "review_ambiguities"),
         replyTwi: rowValue(row, "review_reply_twi"),
         safetyLevel: rowValue(row, "review_safety_level"),
+        selectedProposalId: rowValue(row, "selected_proposal_id"),
+        synthesisVersion: rowValue(row, "synthesis_version"),
         decision,
         notes: rowValue(row, "review_notes"),
         reviewer: rowValue(row, "reviewer") || fallbackReviewer,
@@ -435,6 +460,19 @@ export async function readCorpusCandidates(): Promise<CorpusCandidate[]> {
     try {
       const raw = await readFile(filePath, "utf8");
       return parseJsonl(raw, (value) => hydrateCandidateResponseProposal(corpusCandidateSchema.parse(value)));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
+  return [];
+}
+
+export async function readCorpusSyntheses(): Promise<CorpusSynthesis[]> {
+  for (const filePath of [synthesisPath, committedSynthesisPath]) {
+    try {
+      const raw = await readFile(filePath, "utf8");
+      return parseJsonl(raw, (value) => corpusSynthesisSchema.parse(value))
+        .filter((row) => row.prompt_version === corpusSynthesisPromptVersion);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
@@ -481,6 +519,8 @@ export async function readUnderstandingReviews(): Promise<UnderstandingReview[]>
         ambiguities: row.ambiguities,
         replyTwi: row.replyTwi,
         safetyLevel: row.safetyLevel,
+        selectedProposalId: row.selectedProposalId,
+        synthesisVersion: row.synthesisVersion,
         decision: row.decision,
         notes: row.notes,
         reviewer: row.reviewer,
@@ -555,6 +595,8 @@ export async function saveUnderstandingReview(
         ambiguities: next.ambiguities,
         replyTwi: next.replyTwi,
         safetyLevel: next.safetyLevel,
+        selectedProposalId: next.selectedProposalId,
+        synthesisVersion: next.synthesisVersion,
         decision: next.decision,
         notes: next.notes,
         reviewer,
@@ -570,6 +612,8 @@ export async function saveUnderstandingReview(
         ambiguities: next.ambiguities,
         replyTwi: next.replyTwi,
         safetyLevel: next.safetyLevel,
+        selectedProposalId: next.selectedProposalId,
+        synthesisVersion: next.synthesisVersion,
         decision: next.decision,
         notes: next.notes,
         reviewer,
@@ -733,6 +777,8 @@ export function buildUnderstandingReviewSheetCsvFromReviews(
       review?.ambiguities ?? (options.prefillDrafts ? candidate.model_proposal.ambiguities : ""),
       review?.replyTwi ?? (options.prefillDrafts ? candidate.model_proposal.reply_twi : ""),
       review?.safetyLevel ?? (options.prefillDrafts ? candidate.model_proposal.safety_level : ""),
+      review?.selectedProposalId ?? "",
+      review?.synthesisVersion ?? "",
       review?.decision ?? "unreviewed",
       review?.notes ?? "",
       review?.reviewer ?? "",
@@ -876,6 +922,8 @@ export function buildUnderstandingTrainingExportFromReviews(
       ambiguities: review.ambiguities.trim(),
       reply_twi: review.replyTwi.trim(),
       safety_level: review.safetyLevel,
+      selected_proposal_id: review.selectedProposalId,
+      synthesis_version: review.synthesisVersion,
       reviewer: review.reviewer,
       reviewed_at: review.updatedAt ?? null,
       eligible_for_training: true,

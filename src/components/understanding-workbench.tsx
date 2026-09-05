@@ -16,6 +16,8 @@ type Review = {
   ambiguities: string;
   replyTwi: string;
   safetyLevel: "" | "routine" | "same_day" | "urgent" | "emergency";
+  selectedProposalId: string;
+  synthesisVersion: string;
   decision: ReviewDecision;
   notes: string;
 };
@@ -96,6 +98,8 @@ function emptyReview(row?: DatasetRow): Review {
     ambiguities: row?.modelProposal?.ambiguities ?? "",
     replyTwi: row?.modelProposal?.reply_twi ?? "",
     safetyLevel: normalizeSafetyLevel(row?.modelProposal?.safety_level),
+    selectedProposalId: "",
+    synthesisVersion: "",
     decision: row?.review?.decision ?? "unreviewed",
     notes: row?.review?.notes ?? "",
   };

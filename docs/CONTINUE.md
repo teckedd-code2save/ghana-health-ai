@@ -739,6 +739,84 @@ Continue from **§ Remaining work** above.
 
 ---
 
+## 2026-09-05 Understanding v4 Research Result
+
+The `silver-medical-paired-v2` corpus is complete and reproducible:
+
+- exactly 7,000 source-paired Ghana Health Symptoms rows
+- 5,659 train, 669 development, and 672 test rows
+- no duplicate IDs or normalized utterances
+- 17 body-system categories
+- no WAXAL, GhanaNLP speech, local/product seeds, synthetic prompts, or QA pilots
+- CC-BY-NC-4.0, non-commercial research only
+
+The open-model agentic annotation trial is also resolved. AfriqueQwen 9B,
+NLLB Twi-English, and a Qwen 7B adjudicator produced three inspectable options,
+but only 3/20 rows cleared the conservative semantic gate. The models missed
+material distinctions such as unspecified medicine versus herbal treatment.
+Those proposals remain audit evidence and were not promoted into the 7,000-row
+training corpus.
+
+Understanding v4 completed as a 1,200-step LoRA on
+`Qwen/Qwen2.5-3B-Instruct`:
+
+- Modal training app: `ap-1nIwJgPPwgMaQbsmjlPtJK`
+- Hugging Face: `teckedd/gha-understand-twi-medical-v4`
+- final training loss: `0.7775883994499843`
+- final development loss: `0.6560265421867371`
+
+Held-out result on all 672 frozen test rows:
+
+- parseable JSON: 672/672
+- exact intent: 672/672, but all rows share `health_symptom_report`, so this is
+  not evidence of intent generalization
+- exact body system: 259/672 (38.54%)
+- strict semantic pass: 79/672 (11.76%)
+- mean natural-English token F1: 0.3425
+- Modal evaluation app: `ap-VBCFWCEnygrgqJbgxzdYma`
+
+Corrected product fixture result:
+
+- overall: 1/11
+- health: 1/6
+- commerce: 0/5
+- Modal evaluation app: `ap-F2cPX9VDMcSyGdMtreG4GU`
+
+Unadapted `Qwen/Qwen2.5-3B-Instruct` comparison:
+
+- product fixtures: 0/11
+- held-out parseable JSON: 278/672 (41.37%)
+- held-out exact intent/body system/strict pass: 0/672
+- held-out mean natural-English token F1: 0.0295
+- Modal product app: `ap-p8bh0KAnUk0kWoF0PWDqgm`
+- Modal held-out app: `ap-SfY0cEY1VOLbvqTwJfGWXy`
+
+This proves that v4 learned measurable medical-domain structure and semantics,
+but the absolute result is still far below a product threshold. The base also
+preserved some commerce meanings that v4 converted into symptoms, confirming
+that the medical-only fine-tune narrowed the model's behavior.
+
+**Promotion decision: do not promote v4 and do not route app traffic to it.**
+It learned the JSON shape and the repeated health label, but it hallucinated
+symptom templates instead of preserving meaning. Training loss was not a useful
+proxy for product semantics.
+
+Next understanding experiment:
+
+1. Rebuild the target distribution around faithful translation and entity
+   extraction, with multiple health and commerce intents instead of one label.
+2. Add deduplicated product-failure paraphrases and multi-turn context to train,
+   while keeping the frozen product fixtures out of training.
+3. Build the response-capable lane separately from licensed medical QA and
+   reviewed Twi answers. The symptom corpus contains no patient-facing answers.
+4. Require semantic, product, safety, English-regression, latency, and base-model
+   delta gates before another model is exposed in the app.
+
+ASR and TTS remain separate tracks. This result does not improve transcription
+or the current Twi voice.
+
+---
+
 ## 2026-08-29 Understanding Research Status
 
 Current best draft-understanding candidate:
