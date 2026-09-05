@@ -35,6 +35,9 @@ No ASR checkpoint should be promoted unless all required gates are present and p
    - 50 English health utterances.
    - 50 noisy or phone-recorded utterances.
    - Manifest format: [`data/asr-product-eval/README.md`](../data/asr-product-eval/README.md).
+   - Start the same-day collection pack with `pnpm asr:collection-pack`.
+   - Attach real recordings with `ASR_AUDIO_DIR=/path/to/recordings pnpm asr:attach-audio`.
+   - Score the attached recordings with `ASR_PRODUCT_EVAL_MANIFEST=tmp/asr-product-eval-audio-ready.jsonl pnpm eval:asr-manifest:score`.
    - Validate with `pnpm eval:asr-manifest`; use `pnpm eval:asr-manifest:strict` before serious training spend.
 
 2. Run the current models on that set.
@@ -42,12 +45,21 @@ No ASR checkpoint should be promoted unless all required gates are present and p
    - `openai/whisper-small` for English
    - `teckedd/gha-dondo-w2v-bert-twi-v1`
    - current v7 balanced checkpoints as negative controls, not promotion candidates
+   - Before launching a new training run, summarize the eval or feedback export:
+
+     ```bash
+     ASR_PRODUCT_EVAL_MANIFEST=tmp/asr-feedback-export.jsonl pnpm eval:asr-quality
+     ```
+
+     This report shows bucket gaps, audio readiness, correction WER/CER, frequent word errors, high-risk rows, and the next credit move.
+     For audio-backed product evals, use `tmp/asr-product-eval-scored.jsonl` after scoring.
 
 3. Only then spend on training.
    - If errors are mostly health vocabulary: targeted ASR data collection + continuation fine-tune.
    - If errors are mostly language routing/code-switch: routing and decoder prompting before model training.
    - If DONDO helps on noisy/phone audio despite worse Waxal WER: run a targeted DONDO phone/health trial.
    - If all current architectures remain above 30% WER on product speech: spend credits on transcription/data generation, not another model recipe.
+   - Public-set refresh evals may run while collecting product audio; they must not substitute for product-speech evidence.
 
 4. Push every trained model with a real card.
    - Base model.
@@ -86,5 +98,6 @@ Current implementation:
 - `/api/voice/feedback` stores corrected transcripts and ratings in `asr_feedback`.
 - `pnpm eval:asr-feedback:export` writes reviewable JSONL to `tmp/asr-feedback-export.jsonl`.
 - `ASR_PRODUCT_EVAL_MANIFEST=tmp/asr-feedback-export.jsonl pnpm eval:asr-manifest` validates the export shape and flags missing audio placeholders.
+- `ASR_PRODUCT_EVAL_MANIFEST=tmp/asr-feedback-export.jsonl pnpm eval:asr-quality` turns corrections into a ranked model-quality report.
 
 The next competitive model is more likely to come from this loop than from another Waxal-only fine-tune.

@@ -43,11 +43,27 @@ When the transcript is wrong, testers should use the correction action under the
 
 ## Data loop
 
+Build the same-day recording pack:
+
+```bash
+pnpm asr:collection-pack
+```
+
+Open `tmp/asr-collection-pack/recorder.html` to record prompts locally, or record on any phone and keep filenames as the prompt ID. Then attach the recordings:
+
+```bash
+ASR_AUDIO_DIR=/path/to/recordings ASR_SPEAKER_LABEL=speaker_001 pnpm asr:attach-audio
+ASR_PRODUCT_EVAL_MANIFEST=tmp/asr-product-eval-audio-ready.jsonl pnpm eval:asr-manifest
+ASR_PRODUCT_EVAL_MANIFEST=tmp/asr-product-eval-audio-ready.jsonl pnpm eval:asr-manifest:score
+ASR_PRODUCT_EVAL_MANIFEST=tmp/asr-product-eval-scored.jsonl pnpm eval:asr-quality
+```
+
 Export corrected transcripts:
 
 ```bash
 pnpm eval:asr-feedback:export
 ASR_PRODUCT_EVAL_MANIFEST=tmp/asr-feedback-export.jsonl pnpm eval:asr-manifest
+ASR_PRODUCT_EVAL_MANIFEST=tmp/asr-feedback-export.jsonl pnpm eval:asr-quality
 ```
 
 Use the export to identify high-frequency ASR errors and to fill the product eval buckets in `data/asr-product-eval/README.md`.

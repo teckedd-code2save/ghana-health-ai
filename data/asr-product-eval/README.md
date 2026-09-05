@@ -51,6 +51,41 @@ Use a custom path:
 ASR_PRODUCT_EVAL_MANIFEST=/path/to/manifest.jsonl pnpm eval:asr-manifest
 ```
 
+## Collection Pack
+
+Generate a read-aloud pack for same-day pilot recording:
+
+```bash
+pnpm asr:collection-pack
+```
+
+This writes:
+
+- `tmp/asr-collection-pack/prompts.jsonl`
+- `tmp/asr-collection-pack/prompts.csv`
+- `tmp/asr-collection-pack/README.md`
+- `tmp/asr-collection-pack/recorder.html`
+
+Ask speakers to record files using the prompt ID as the filename, for example:
+
+```text
+health_twi_sp001_u0001.wav
+commerce_twi_sp003_u0004.webm
+```
+
+For one-machine collection, open `tmp/asr-collection-pack/recorder.html` in a browser and download each recording. The recorder uses the correct prompt ID as the filename.
+
+Attach recorded audio into an eval manifest:
+
+```bash
+ASR_AUDIO_DIR=/path/to/recordings ASR_SPEAKER_LABEL=speaker_001 pnpm asr:attach-audio
+ASR_PRODUCT_EVAL_MANIFEST=tmp/asr-product-eval-audio-ready.jsonl pnpm eval:asr-manifest
+ASR_PRODUCT_EVAL_MANIFEST=tmp/asr-product-eval-audio-ready.jsonl pnpm eval:asr-manifest:score
+ASR_PRODUCT_EVAL_MANIFEST=tmp/asr-product-eval-scored.jsonl pnpm eval:asr-quality
+```
+
+Use `pnpm eval:asr-manifest:strict` only after the bucket minimums are full. Strict mode now also rejects missing or tiny local audio files.
+
 ## Feedback Export
 
 Voice transcript corrections are stored in `asr_feedback`. Export them for review:
