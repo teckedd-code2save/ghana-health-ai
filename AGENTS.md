@@ -62,7 +62,7 @@ If a deploy needs a new secret:
 1. Add the key to Infisical at https://secrets.serendepify.com.
 2. Reference it in code as `process.env.MY_KEY`.
 3. For build-time `NEXT_PUBLIC_*` vars: also add to `Dockerfile` ARG/ENV and `.github/workflows/deploy.yml` build-args.
-4. The `infisical-sync.yml` workflow projects secrets to `/opt/ghana-health-ai/.env` on the VPS automatically (hourly + on dispatch).
+4. Automatic Infisical-to-VPS sync was removed at the repository owner's request. Infisical changes no longer update `/opt/ghana-health-ai/.env` or GitHub Variables automatically. Apply production secret changes through the deployment environment tooling, and update matching GitHub Variables for `NEXT_PUBLIC_*` values before building. Existing deployed values remain in place.
 
 ## Operating
 
