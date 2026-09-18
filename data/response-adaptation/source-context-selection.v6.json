@@ -1,0 +1,31 @@
+{
+  "review_sha256": "0e15ac5f5695a46125fb1ddae20e7865781e298b1e3435099cbbd7d320ba324b",
+  "reviewer": "Codex source and question inspection",
+  "human_verified": false,
+  "policy": "Private research silver supervision only. Supply the original source statement as context; never teach these dated or unidentified events as standalone facts. Keep both original answers unchanged. Select one question per source, not both paraphrases.",
+  "selected_questions": [
+    "ghana_nlp_parallel:97425:tw:q0",
+    "ghana_nlp_parallel:66761:tw:q0",
+    "ghana_nlp_parallel:67083:tw:q1",
+    "ghana_nlp_parallel:65379:tw:q0",
+    "ghana_nlp_parallel:97441:tw:q0",
+    "ghana_nlp_parallel:65596:tw:q1",
+    "ghana_nlp_parallel:64354:tw:q0",
+    "ghana_nlp_parallel:69792:tw:q0",
+    "ghana_nlp_parallel:66688:tw:q1",
+    "ghana_nlp_parallel:65137:tw:q1",
+    "ghana_nlp_parallel:97048:tw:q0",
+    "ghana_nlp_parallel:65439:tw:q1",
+    "ghana_nlp_parallel:66882:tw:q0",
+    "ghana_nlp_parallel:66693:tw:q0",
+    "ghana_nlp_parallel:70666:tw:q0",
+    "ghana_nlp_parallel:67395:tw:q0",
+    "ghana_nlp_parallel:71001:tw:q0"
+  ],
+  "additional_source_exclusions": ["64927", "64980", "65971", "69672", "70073", "69804", "64329"],
+  "limitations": [
+    "Agent inspection is not independent native-speaker certification.",
+    "The follow-up translates the source-supported previous reply into English; it is not a new independent source or free-form Twi dialogue.",
+    "Excluded or unselected questions remain in the review artifact; no source transcript or previous review is overwritten."
+  ]
+}

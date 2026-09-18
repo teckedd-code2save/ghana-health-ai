@@ -92,23 +92,22 @@ export function isModalTtsConfigured(): boolean {
 }
 
 /** Expand jargon + strip symbols so speech models don't say "C H W". */
-export function speakableText(text: string, language: string = "tw"): string {
+export function speakableText(text: string, language: string = "tw", preserveEnglishSpans = false): string {
   let clean = text;
   const pairs: [RegExp, string][] = [
     [/\bCHWs?\b/gi, language === "en" ? "community health workers" : "community health worker"],
     [/\bANC\b/g, "antenatal care"],
     [/\bOTC\b/g, "over the counter"],
     [/\bMoMo\b/gi, "mobile money"],
-    [/\bGHS\b/g, "Ghana Health Service"],
+    [/\bGHS\s*(?=\d)/g, "Ghana cedis "],
     [/\bWHO\b/g, "World Health Organization"],
   ];
   for (const [re, repl] of pairs) clean = clean.replace(re, repl);
   return clean
-    .replace(/[*_#`>~\[\]()]/g, " ")
+    .replace(preserveEnglishSpans ? /[*_#`>~()]/g : /[*_#`>~\[\]()]/g, " ")
     .replace(/https?:\/\/\S+/gi, " ")
     .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 500);
+    .trim();
 }
 
 export async function modalSpeak(
@@ -120,7 +119,7 @@ export async function modalSpeak(
   const route = resolveTtsRoute(lang, opts?.provider);
   if (!route) throw new Error(`TTS route is not configured for ${lang}`);
 
-  const clean = speakableText(text, lang);
+  const clean = speakableText(text, lang, route.provider === "stable-twi");
   if (!clean) {
     return {
       audio_base64: "",
@@ -130,6 +129,12 @@ export async function modalSpeak(
       model: "skipped",
       provider: route.provider,
       error: "empty_text",
+    };
+  }
+  if (clean.length > 2000) {
+    return {
+      audio_base64: "", sample_rate: 16000, format: "wav", latency_ms: 0,
+      model: route.modelLabel, provider: route.provider, error: "text_too_long",
     };
   }
 

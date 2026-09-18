@@ -1,0 +1,37 @@
+{
+  "run_id": "minicpm_twi_20260910T151419Z",
+  "call_id": "fc-01M25Y4P40NXK4KZMRH22GKNRZ",
+  "model": "ghananlpcommunity/MiniCPM5-1B-Twi",
+  "revision": "d807ca1a3323972afafabff8f9affe2639e37b5c",
+  "raw_result_sha256": "a5170598c470a167461ff084bc9cae7f7dd9da971f6a01833af6cfcc68ce556b",
+  "decision": "not_accepted_for_chat_or_unreviewed_twi_teacher",
+  "completed_cases": 27,
+  "length_limit_cases": 27,
+  "empty_answer_cases": 0,
+  "elapsed_seconds": 356.487958178,
+  "load_seconds": 5.746779808999998,
+  "gpu": "Tesla T4",
+  "evidence": [
+    {"id": "budget-tw", "finding": "Personal budgeting request becomes an unrelated elections, payroll and institutional-finance explanation."},
+    {"id": "list-en", "finding": "Explicit two-sentence English instruction ignored; long Twi output about advertising and management."},
+    {"id": "count-en", "finding": "50 minus 18 minus 12 is not answered as 20; invents other amounts, codes and account instructions."},
+    {"id": "correction-tw", "finding": "Corrected one-kilogram tomato request changes into cups and unrelated storage and medication advice."},
+    {"id": "search-tw-no-tools", "finding": "Invents prices and contact details without inventory or search tools."},
+    {"id": "tw-breathing-difficulty", "finding": "Breathing difficulty and chest pain drift into diet, reflux and antihistamine advice."},
+    {"id": "tw-newborn-fever-followup", "finding": "Loses newborn fever context and talks about hair, water composition and acids."}
+  ],
+  "trained_by_project": false,
+  "tools_evaluated": false,
+  "proprietary_fallback": false,
+  "production_promoted": false,
+  "human_reviewed": false,
+  "semantic_accuracy": null,
+  "clinical_accuracy": null,
+  "limitations": [
+    "One sampling profile, one seed per case, 384 new tokens; not a full decoding study.",
+    "Qualitative findings are agent review, not native-speaker or clinical evaluation scores.",
+    "Zero exact eight-word repetition flags does not establish coherence.",
+    "These are reused development cases, not a fresh test set.",
+    "The earlier attempt failed while loading, before generating any responses; it is not a model-quality result."
+  ]
+}

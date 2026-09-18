@@ -45,3 +45,5 @@ next-env.d.ts
 modal/**/__pycache__/
 *.pyc
 data/asr-feedback-audio/
+data/medical-response-corpus/*.jsonl.requests/
+data/annotated-source-corpus/*.jsonl.requests/

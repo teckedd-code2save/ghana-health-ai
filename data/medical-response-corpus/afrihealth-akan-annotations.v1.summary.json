@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "prompt_version": "afrihealth-akan-response-v1",
+  "source_rows": 5569,
+  "annotations": 62,
+  "statuses": {
+    "silver_consensus": 31,
+    "needs_human_review": 31
+  },
+  "eligible_for_training": 27,
+  "rescored_only": true,
+  "failures": []
+}

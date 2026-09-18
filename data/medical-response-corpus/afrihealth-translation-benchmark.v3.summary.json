@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "benchmark_version": "afrihealth-translation-benchmark-v3",
+  "rows": 62,
+  "reference_kind": "two stronger model proposals; not human gold",
+  "models": {
+    "aya": {
+      "id": "CohereLabs/aya-101",
+      "license": "apache-2.0",
+      "usage_scope": "commercial_candidate"
+    },
+    "comparison": {
+      "id": "ninte/twi-en-nllb-v2",
+      "license": "cc-by-nc-4.0",
+      "usage_scope": "research_only"
+    },
+    "quality_estimator": {
+      "id": "ghananlpcommunity/twi-eng-qe-e5",
+      "license": "apache-2.0",
+      "usage_scope": "benchmark_only"
+    }
+  },
+  "metrics": {
+    "aya": {
+      "question_english": {
+        "bleu": 25.6,
+        "chrf_plus_plus": 43.24,
+        "median_sentence_chrf_plus_plus": 42.64,
+        "rows_at_least_70": 2,
+        "rows_below_50": 44
+      },
+      "answer_english": {
+        "bleu": 26.37,
+        "chrf_plus_plus": 47.99,
+        "median_sentence_chrf_plus_plus": 49.39,
+        "rows_at_least_70": 0,
+        "rows_below_50": 35
+      }
+    },
+    "comparison": {
+      "question_english": {
+        "bleu": 44.13,
+        "chrf_plus_plus": 60.67,
+        "median_sentence_chrf_plus_plus": 58.23,
+        "rows_at_least_70": 15,
+        "rows_below_50": 15
+      },
+      "answer_english": {
+        "bleu": 36.41,
+        "chrf_plus_plus": 58.64,
+        "median_sentence_chrf_plus_plus": 57.6,
+        "rows_at_least_70": 4,
+        "rows_below_50": 7
+      }
+    }
+  },
+  "quality_estimator_calibration": {
+    "aya": {
+      "question_english": {
+        "quality_score_reference_correlation": -0.022,
+        "mean_quality_probability": 0.9
+      },
+      "answer_english": {
+        "quality_score_reference_correlation": -0.031,
+        "mean_quality_probability": 0.76
+      }
+    },
+    "comparison": {
+      "question_english": {
+        "quality_score_reference_correlation": 0.041,
+        "mean_quality_probability": 0.895
+      },
+      "answer_english": {
+        "quality_score_reference_correlation": 0.143,
+        "mean_quality_probability": 0.743
+      }
+    }
+  },
+  "decision": {
+    "aya": "reject_as_automatic_teacher",
+    "comparison": "research_only_candidate_not_automatic_truth",
+    "quality_estimator": "reject_as_automatic_gate",
+    "corpus_scale_annotation": "blocked_pending_adaptation_or_stronger_teacher"
+  }
+}

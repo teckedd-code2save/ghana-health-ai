@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "prompt_version": "afrihealth-akan-response-teacher-v2",
+  "prompt_versions": [
+    "afrihealth-akan-response-teacher-v2"
+  ],
+  "source_rows": 5569,
+  "annotations": 62,
+  "statuses": {
+    "silver_consensus": 24,
+    "needs_human_review": 38
+  },
+  "eligible_for_training": 20,
+  "teacher_a": "gpt-5.4-mini",
+  "teacher_b": "gpt-5.5",
+  "adjudicator": "gpt-5.6-sol",
+  "concurrency": 6,
+  "train_only": false,
+  "reference_path": "data/medical-response-corpus/afrihealth-akan-annotations.v1.jsonl",
+  "eligible_source_rows": 62,
+  "requested": 62,
+  "completed": 62,
+  "interrupted_by_provider": false,
+  "failures": []
+}

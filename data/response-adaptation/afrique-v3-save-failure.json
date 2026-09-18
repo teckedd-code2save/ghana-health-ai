@@ -1,0 +1,16 @@
+{
+  "run_id": "afrique_v3_20260910T102035Z",
+  "call_id": "fc-01M25DASRB2QA4B2KH6SVYE3RM",
+  "outcome": "infrastructure_failure",
+  "observed_updates": 100,
+  "error": "PEFT automatic embedding-save check attempted a base-config lookup in the read-only default HF hub cache",
+  "checkpoint_weights_saved": false,
+  "completed_base_outputs": 30,
+  "completed_adapter_outputs": 0,
+  "agent_cancelled": false,
+  "user_cancelled": false,
+  "fix": "Explicit frozen-embedding exclusion with a guard against discarding trainable embeddings; offline correct cache; CPU save/reload preflight; real adapter save before training",
+  "replacement_run_id": "afrique_v3_20260910T103220Z",
+  "replacement_call_id": "fc-01M25E0ACC7AEHZYHXJV4HPJ2E",
+  "production_promoted": false
+}

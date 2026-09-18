@@ -1,0 +1,20 @@
+# Review-only routing; public application upstream is unchanged.
+ghanahealth.serendepify.com {
+    encode zstd gzip
+    @corpus_review path /research/corpus /research/corpus/*
+    handle @corpus_review {
+        reverse_proxy 127.0.0.1:13121 {
+            header_up X-Real-IP {remote_host}
+        }
+    }
+    reverse_proxy 127.0.0.1:13020 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+    log {
+        output file /var/log/caddy/ghana-health-ai.log {
+            roll_size 50mb
+            roll_keep 5
+        }
+    }
+}

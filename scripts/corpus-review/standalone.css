@@ -1,0 +1,7 @@
+* { box-sizing: border-box; }
+html { color-scheme: light; background: #f6f7f9; }
+body { margin: 0; color: #272c34; font-family: Arial, Helvetica, sans-serif; }
+button, textarea, select { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: default; }
+button:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #3155a2; outline-offset: 3px; }

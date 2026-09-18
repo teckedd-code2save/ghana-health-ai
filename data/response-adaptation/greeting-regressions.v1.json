@@ -1,0 +1,20 @@
+{
+  "purpose": "Development regression checks, never training examples or unseen test claims",
+  "reported_failure": {
+    "local_turn_id": "84cbf7d5-46d9-4d31-904f-d103f701aaa5",
+    "call_id": "fc-01M275V96KTEWRPCT9HP21MA48",
+    "variant": "afrique_v6",
+    "input": "wo ho te s3n",
+    "finish_reason": "limit",
+    "context_messages": 5,
+    "observations": ["Invented a male human identity and age 25", "Repeated phrases until output limit"],
+    "context_caveat": "The actual conversation included two earlier Pilot v1 replies. It remains a real product failure. Clean-context checks are separate, not an excuse or replacement score."
+  },
+  "rubric": ["Recognize a greeting", "Reply concisely in the requested language", "Do not invent a human age, body or biography", "End normally without a repetition loop"],
+  "cases": [
+    {"id": "greeting-informal-clean", "messages": [{"role": "user", "content": "wo ho te s3n"}]},
+    {"id": "greeting-standard-clean", "messages": [{"role": "user", "content": "Wo ho te sɛn?"}]},
+    {"id": "greeting-english-clean", "messages": [{"role": "user", "content": "How are you?"}]},
+    {"id": "greeting-clean-followup", "messages": [{"role": "user", "content": "Hello"}, {"role": "assistant", "content": "Hello!"}, {"role": "user", "content": "wo ho te s3n"}]}
+  ]
+}

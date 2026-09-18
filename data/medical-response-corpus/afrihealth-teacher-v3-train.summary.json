@@ -1,0 +1,256 @@
+{
+  "schema_version": 1,
+  "prompt_version": "afrihealth-akan-response-teacher-v3",
+  "prompt_versions": [
+    "afrihealth-akan-response-teacher-v3"
+  ],
+  "source_rows": 5569,
+  "annotations": 305,
+  "statuses": {
+    "silver_consensus": 120,
+    "needs_human_review": 185
+  },
+  "eligible_for_training": 120,
+  "teacher_a": "gpt-5.4-mini",
+  "teacher_b": "gpt-5.5",
+  "adjudicator": "gpt-5.6-sol",
+  "concurrency": 32,
+  "train_only": true,
+  "reference_path": null,
+  "eligible_source_rows": 4407,
+  "requested": 4395,
+  "completed": 293,
+  "interrupted_by_provider": true,
+  "failures": [
+    {
+      "row_ids": [
+        "afrihealth_akan_6842e1caa2d13722b6f3"
+      ],
+      "error": "[\n  {\n    \"expected\": \"string\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"other\",\n      0\n    ],\n    \"message\": \"Invalid input: expected string, received object\"\n  }\n]"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_de786cafbb1a643d3390",
+        "afrihealth_akan_0d20868c85a6305fa942",
+        "afrihealth_akan_f2ebe42c717dcc99036d",
+        "afrihealth_akan_72412a7a22adf4f14a40"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_50a5eae4ab02772eb20e",
+        "afrihealth_akan_b253e00258388afcf38e"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_287a64e9fd4a81908b71",
+        "afrihealth_akan_c5bf90d79d714bee99d3",
+        "afrihealth_akan_123074c9e71e20986f2a",
+        "afrihealth_akan_578168a3c2c7587d0d17"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_e768f3caf11a68dbde43",
+        "afrihealth_akan_a57838a5fe63874bce8b",
+        "afrihealth_akan_5b7dff457fe410ba3e10",
+        "afrihealth_akan_84d7e8d10ced55271888"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_8c03472e76c2f85654ff",
+        "afrihealth_akan_566366d31a4ecb53a49d",
+        "afrihealth_akan_442df447da2da8ab9482",
+        "afrihealth_akan_d6298be70cf586f701d1"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_da8b870ed3b1a1a44781",
+        "afrihealth_akan_4da1e05530e7f602cc0a",
+        "afrihealth_akan_ba8f290dd1efc17692da",
+        "afrihealth_akan_f95e58a16ca364db3f06"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_b03cb016ff426fb1e6f9",
+        "afrihealth_akan_62a65f8b9d2c3a6bbea0",
+        "afrihealth_akan_b50d0ee392fd86f175e5",
+        "afrihealth_akan_32d731dbfca6942a67e9"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_79e6e1f7a4512b2a63d0",
+        "afrihealth_akan_761f4a06bc45733c07a4"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_6ec34e8ffd3a176bc263",
+        "afrihealth_akan_ef4db7875f02f644c118",
+        "afrihealth_akan_2d34395f6ebaca7c46bc",
+        "afrihealth_akan_85aa7650de00a855c91a"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_e03830f5b155e87a5e45",
+        "afrihealth_akan_666806422ce0d22e689a",
+        "afrihealth_akan_b5a647b3b69cdb15a6ec",
+        "afrihealth_akan_7431786a5d18cdfb11d7"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_de74d9a54766babe58d3",
+        "afrihealth_akan_be369ca7c2d9e7aadb6d"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_da72baca04fb6a1c76de",
+        "afrihealth_akan_e3a6d7fb95fdb5da4bdf"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_6ca150830ecf32136d20",
+        "afrihealth_akan_3821019390ac371ca41c"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_87e5696680bfa6e6f397",
+        "afrihealth_akan_38023b5ed9f74f5101bc",
+        "afrihealth_akan_9cb7812a90118d87d08a",
+        "afrihealth_akan_fe68df5864ab22f0e5c9"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_8dd0a9c97f056ec76f87",
+        "afrihealth_akan_46e61b8235e2e597b389",
+        "afrihealth_akan_e1753487c30ad9c1dca2",
+        "afrihealth_akan_071380ea543ade6cecb7"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_b3ddee9ffc6c618f482a",
+        "afrihealth_akan_92c6b667310d6a818faa",
+        "afrihealth_akan_51b3d01fbc1a17012fce",
+        "afrihealth_akan_9eceda19bb1a60836835"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_8b925c1d6bc844a2737c",
+        "afrihealth_akan_1ea3f936a73857e5befe",
+        "afrihealth_akan_8d8a9d9eaacb440682fa",
+        "afrihealth_akan_d50e5e905265c2389307"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_1d0e4ab79c03034b8eca",
+        "afrihealth_akan_7c95862a32c432555bbd",
+        "afrihealth_akan_28658282eb3dc5f942f3",
+        "afrihealth_akan_809fdd2e6f5164a734a7"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_b08c69f110b42e3b5845",
+        "afrihealth_akan_b472db45cd5869d10155",
+        "afrihealth_akan_4a4a2f5414db21f9fb88",
+        "afrihealth_akan_a424f889791b5a494c55"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_a7b4e973795ac4c790ad",
+        "afrihealth_akan_71c2f9e6b71453bc0053",
+        "afrihealth_akan_0c8b94058e8dee733a26",
+        "afrihealth_akan_a540284e2127c3d8457b"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_36b6a0e11c122a1b8321",
+        "afrihealth_akan_ed196b161470aeb0a98b",
+        "afrihealth_akan_14c5f5aea510314446af",
+        "afrihealth_akan_ed4a2c44869e1db2af2b"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_c2071d1fbde952a173a3",
+        "afrihealth_akan_1585b8ada893efd26e91",
+        "afrihealth_akan_5632e4c3aab84c4f8388",
+        "afrihealth_akan_5619900d762896421241"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_b17ee253918a862994f9",
+        "afrihealth_akan_8a6e9eb94ac133f46783",
+        "afrihealth_akan_6609eb1cab904bb6b1c3",
+        "afrihealth_akan_cfaa77c8385898d20705"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_896b8ae4daaccb6867c7",
+        "afrihealth_akan_f587e279f88753541bca",
+        "afrihealth_akan_5da3a91f1d1c4afbfe69",
+        "afrihealth_akan_5595bcbcfde4bdf0dadb"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_35e7c16832d8a64da3ef",
+        "afrihealth_akan_790ed76da4db1dcde61d",
+        "afrihealth_akan_835bf04b0a56328c2755",
+        "afrihealth_akan_bc2f0979fdb84efcaeaa"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    },
+    {
+      "row_ids": [
+        "afrihealth_akan_3a26050d87e03fd3a5c6",
+        "afrihealth_akan_9d7d9d6a89fe74d75d93",
+        "afrihealth_akan_4ac9069d05dfde32ec1b",
+        "afrihealth_akan_bd5e37e265108531bde6"
+      ],
+      "error": "Annotation provider HTTP 429 (credit_balance_exhausted)"
+    }
+  ]
+}

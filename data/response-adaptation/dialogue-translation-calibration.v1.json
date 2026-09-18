@@ -1,0 +1,19 @@
+{
+  "purpose": "Development calibration of conversation translation, not an unseen benchmark or accepted SFT export",
+  "source": "OpenAssistant/oasst1",
+  "revision": "fdf72ae0827c1cda404aff25b6603abec9e3399b",
+  "license": "apache-2.0",
+  "selection": "Agent-selected existing training conversations; originals unchanged. Deliberately includes source-quality and English-dependent tasks to expose failure modes.",
+  "cases": [
+    {"id": "oasst:4447f5d4-adf6-45e0-b023-7648e8935465", "focus": "Follow-up clarification without inventing a book title", "source_caveat": "Original spelling errors retained"},
+    {"id": "oasst:ba9f19c0-f323-4613-9e44-62074dbf1002", "focus": "Preserve equal mass when the user incorrectly challenges it", "source_caveat": "Mass and volume distinction must survive translation"},
+    {"id": "oasst:e21407b1-bd45-4b0c-9d8a-3529f255a5a2", "focus": "Clarification, correction, conditional arithmetic", "source_caveat": "Keep the intentional unknown word nillion and every calendar assumption"},
+    {"id": "oasst:644fb7ef-9035-42f0-ab94-23af0b51657a", "focus": "Shift from spelling classification to units", "source_caveat": "English words must remain quoted; translating the word puzzle itself can invalidate its answer"},
+    {"id": "oasst:94db6d52-b585-40cf-8c55-921fb8950f31", "focus": "Procedural follow-up, capacities and numbered steps", "source_caveat": "Source options are terse and the answer contains a jug spelling error; not automatically accepted supervision"},
+    {"id": "oasst:e3eb65bf-a092-44e9-8282-8c1ce7346820", "focus": "Follow-up explanation of a technical expression", "source_caveat": "Source uses not a planet without repeating dwarf planet distinction"},
+    {"id": "oasst:ea5f9681-672f-43f6-99a0-a6eefd17d202", "focus": "Respect the follow-up constraint that Wikipedia cannot be blocked", "source_caveat": "Source follow-up is weak and includes an unsupported generalization about distraction; calibration only"},
+    {"id": "oasst:111c1b26-6c4d-4b6c-b3fa-918555f1982a", "focus": "Preserve uncertainty rather than turn speculation into fact", "source_caveat": "Source is speculative and somewhat agreeable; calibration only"}
+  ],
+  "training_eligible": false,
+  "human_verified": false
+}

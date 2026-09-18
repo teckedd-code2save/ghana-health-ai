@@ -1,0 +1,24 @@
+[Unit]
+Description=Private Ghana corpus review
+After=network.target
+
+[Service]
+Type=simple
+User=gha-corpus-review
+Group=gha-corpus-review
+WorkingDirectory=/opt/ghana-corpus-review/current
+EnvironmentFile=/opt/ghana-corpus-review/.env
+ExecStart=/usr/bin/node /opt/ghana-corpus-review/current/server.cjs
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/ghana-corpus-review/reviews
+MemoryMax=768M
+TasksMax=32
+
+[Install]
+WantedBy=multi-user.target

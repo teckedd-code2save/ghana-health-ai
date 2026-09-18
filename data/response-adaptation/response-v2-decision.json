@@ -1,0 +1,14 @@
+{
+  "run_id": "response_v2_20260910T093637Z",
+  "call_id": "fc-01M25AT9XSS7Y5747JPEHJQ868",
+  "decision": "agent_stopped_for_observed_regression",
+  "stopped_at_utc": "2026-09-10T10:09:23Z",
+  "last_observed_step": 234,
+  "last_evaluated_checkpoint": 200,
+  "last_evaluated_adapter_sha256": "ad217b9c2d3835b5eab68703ceab98ef6e6ebc51a4c92589a4324b86f60f4793",
+  "reason": "Checkpoint 100 budgeting regressed under greedy and publisher sampling. Checkpoint 200 produced incoherent Twi, switched to English for Twi symptoms and invented unrelated symptoms. The same-base paired outputs were more useful, although still inadequate.",
+  "completed_full_evaluation": false,
+  "production_promoted": false,
+  "private_ui_enabled": false,
+  "next_experiment": "Actual instruction SFT on the Twi-including Afrique CPT foundation, excluding all general_source_response translations. Not a resumption of these weights."
+}

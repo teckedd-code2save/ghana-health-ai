@@ -248,8 +248,13 @@ export async function runConversationTurn(
   if (input.speak && isModalTtsConfigured()) {
     await input.onStage?.({ name: "tts", detail: "started", at: Date.now() });
     const ttsLang = understanding.replyLanguage === "en" ? "en" : "tw";
-    const spoken = await modalSpeak(understanding.reply, ttsLang);
-    if (spoken.audio_base64) {
+    let spoken: Awaited<ReturnType<typeof modalSpeak>> | null = null;
+    try {
+      spoken = await modalSpeak(understanding.reply, ttsLang);
+    } catch {
+      console.warn("Voice synthesis unavailable; preserving the completed text reply.");
+    }
+    if (spoken?.audio_base64) {
       tts = {
         audioBase64: spoken.audio_base64,
         sampleRate: spoken.sample_rate,

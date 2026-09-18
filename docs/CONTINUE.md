@@ -1,5 +1,1117 @@
 # Continue here — Ghana Health AI
 
+## 2026-09-15: Alignment Handoff And Annotation Checks
+
+Latest request: the owner said the data generally looks good and approved the
+next steps. The completed work remains a collection pass, not a new model run.
+Read `docs/alignment-handoff-20260915.md` and
+`docs/reference-annotation-20260915.md` before continuing.
+
+**Usable new handoff:** `tmp/corpus-ready/twi-alignment-v2-20260915`.
+All 30,404 existing bilingual pairs are packaged into both translation directions:
+11,557 sentence pairs, 18,734 dictionary pairs and 113 grounded-QA question
+pairs, in separate views. There are 59,664 train examples and 1,144 validation
+examples, not 60,808 unique utterances. English retention is separate and
+unchanged: 2,131 train / 44 validation complete conversation paths. No new
+translation or response target was generated. Source hashes, task views and
+shared splits were independently verified; 38 corpus tests and TypeScript pass.
+
+Fifteen handoff files (95 MB) are privately backed up, with read-back hashes, in
+Modal volume `ghana-health-understand-train`, path
+`/corpus-training-releases/twi-alignment-v2-20260915/0d59772b4b49`.
+The receipt is beside the local release as `.storage.json`. The original parent
+release passed verification again and remains unchanged. The incomplete local
+alignment `v1` directory is NOT a handoff; use `v2`.
+
+**HTTPS:** `https://ghanahealth.serendepify.com/research/corpus/` remains live.
+The new focused URL is `?collection=teacher` (UI name: Annotation checks).
+It compares the two latest candidates on 32 real source-validation samples;
+these are calibration/correction samples, not another small training corpus.
+No synthetic controls appear in that queue. Neither candidate is preselected.
+Each review records the exact annotation version and original source hash.
+Annotation-only corrections do not invalidate source translations. The compact
+layout, navigation persistence, save flow, and stale-version rejection are tested.
+
+Active private review code is
+`/opt/ghana-corpus-review/releases/reference-20260915-r2` via `current`.
+The same append-only journal, four existing review actions and credential file
+are preserved. No production review was fabricated by tests. HTTPS checks passed
+all 32 source/version identities, auth, assets, CSRF and desktop/mobile rendering.
+Public chat remains on its old upstream; no ASR/TTS, public deployment, public
+dataset upload or model training was performed. The isolated review service was
+the only web deployment changed.
+
+**Annotation is NOT qualified:** three English-reference-only methods ran on the
+same 32 real samples plus ten controls. Qwen3.5-9B and Qwen235 had semantic errors.
+OSS120 also remains unqualified; it exposed both output problems and a rubric
+problem that conflated a statement of a goal with a direct request. Preserve the
+results, and do not scale these methods unchanged. The full 11,557-source
+missing-field work plan remains pending bulk annotation. No `run` batch or new
+training was started. Existing valid references powered the handoff independently.
+
+OSS qualification `fc-01M2H8WRCREYB9KPXHBS29YSJN` and diagnostic
+`fc-01M2H9MTXWG2AZEGK6N7F9CAPQ` are COMPLETE. Do not resubmit. The diagnostic
+returned four final answers but did not establish the cause of three missing
+finals in the earlier run. New traces are retained privately. The old failures
+are not replaced or retroactively passed. The `expressed_goal` successor schema
+is implemented/tested but needs fresh qualification, not the same controls
+repeated until they pass. No paid API fallback was used.
+
+Next: select an evidence-backed foundation and explicit alignment/English-replay
+mixture, verify its native chat template and loss masks, then scope a bounded
+alignment experiment. This is NOT yet a conversational assistant SFT corpus:
+native multi-turn Twi responses and specialised response/tool material remain
+unfinished. No commit or push was made; the large pre-existing dirty worktree
+remains. Do not commit unrelated ASR/TTS changes with this work.
+
+## 2026-09-14: Private HTTPS Review And Loading Retry
+
+Owner requested HTTPS access while model loading is repaired. Review is live at
+`https://ghanahealth.serendepify.com/research/corpus/`, independently of this
+laptop. Read `docs/corpus-review-https-20260914.md` for access, storage and
+operation. Public chat upstream is unchanged. The private server has a 71,831-row
+review projection; corrections persist on the VPS, not in the frozen dataset.
+Use HTTPS for new reviews. Unsaved localhost drafts do not transfer.
+
+CPU staging probe passed. Revised Qwen qualification completed and is tracked in
+`tmp/corpus-teacher/qwen235-v3-staged`, call `fc-01M2ETZCZMG4XMF5Q7DYNMYW26`.
+All 40 outputs were generated in 1,078.51 seconds; loading plus warmup took
+568.05 seconds. Loading is fixed for this run, but qualification failed: four
+truncated outputs and five meaning-critical control failures on source-reference
+inspection. Read `semantic-audit.json`; keyword matching missed two failures.
+Do not duplicate that call or use its outputs for bulk annotation. The gate is
+closed. No new training or bulk annotation was started.
+
+## 2026-09-14: Four-Collection Source-Preserved Release
+
+Current scope is the user's stage-ready dataset plan. Read
+`docs/stage-corpus-20260914.md` before launching anything. The working release is
+`tmp/corpus-releases/twi-stage-v1-20260911`, with 1,178,118 selected source rows.
+The release is now sealed and independently verified: 49,922 unique sources
+contribute screened task views. These include 30,404 existing bilingual pairs,
+2,751 structured examples, 110 grounded Twi QA records and 2,175 English
+conversation paths. Health has 4,264 full-reference correction records, not
+approved SFT. Language views have only 773,316 tokens including lexicon; this is
+not a large native CPT corpus. Raw sources, prior annotations and existing
+evaluation boundaries remain preserved. Synthetic Pristine is not accepted
+native text. Read the stage report for exclusions and field-level gaps.
+
+Qwen235 qualification produced ZERO translations: eager loading timed out at
+1,200 seconds, call `fc-01M2EPC4KAPNY08XPCK6J9JAYT`. This is infrastructure
+failure, not a Twi quality result. Gate remains closed; no bulk generation,
+new training, ASR/TTS changes, public upload or production deployment.
+
+Local review URL: `http://localhost:3100/research/ase?release=twi-stage-v1-20260911`.
+The release index exists and real rows load. Browser navigation/draft
+persistence and source-hash-bound local saving are tested on desktop/mobile.
+No real review or database write was created by those tests. Existing production
+reviews are not included in this run's human-review count.
+
+Small release reports are privately backed up in Modal volume
+`ghana-health-understand-train`, under
+`/corpus-release-reports/twi-stage-v1-20260911/ddc88cb47302` (13 files verified).
+The complete corpus and ledger remain local, not remotely archived by this pass.
+No commit or push was made; unrelated pre-existing worktree changes remain.
+
+## 2026-09-11: Scope Correction - Understanding LLM Only
+
+The user explicitly redirected: do NOT veer into ASR. The shared research is
+inspiration for improving the understanding/response LLM, not a speech-model
+workstream. The ASR experiment order in the review below is parked; it is not
+the active execution plan. No new ASR benchmark, training or serving changes.
+
+Active hypothesis: compare direct Twi/English conversation SFT against screened
+Twi language adaptation followed by the SAME SFT on the SAME foundation. Include
+the untouched foundation as a control. Keep English replay/retention, source
+grouping and synthetic-data ablations explicit. Language-model loss/fluency is
+not proof of semantics, dialogue quality, medical correctness or real tool use.
+Tokenizer adaptation is conditional research, not the first assumed fix.
+Current translation alternatives remain unapproved; do not scale failed
+teachers merely to increase training row counts. No new training submitted.
+
+Read the updated `docs/response-research-reset-20260911.md` scope section.
+
+## 2026-09-11: Shared ASR Research Reviewed; Dialogue Comparison Complete
+
+Latest request: check ChatGPT conversation `6a862c01-8b38-83ea-b1e3-c80212dbeedf`,
+title **Weekly ASR Research Shortlist**. Read it through the app connector and
+verified the main primary sources. Read
+`docs/asr-research-shortlist-review-20260911.md` for priorities and corrections.
+No ASR training was started. Do not confuse ASR adaptation with fixing the typed
+greeting failure in the response model.
+
+The prior dialogue-translation calibration is now COMPLETE: 96 outputs across
+Afrique isolated and Gemma isolated/context. Both models still make semantic
+errors; zero rows promoted. Read
+`docs/dialogue-translation-calibration-20260911.md` for receipts, hashes,
+preemption recovery and inspection findings. Review artifact:
+`tmp/dialogue-translation-calibration/v1/review.json`. Do NOT resubmit the
+completed calls. No new model training, public upload or production change.
+
+## 2026-09-11: User Greeting Failure, Full Corpus Audit
+
+Latest user request is model research after V6 produced a looping fabricated
+biography for `wo ho te s3n`. Do not resume UI work or claim a chat-quality fix.
+Read `docs/response-research-reset-20260911.md`. Four fresh paired greeting
+checks completed: base loops in 4/4, V6 ends in 4/4 but still fails reply quality
+and English language matching. The reported failure remains valid.
+
+New coverage audit: ZERO multi-turn Twi-labelled final targets in V6; 10.67%
+of prepared target tokens are Twi response tasks, 96.26% of those health.
+Evidence: `data/response-adaptation/balanced-v6-coverage.json` and
+`greeting-v6-decision.json`. No more unchanged V6 training.
+
+Full pinned text audit COMPLETE: `tmp/twi-pretraining-audit/v1/summary.json`.
+1,134,981 rows; 1,050,333 exact-unique structural candidates, not approved data.
+855.60M Qwen / 642.90M Gemma candidate tokens, over 99% from synthetic Pristine.
+705 deterministic review samples; output hashes and accounting verified. Do not
+resubmit. Existing audit speech coverage is only the earlier 4,948-row manifest.
+
+Full labelled speech-text projection also COMPLETE: 28,312 unchanged transcripts
+in `tmp/twi-pretraining-sources/full-public-speech-v2/`. Use V2: it corrects
+WAXAL's project language metadata to ak (Akan), not verified Twi. V1 is preserved.
+Source counts, pinned revisions, hashes and remaining curation are in the reset
+document. These sources overlap the old manifest; do not double count them.
+No new training, annotation, public upload or model-quality success is implied.
+
+The user subsequently requested and received private V6 activation in the
+existing local playground on port 7863. Earlier statements below about no UI
+selection are historical. Voice A/history/reviews/production stay unchanged.
+
+## 2026-09-11: Balanced Afrique 9B V6 Complete, Not Accepted
+
+Run `afrique_v6_20260910T222142Z`, call `fc-01M26PK73KPNMVXAHKC1H3VF8H`
+completed 400 updates, 36.48 minutes total. DO NOT RESUBMIT. Adapter SHA256
+`b4aa2162ae27a4c6997ec9f88bc171ca2134c457922bb1483c460eff920be510`.
+Full verified backup: `tmp/balanced-afrique-v6/completed/afrique_v6_20260910T222142Z/`.
+Exact input archive and original outputs also retained on the private volume.
+
+30 paired development prompts, 48 paired source-validation prompts, six new
+two-turn conversations per model, then 16 private serving cases completed.
+Termination and some arithmetic/context/English tasks improved, but native
+conversation changes, grounded commerce claims, health responses and explicit
+calculator execution still fail. Kofi is CORRECT in its supplied context; an
+initial commentary mistake was corrected. Do not perpetuate that false finding.
+No general semantic-accuracy or clinical-safety score is claimed.
+
+Read `docs/balanced-afrique-v6-20260910.md` and
+`data/response-adaptation/balanced-v6-decision.json`. Candidate support is deployed
+only to the private inference service; no UI selection, production change or
+HF publication. Current voice A, old tester choices, reviews/history unchanged.
+53 focused tests passed; no full web build claim. Next work is native dialogue
+response quality and grounded action supervision, not another unchanged run.
+
+### Original Submission
+
+User approved the concrete repair/train/conversation-evaluate cycle. One bounded
+run was submitted: `afrique_v6_20260910T222142Z`, call
+`fc-01M26PK73KPNMVXAHKC1H3VF8H`, app `ghana-balanced-afrique-v6`.
+Do NOT resubmit or redeploy this training app while active. Status and receipt:
+`tmp/balanced-afrique-v6/run-receipt.json` and
+`scripts/run_response_adaptation.py status --experiment balanced-v6`.
+
+Read `docs/balanced-afrique-v6-20260910.md` for exact changes, limits and evaluation.
+8,681 training views / 7,464 source records; 1,032 validation rows. Corrected
+intent task contract, known source exclusions, reduced health/tool weighting,
+unchanged bilingual targets, 17 agent-inspected context-bound native sources
+plus 17 source-language follow-ups. Not a gold corpus or complete native dialogue
+dataset. CPU tokenizer/backward/checkpoint preflight passed. One H100, 400 updates
+maximum, 90-minute hard ceiling, no automatic retries. Private artifacts only.
+
+No V6 chat-quality success or model activation has been claimed. Voice A,
+current private UI selection/history, public chat and production remain unchanged.
+Earlier completed research below should NOT be restarted.
+
+## 2026-09-10 Question/Source Cross-Check Completed
+
+Latest usable review artifact: `tmp/native-question-translation-v1/review.json`.
+71 original source pairs, 117 translated question alternatives, 117 question
+back-translations and 71 separate original-answer translation checks. Original
+answers are unchanged. 56 question translations have agent correction flags;
+three proposed corrections are separate options, not applied gold labels.
+The remaining questions are NOT automatically certified correct.
+
+Both bounded stages completed; do NOT resubmit:
+
+- Forward `afrique9_20260910T153004Z`, `fc-01M25Z1JZT3KHHWCPJWZAQMY8D`,
+  117 outputs, 269.20 seconds.
+- Back `afrique9_20260910T153628Z`, `fc-01M25ZDA12KG1BRX3P2YKX67H0`,
+  188 outputs, 423.00 seconds.
+- No empty or token-limited translations. Review file SHA256:
+  `0e15ac5f5695a46125fb1ddae20e7865781e298b1e3435099cbbd7d320ba324b`.
+
+Back-translation itself made clear errors, including Benada becoming Thursday,
+borehole becoming boiling water, and fire brigade becoming a gang. Do not blame
+the unchanged source or certify it solely on that model's English output.
+Read `docs/native-answer-synthesis-20260910.md` for provenance and limitations.
+Private backup is under `/native-answers/native_answers_20260910T134538Z/` on
+`ghana-health-understand-train`, in `question-translation-v1` plus the findings
+file. No public HF upload, changed voice A, changed UI/history, new model choice,
+or production deployment. No new successful chat model is claimed.
+
+The next training-data work must close native conversation coverage and alignment,
+including corrected questions, context, and multi-turn response targets. Existing
+news sentences are not automatically standalone chatbot facts. Do not treat these
+71 sources as the requested complete large corpus or launch another unchanged
+V5 mixture run. Translation similarity, English compatibility and native meaning
+must stay separate assessments.
+
+Latest focused verification: 38 response tests, 20 native-data/intent tests and
+four Afrique language-evaluation tests passed (62 distinct tests), plus compile
+and whitespace checks. The response tests require Transformers 5.17.0; the first
+attempt used an older ambient package and had four import/API errors, then passed
+with the actual runtime version. Not a full application/build test run.
+
+## 2026-09-10 Open-Weight Reasoning Rejected; Corpus Evidence Checks
+
+GPT-OSS120 completed all 30 cases, not merely loading:
+`oss120_20260910T142628Z`, `fc-01M25VD3Q656N48C4381ZDPRAE`.
+One H100, 511.85 seconds total, no parse/empty/length/repetition flags. Yet Twi
+medical replies lose essential meaning and give inappropriate guidance;
+long general replies are garbled. No replacement/teacher acceptance. Read
+`docs/oss-response-comparison-20260910.md` and the actual decision artifact.
+No 20B trial was launched from this result. Do not resubmit OSS120.
+
+Native-answer evidence review is complete, call
+`fc-01M25VP9J0KZ3T8XPBT01RZHXT`, 119 inputs, 272.08 seconds. Passed 26/28
+calibration checks, not all. Original missing-reason failures now rejected;
+pronoun judgments still inconsistent. Nine new source translation flags bring
+the total to 14. Original source answers remain unchanged. Current inspectable
+artifact `tmp/native-answer-synthesis-v1/ground-review.v2.json` retains 128
+sources and 71 English-compatible source-review candidates. No automatic/gold
+training acceptance. Distinguish review visibility from a global calibration
+gate. Source event context is still missing in many standalone questions.
+
+A different, SMALL native-language comparator has now completed:
+`ghananlpcommunity/MiniCPM5-1B-Twi`, pinned
+`d807ca1a3323972afafabff8f9affe2639e37b5c`. Its card describes extended Twi
+vocabulary, substantial language pretraining and acknowledged reasoning/factual
+weaknesses. This is a fluency-focused experiment, not another size upgrade or
+project fine-tune. Private app `ghana-native-fluency-comparison`, receipts in
+`tmp/native-fluency-comparison/`. Retry 2 completed all 27 non-tool cases in
+356.49 seconds: `minicpm_twi_20260910T151419Z`,
+`fc-01M25Y4P40NXK4KZMRH22GKNRZ`. All 27 reached the answer-token ceiling and
+failures include English instructions, quantities, invented commerce contacts
+and lost health context. NOT accepted for chat/teacher use. Do NOT resubmit.
+First attempt failed before generation on a loader dependency; CPU loading then
+CUDA transfer fixed that, with an actual CPU forward preflight before retry.
+See `docs/native-fluency-comparison-20260910.md` for hashes and limitations.
+No public data uploads or changes to voice A/UI.
+
+Completed data experiment: `scripts/translate_native_questions.py`, artifacts
+in `tmp/native-question-translation-v1/`. It uses the already prepared Afrique
+9B translator for 117 English questions from 71 source-review candidates,
+followed by back-translation. Original Twi answers are immutable. New unchanged
+training demonstrations 66150/71191/67230 are source-group-disjoint from the
+candidates and held-out data. Both stage receipts and the final export are complete;
+do not duplicate submit. Back-translation is same-model diagnostics, NOT
+independent verification or training acceptance. Source-dependent news claims
+must retain supplied context rather than being presented as current facts.
+
+New public source inspected: `ghananlpcommunity/gooaq-twi-2m`, pinned metadata
+revision `46e9e7e6f55bb2abfd80f07b797435c24de82661`. Preview shows real QA shape
+but clear defects (unsupported mg-to-mL conversion, changed math operands,
+and poor translations). Not bulk-imported or accepted. The reasoning-translation
+corpus also reuses the previously rejected pristine/ghana-chat source families;
+its use of the term gold is not independent human verification.
+
+All older running/preparation snapshots below are historical where superseded.
+
+## 2026-09-10 Foundation Comparisons: No Accepted Chat Replacement
+
+Qwen 122B comparison reached its 1,800-second ceiling, not a cancellation.
+Preserved 30 non-thinking and eight thinking outputs in
+`tmp/stronger-response-comparison/partial-final.json`. Do not resubmit.
+Qwen 3.8 27B completed all 60 outputs; actual result and diagnostic are in
+`tmp/current-response-comparison/`. Both have clear Twi meaning failures;
+neither is enabled as a teacher or chat replacement. Read
+`docs/stronger-foundations-20260910.md` for evidence, hashes, and limitations.
+
+Next comparison is the newer AfriqueQwen3.5-9B-50Langs against its own base,
+using 900 source meaning checks and 64 translation tasks, not chat prompts.
+Private app `ghana-afrique-native-comparison`; preparation call
+`fc-01M25RD3JA40KW9SY1B535NPHP` failed before GPU allocation because Xet kept a
+log open on the volume. Temporary Xet files now live off-volume and preparation
+reloads the shared cache only once. Retry `fc-01M25RP0PCDEVRDXG03Y1NBJ6X`
+completed; old receipt retained. Run `afrique9_20260910T134056Z` is submitted:
+base `fc-01M25RSRJSG4WD1DQYH65ZT49Q`, Afrique `fc-01M25RSV09TXJSMRHBGKMKJ1RF`.
+BOTH COMPLETE, 964 outputs each. Twi AfriXNLI 211/450 base versus 214/450
+Afrique; English 392/450 versus 361/450. Translation chrF++ improves 9.11 to
+41.47 into Twi, and 22.92 to 48.31 into English (32 pairs per direction).
+Strong translation signal, NOT broad understanding acceptance; raw outputs
+still make meaning errors. DO NOT resubmit. Receipts/results are in
+`tmp/afrique-native-comparison/cachefix/`. Use `uv run` for the CLI's pinned
+Modal and sacrebleu dependencies when regenerating/checking its summary.
+One A100, 1,200 seconds per variant, serial single-use containers. No training
+or response deployment is implied by a source-language benchmark.
+
+Source negation and east/west errors were flagged without rewriting records.
+The three translation demonstrations are source-separated, unchanged, and
+agent-inspected, not human verified. V5's available Twi-labeled target tokens
+were 69% health replies with no broad Twi conversation task. More training on
+that same mix is not an evidence-backed remedy for general conversation.
+
+New source-preserving question synthesis is COMPLETE:
+`native_answers_20260910T134538Z`, generation `fc-01M25S5S8C3REXTFK6AFJW9W26`.
+It uses 128 existing native answers from a 4,495-candidate general-source pool,
+generated 105 suitable-source candidates and rejected 23 in its first stage.
+Generation completed in 244.76 seconds. Independent English review
+`fc-01M25ST8NRP2J6AAZE3QCAC614` completed in 227.16 seconds, with 104 model-positive
+sources and 14/14 reviewer controls correct. Inspection STILL found false
+approvals and source-translation errors. A separate conservative triage gate
+leaves 85 sources with review candidates, not gold training acceptance.
+Artifacts: `tmp/native-answer-synthesis-v1/gated-review.json` and its summary.
+Original records/votes remain untouched. Five source errors are now flagged.
+Do not blindly scale the 104 English model approvals or retrain on bad pairs.
+No Twi answers are invented or rewritten. Read
+`docs/native-answer-synthesis-20260910.md` for commands and limitations. This is
+an explicit data experiment, not another claimed successful model fine-tune.
+
+Next bounded foundation check: openai/gpt-oss-120b, pinned revision
+`b5c939de8f754692c1647ca79fbf85e8c1e70f8a`, publisher MXFP4. Private Modal app
+`ghana-oss-response-comparison`; receipt folder `tmp/oss-response-comparison/`.
+Use `scripts/run_stronger_response_comparison.py prepare-status --model oss120`
+and submit ONCE only after preparation completes. Thirty identical saved product
+inputs, one medium-reasoning mode, 2,048 output tokens, one H100, 1,800 seconds.
+Native Harmony parser tests passed (reasoning isolation, both tool header orders,
+and exhausted reasoning never appearing as the answer). This is a self-hosted
+open-weight comparator, NOT a hosted GPT fallback, trained project model or
+public service. Preparation excludes duplicate original/metal weight exports.
+
+Private UI still runs the old pilot at 7863. Voice A, history, reviews, public
+chat, and production are unchanged. No HF upload. Older active-run snapshots
+below are historical and superseded by this section.
+
+## 2026-09-10 V5 Final Evaluation And Stronger Foundation Comparison
+
+V5 completed all 320 updates and its paired response evaluation. Run/call remain
+`response_v5_20260910T120005Z` / `fc-01M25K0ZZW2A7JX8WVTAS30VHG`.
+Final adapter hash is `407ba8f17bf9376bf031d7f4626340d382ce7d764d8b5da70e75f8bdfe677353`.
+No model has been enabled in the private UI or promoted to production.
+
+Checkpoint 100, actual paired AfriXNLI development results: Twi 271/450 for
+both base and adapter; English 408/450 base, 412/450 adapter. Corrected
+native-intent schema evaluation: 207/320 base, 206/320 adapter; literal entity
+F1 0.5894 and 0.5930. No format failures with the explicit schema. This is NOT
+a useful Twi semantic gain. Full outcomes and limitations are in
+`docs/native-understanding-v5-20260910.md`.
+
+Native intent training instructions were underspecified. Prepared
+`tmp/native-intent-v3` fixes the task contract without rewriting any source or
+target. All 4,978 records across splits verified to differ from v2 ONLY in the
+system instruction. V5 itself trained on v2 and is not silently relabeled.
+Use v3 in future training. Do not overwrite the old manifests or receipts.
+
+Gemma thinking-mode comparison at checkpoint 100 is complete: the base is more
+useful than the adapter on some responses but both have poor Twi wording. Adapter
+budgeting and breathing cases exhaust the reasoning budget without a final
+answer. No mode has been enabled in the UI. Default remains non-thinking.
+Runtime regression tests cover hiding thinking and retaining it for tool turns;
+the native template expects `reasoning`, NOT the parser's `thinking` field name.
+
+Final-adapter checks are COMPLETE, do NOT duplicate:
+
+- INJONGO schema-v2: `fc-01M25NJ313SD0P3W93TYBNGGNV`; intent 207/320 base,
+  212/320 adapter; exact records 92 versus 103; entity F1 0.5894 versus 0.6186.
+- AfriXNLI: `fc-01M25NJ3716R2YQCFYJ6522F67`; Twi 271/450 base versus 278/450
+  adapter; English 408/450 versus 409/450. Small gains, not established broad
+  conversational improvement.
+- Paired generation: 30 product and 30 source cases per variant. Four adapter
+  repetition flags versus zero base flags; breathing may only echo the request,
+  and budget/newborn/pregnancy replies regress. V5 is NOT a chat replacement.
+- Decision and actual model-card evaluations saved both locally and on the
+  private Modal run volume. `data/response-adaptation/native-v5-decision.json`
+  is the compact record. Full final run is backed up at
+  `tmp/native-understanding-v5/completed/response_v5_20260910T120005Z/`;
+  adapter hash independently verified. No HF publication.
+
+A stronger open-weight reference is being compared before another
+fine-tune on the same supervision. App `ghana-stronger-response-comparison`,
+`Qwen/Qwen3.5-122B-A10B-FP8`, revision
+`a099dee70ccfcd8d5dda56aaa0b60cb8ecadabc9`. CPU public-weight preparation call
+`fc-01M25NF5NA6JVMBV8N1B82CS5S` completed in 673 seconds. GPU run
+`qwen122_20260910T125452Z`, call `fc-01M25P5DDJB2WYV2HBMCS5J0J0`, is loading
+the 39 FP8 weight shards at this snapshot. Use
+`python3 scripts/run_stronger_response_comparison.py status`; do NOT resubmit.
+The comparison is capped at 30 minutes on two H100s, 30 saved product
+cases in publisher non-thinking and thinking modes. References stay local;
+no private audio, no proprietary model call, no training or public service.
+This external foundation is NOT our fine-tune and must not be represented as one.
+
+The older submission snapshots below are superseded by this section.
+
+## 2026-09-10 Native Understanding V5 Is Training
+
+Latest: `response_v5_20260910T120005Z`, call
+`fc-01M25K0ZZW2A7JX8WVTAS30VHG`, app `ghana-native-understanding-v5`.
+Real updates confirmed at 12:02 UTC. Poll with
+`python3 scripts/run_response_adaptation.py status --experiment native-v5`.
+No duplicate submit. Read `docs/native-understanding-v5-20260910.md` first.
+
+V4 was agent-stopped at 11:55 UTC after Twi response regressions at checkpoints
+150/200; last observed logged step 210. This is NOT an unknown cancellation.
+Its checkpoint-100 AfriXNLI dev score is 270/450 Twi versus 271/450 base;
+English is unchanged at 408/450. No meaningful semantic gain or promotion.
+The valid calculator failure was our punctuation guard, now fixed and actually
+retested. Raw results, failed attempts and the quality-stop decision are preserved.
+
+V5 uses 10,341 tokenized training examples, 905 validation, attention-only LoRA
+on fresh Gemma 31B. Added source-verified native intent/entity targets (2,240 Twi,
+1,157 English) and 1,200 unchanged Twi-to-English source pairs. Valid INJONGO
+source package is `tmp/native-intent-v2`, not v1 (colliding upstream IDs were
+caught before training). Official test overlap excluded, no synthetic response
+inflation, and no AfriXNLI training. CPU backward/save/reload preflight passed.
+
+Private inference/evaluation supports V5, but NO new UI selection is enabled.
+The local tester on 7863 still uses the old pilot; owner voice A and reviews
+are unchanged. Source-based native intent evaluation and 450-pair bilingual
+meaning checks are ready; obtain actual checkpoint hashes and inspect results
+before enabling any model. No production or HF publication in this work.
+
+The older V4 submission checkpoint below is superseded.
+
+## 2026-09-10 Grounded Response V4 Submitted
+
+Active run `response_v4_20260910T111126Z`, call
+`fc-01M25G7X11X29BAE952HHW73HS`, app `ghana-semantic-response-v4`.
+Receipt `tmp/semantic-response-v4/run-receipt.json`. Poll:
+`python3 scripts/run_response_adaptation.py status --experiment semantic-v4`.
+Deploy recipe explicitly with `GHA_RESPONSE_RECIPE=semantic-v4 modal deploy
+modal/train/train_response_adaptation.py`. Do not deploy/submit the default V2 by
+mistake. No duplicate submission. Local disconnect does not cancel the job.
+
+V3 completed 691 updates and 30 paired + 24 unpaired source checks. It learned
+response termination and some useful English/tool behavior, but still reverses
+Twi negation and fails medical/context checks. NOT accepted or enabled in the UI.
+Read `docs/afrique-response-v3-20260910.md` for actual evidence, decoding caveats,
+artifacts, and the next corpus correction. New V4 uses a fresh stronger instruction
+base at lower LR, 1,000 no-tool-with-schema contexts, and pinned source-grounded
+Twi QA. It has 5,744 tokenized training / 585 validation rows. Native train/save/
+reload preflight passed. Broader native conversation and clinical supervision
+are still insufficient; do not claim a finished model or human-verified corpus.
+
+Private runtime supports V2, V3 and V4 with explicit checksum-bound selection,
+stream parsing and bounded calculation. The model picker code is prepared but
+NO new selection file is enabled; running local UI on 7863 still uses the old
+pilot. No public app, HF publication, or TTS deployment in this work.
+
+The following V3 submission checkpoint is superseded by its completed outcome.
+
+## 2026-09-10 Afrique V3 restarted after checkpoint-storage fix
+
+Active run: `afrique_v3_20260910T103220Z`, call
+`fc-01M25E0ACC7AEHZYHXJV4HPJ2E`, app `ghana-afrique-response-v3`.
+Receipt: `tmp/afrique-response-v3/savefix-run-receipt.json`.
+Poll with `python3 scripts/run_response_adaptation.py status --experiment afrique-v3
+--receipt tmp/afrique-response-v3/savefix-run-receipt.json` (one command).
+Do not submit a duplicate. This is fresh SFT, not a resumed checkpoint.
+
+Earlier V3 run `afrique_v3_20260910T102035Z` failed at its first save after
+100 updates: PEFT's automatic embedding check tried to fetch base config into
+the read-only default HF cache. Only a README exists in checkpoint-100; there are
+NO trained weights to resume. The original receipt and 30 base outputs remain.
+Saving now explicitly excludes frozen embeddings, refuses trainable embeddings,
+uses the correct cache with offline access, and runs an actual adapter save before
+training. Revised CPU preflight passed a backward step AND checkpoint save/reload
+with the real base ID/revision. `adapter_checkpoint.py` owns this contract.
+
+Private response runtime now supports Gemma and Afrique families with pinned
+weights, native parsing, and real bounded calculation. Six parser/tool tests pass.
+The local UI code supports an explicit family-bound selection in
+`tmp/research-playground/private-selection.json`; NO selection has been enabled
+and the running UI has not been restarted. It still serves the old pilot.
+
+## Balanced response rejected; Afrique instruction SFT
+
+The v2 run described below was deliberately stopped at **234 updates**, September
+10 at 10:09:23 UTC, by this agent after paired checkpoint-100 and checkpoint-200
+response regressions. This was NOT another unexplained cancellation. Decision:
+`data/response-adaptation/response-v2-decision.json`. No v2 private UI or production
+promotion; no completed 54-case final evaluation. Raw early comparisons are in
+`tmp/response-adaptation-v2/`; read `docs/response-adaptation-20260910.md`.
+
+Next is actual instruction SFT on `McGill-NLP/AfriqueQwen3.5-4B-50Langs`, not the
+previous failed instruction-vector merge. Native tokenizer vocabulary agrees with
+the pinned Qwen instruction tokenizer. The new source-preserving mix removes all
+1,794 general-source machine-translated rows across splits; 5,521 raw training
+examples and 334 validation examples remain. General conversation supervision is
+English; Twi conversation breadth remains a limitation, not a solved corpus task.
+
+Scripts: `build_afrique_response.py`, `modal/train/train_afrique_response.py`;
+deployed app `ghana-afrique-response-v3`. Preflight/submission/status use
+`scripts/run_response_adaptation.py --experiment afrique-v3`. Inspect the saved
+receipt before any submit. The current submitted run is identified above.
+
+## Earlier v2 submission checkpoint (superseded)
+
+This supersedes the older "no training is running" checkpoint below. Deployed
+normal Modal function (not a client-bound generator) was submitted once:
+
+- Run: `response_v2_20260910T093637Z`
+- App: `ghana-response-adaptation-v2`, `ap-ztiul450rx2RXsxNviRpeg`
+- Call: `fc-01M25AT9XSS7Y5747JPEHJQ868`
+- Receipt: `tmp/response-adaptation-v2/run-receipt.json`
+- Confirmed at 09:45 UTC: 60/320 updates on one H100, checkpoint 50 saved.
+- Poll with `python3 scripts/run_response_adaptation.py status`. Pending is not
+  failure. Do not submit a duplicate because the local process disconnects.
+
+Fresh rank-16 LoRA on pinned Gemma 4 31B instruction base, not the failed
+translation adapter or external weights. 7,221 tokenized training examples:
+1,702 general Twi responses, 944 Twi health responses, 1,890 English conversations,
+950 English replay conversations, 1,335 schema-validated read-only tool calls,
+400 auxiliary translation examples. Validation has 426 source-disjoint examples.
+Native template/masking and a tiny backward-pass preflight passed; no target was
+silently truncated. Four data-contract tests pass.
+
+This is not a human-verified gold corpus. General Twi comes from public
+machine-translated Ghana chat material, with explicit aligned first-paragraph
+selection and six spot-check exclusions. Existing source records were not changed.
+Sources retain their original restrictions, including noncommercial/share-alike
+terms. No private recordings, conversations, or new proprietary annotation calls.
+Inputs/hashes/provenance are in `tmp/response-adaptation-v2/corpus/manifest.json`.
+
+Artifacts persist in existing private volume `ghana-health-understand-train`,
+`/response-adaptation/response_v2_20260910T093637Z/`. The bounded job saves every
+50 updates, then compares base versus adapter on 30 development scenarios and
+24 held-out source rows. Training loss is not semantic accuracy. Inspect raw
+outputs before selecting a checkpoint for the private tester. That tester still
+uses the old pilot until an explicit service update; there is no hidden GPT
+fallback and no production promotion.
+
+## 2026-09-10 owner voice preference and LLM status
+
+The owner chose **A**, the FP32 streaming version of the feeling-unwell sentence,
+over the offered B/original alternatives. Saved in local SQLite `voice_preferences`
+with the exact reply `A`, comparison question, all three audio identities and
+selected hash `efdcdf5441a8475ba615cfd5b9a4d2332ebd8def0344ec8896ba5c6231296a70`.
+This is a one-sentence preference, not an invented pronunciation/naturalness score
+or production approval. The private audition now offers `CosyVoice A` and
+`CosyVoice B` for that sentence; A is the initial audition. Other phrases retain
+their original samples. Longer speech and streaming gaps still need evaluation.
+
+LLM remains unpromoted; no training is running. A source-translation diagnostic
+`ap-l5b8d5bqOPKgQKxsJjQwOK` was cancelled remotely on September 9 at 23:43:59 UTC,
+then stopped with zero tasks. Only 12 base predictions and no adapter predictions
+were saved in `tmp/general-language-corpus/` under the checkpoint-200 filename
+ending `-paired-source-translation.jsonl`. Do not report it as a completed paired
+comparison. Cause is unknown: the system log only says the input failed to respond
+to cancellation within 30 seconds. This was not a function timeout or an agent
+quality-stop. A deployed non-generator job with a saved call ID is a proposed
+reliability improvement, NOT implemented or restarted at this checkpoint.
+
+## 2026-09-09 broader language-adaptation experiment
+
+Latest status, after the 23:17 UTC diagnostic: the fourth run was deliberately stopped by the agent
+after **281 optimizer updates**, because direct conversational checks regressed.
+This is NOT the unexplained earlier cancellation and NOT a completed epoch.
+App `ap-tEBjptzAf9vbAX2EtNJ6yk`, run
+`gemma31_language_v1_20260909T222324Z`, has zero running tasks. Checkpoints 200
+and 250 remain saved; the checkpoint-200 weights were evaluated. Do not resume
+this mixture unchanged or call lower validation loss a successful assistant.
+
+The paired 30-case check `ap-BLq4808VlC1EGgUEcjMIHx` completed: simple negation,
+arithmetic, corrected quantities and native tool calls work, but some Twi replies
+merely restate the user, budget advice becomes empty, and hospital choice loops.
+No production or private-chat model replacement. The inference-only ablation at
+quarter adapter strength completed: `ap-qeK7qtRiFTRfox9jHvanj0`. It recovered
+longer conversational answers and had no repeated-eight-word-span flags, but
+still confused hospital with church and produced unreliable baby-context and
+pregnancy replies. It is rejected too, not a new successful model. Raw paired
+outputs and `checkpoint-200-scale025-summary.json` are in
+`tmp/general-language-corpus/`. All experiment apps now have zero running tasks.
+
+Read [`language-adaptation-20260909.md`](./language-adaptation-20260909.md).
+A new public-source stage-one mix has 6,973 distinct training sources after
+tokenization: 6,028 Twi-English pairs in both directions and 945 reviewed English
+conversations, 13,001 examples. This is NOT completion of the older annotation
+corpus. Ambiguous/contradictory medical-glossary data is quarantined, not trained.
+The revised CPU preflight, including a real tiny-model backward pass, passed.
+The first two GPU attempts stopped before training on loading/API compatibility
+issues, now corrected. The third attempt `ap-iaFpsE7ITLbkhPIdd1BXzp` loaded all
+weights and reached 60/62 baseline generation checks, then was cancelled before
+training. The owner subsequently confirmed they did NOT stop that third run;
+this authorized the fourth attempt described above. No new model or voice has
+been promoted. The private tester's chat models remain the failed pilot and its
+base; its new voice audition controls do not change chat inference.
+Additional local TTS fixes preserve long replies instead of silently
+cutting at 500 characters, synthesize bounded chunks, and keep a text turn intact
+when optional speech fails. These are tested locally but NOT deployed.
+
+## 2026-09-09 foundation comparison and TTS work in progress
+
+The real speech completeness check `ap-F23dVSkiOolW8nZVw3PoYk` also passed:
+664 characters delivered across five actual synthesis calls, 40.474 seconds of
+valid audio, 10.370 seconds synthesis time; an explicit English span remained
+intact. This is a transport/integration result, not a pronunciation score.
+The stable voice revision is now pinned to the one used in the comparison.
+Neither speech service nor the public web app has been redeployed.
+
+The owner explicitly authorized temporary private Modal use of their voice
+reference, without application-volume storage or publication. Completed CosyVoice
+streaming tests found and fixed growing per-utterance buffers in the sequential
+benchmark. CUDA library discovery and the FP16 runtime are now working. Latest
+run `ap-eNG5gprZKwzY7fqmN6Iyj5`: warm first audio about 2.50 seconds on two
+phrases, first utterance 5.31 seconds, excluding model loading/network. Subsequent
+chunks still arrive late enough to create playback gaps. Not live-ready or
+native-quality accepted. No reference was written to a persistent model volume.
+
+Private tester `http://127.0.0.1:7863/?__theme=light` now has a collapsed
+**Twi voice comparison** with five choices, real generated audio and per-sample
+pronunciation/naturalness reviews. New option: CosyVoice stream (owner reference).
+Only generated samples are served, never the source recording. Chats, browser
+storage key and SQLite reviews were preserved. The tester runs as a detached
+local process; logs `tmp/research-playground/server.log`. Verify the process on
+port 7863 before any restart; do not stop unrelated Python services. No public sharing.
+Desktop/mobile tests passed audio loading, switching, reset of ratings and overflow.
+The owner has now reviewed the optimized "Feeling unwell" sample: "this sounded
+more like me, just became a bit muffled at the end." This exact observation is
+saved in local SQLite `voice_observations` against audio SHA256
+`ad416b3eb6806228e81e332f2a8efa7bf27f9f92318487fb20138d7a531ba5c7`.
+Do not convert it into invented pronunciation/naturalness scores or blanket voice
+acceptance. The same-reference tail comparison completed in
+`ap-0eQoLZNCy24g0J5IMQY4Zr`: FP16 streaming reproduced the original exactly;
+FP32 streaming changed its ending, while whole-utterance FP16 retained a quieter
+tail. Two matched-level samples were offered inline as A (FP32 streaming) and B
+(whole-utterance FP16). The owner subsequently chose A; see the latest entry. Original samples
+remain unchanged. Reports: `cosy-tail-check.json`, `cosy-tail-listening.json` in
+`tmp/twi-voice-comparison/`. Do not claim the muffling is fixed without listening.
+
+A separate external direct-response adapter diagnostic completed:
+`ap-gR867dkg5P1W9tWwOwgsVN`, `DariusTheGeek/mhqa-itu-adapters/gen7454`.
+This is not another project training run or production replacement. CPU shape
+validation passed before the bounded 30-pair GPU comparison. Specific breathing
+and pregnancy interpretations improved, but repetition and an invented commerce
+function reject it as a product replacement. See the foundation report for exact
+provenance, outputs and restrictions; do not relabel it as our model. Both latest
+experiments have completed, and no additional training was started.
+
+Latest user rejects Pilot v1 and asks to expedite, including poor TTS. Active
+goal is a materially better general Twi-English assistant with health and commerce
+specializations, direct final responses and a tested tool path. Do not mark the
+goal complete after more scaffolding or another failed pilot. No new OpenAI calls.
+
+Read [`foundation-comparison-20260909.md`](./foundation-comparison-20260909.md)
+for current scripts, run IDs, measured failures, artifacts and next experiments.
+Both a ready African instruction checkpoint and Qwen3.5-9B failed direct Twi
+meaning tests. The Twi-CPT instruction-transfer candidates and Gemma 4 12B also
+failed. Gemma 4 31B handles more general meaning and tool requests, but still
+misreads important Twi health phrases. It is not promoted. All these benchmark
+runs have completed; the subsequent SFT outcome is documented above. TTS samples are complete, including
+three from Twi-trained CosyVoice using the owner's reference. The latter preserved
+more words in a tiny ASR diagnostic, but native listening is still unrated. Two local
+TTS routing bugs are fixed and tested but not deployed. Keep the model goal active.
+
+## 2026-09-09 general-purpose scope and private pilot tester
+
+The user clarified: general Twi-English understanding and response generation is
+the overarching goal; health education is special expertise, alongside ecommerce
+and tool use such as web search. Do not narrow the goal to medical QA, intents or
+structured output. The updated research direction is
+[`general-understanding-roadmap.md`](./general-understanding-roadmap.md).
+
+The 95-source pilot remains unsuccessful and unpromoted. It is now accessible
+for private, honest testing through `scripts/research_playground.py` at
+`http://127.0.0.1:7863/?__theme=light`. Separate Modal app:
+`ghana-understanding-pilot-private`, class `Pilot`, in
+`modal/research_pilot_service.py`. There is NO public HTTP endpoint, production
+route change, model upload to HF or proprietary LLM fallback. Existing model
+weights are mounted read-only; the adapter checksum is checked before loading.
+One L4, zero warm minimum, 60-second idle scale-down, bounded generation.
+Only chat requests trigger inference. Test conversations go to Modal for
+processing; no additional application corpus archive was uploaded.
+
+The playground switches between the untouched MiniCPM Twi base and the pilot,
+streams raw replies, retains the current conversation in browser storage and
+saves ratings/corrections with actual inference provenance in local SQLite:
+`tmp/research-playground/reviews.sqlite3`. These are not automatically train-eligible.
+Automated UI test reviews must never be counted as human gold.
+Local dependencies: `scripts/requirements-research-playground.txt`.
+
+Real inference worked for both model choices. The same Twi personal-budget
+question produced tangential institutional-budget explanations from both;
+the pilot did not demonstrate the general competence the user wants.
+Browser refresh restored the conversation, a correction was saved and
+the stop control recovered the composer. CPU contract tests pass.
+No new training or corpus annotation was run during this tester work.
+
+Final verification: mobile 390x844 has no horizontal overflow and the composer
+is visible; desktop and mobile screenshots were inspected. Send/stop buttons
+have accessible labels. History survives a server restart through a stable,
+locally stored browser-state key. Both Python suites pass (8 tests total).
+One final direct inference returned 44 streamed chunks, 61 output tokens,
+6.385 seconds of decoding and a normal stop. It ignored an explicit request
+to reply in English and answered in Twi. Preserve that as a language-following
+failure, not a positive model-quality result. Call ID:
+`fc-01M23VM3PYXWVK0P2EQ7CBQKQY`.
+The local server is backgrounded, with logs at
+`tmp/research-playground/server.log`. It is not a public or cross-device service.
+
+New candidate research: McGill-NLP/AfriqueQwen3.5-4B-50Langs explicitly includes
+Akan/Twi in its continued-pretraining coverage. It is a BASE model, not a ready
+instruction/tool assistant. Compare suitable language tasks first, then balanced
+SFT against a capable instruction baseline such as Qwen3.5-9B. Do not claim either
+is a measured product improvement yet. Tiny Aya Earth does not list Akan/Twi and
+is noncommercial; it is not an automatic replacement. Full sources, corpus mix,
+tool-use evaluation and runtime constraints are in the new roadmap.
+
+## 2026-09-08 saved-annotation LLM pilot
+
+The user cannot fund OpenAI with their card, confirmed they have Modal, and
+asked to try training an LLM from the 305 completed annotations. The large
+corpus goal remains incomplete. Do not restart OpenAI annotation calls.
+
+A separate, explicitly uncalibrated experiment was prepared without changing
+the normal corpus export or product promotion gates. Of 120 model-consensus
+rows, one was excluded for similarity to locked evaluation data. The remaining
+119 source records are split into 95 train / 24 pilot holdout, keeping all
+three views of each source together: Twi interpretation JSON, direct Twi reply,
+and English reply. This is 285 train examples, NOT 285 independent sources.
+The 185 unresolved annotations remain excluded. No human gold is claimed.
+
+Current production AfriHealth review decisions were read before export: zero
+records. All selected safety labels are routine; do not train a constant
+routine classifier. The pilot target omits safety and clarification labels.
+
+Run: `ap-LuiKWmw2m3er1nsJA8Q0UQ`, app `ghana-health-annotated-response-pilot`.
+Submitted with `modal run --detach modal/train/train_medical_response_pilot.py
+--acknowledge-uncalibrated`. One A100-40GB, one-hour function timeout, three
+epochs, LoRA rank 16, learning rate 0.00005, effective batch 8. Base is pinned
+MiniCPM5-1B-Twi at `d807ca1a3323972afafabff8f9affe2639e37b5c`, not the failed
+older raw-QA adapter. Training completed all 108 updates in 205.98 seconds;
+mean training loss was 1.8898. This is fitting loss, not evaluation accuracy.
+Output directory: `/data/sft/annotated_response_pilot_v1_20260908T213218Z`.
+The run and its base/adapter evaluations are complete. The pinned base revision
+was verified. Main worker elapsed time was 1,028.94 seconds; GPU-only estimated
+cost $0.60, not final billing and excluding the initial failed startup.
+
+Measured results:
+
+- Interpretation schema: base 0/24, adapter 22/24. Structured decoding is greedy;
+  this base is known to repeat with greedy decoding. Do not equate this format
+  gain with semantic competence. Free-text evaluation used documented sampling.
+- Adapter intent agreement: 13/24 (54.2%) against uncalibrated model labels,
+  below the majority-class baseline 14/24 (58.3%). Only 6/24 interpretations
+  passed the all-entities question-grounding check.
+- Pilot held-out Twi reply chrF++: 23.62 base, 22.95 adapter. English: 12.03 to 25.91.
+- Original locked-source Twi reply chrF++: 30.30 to 16.65. English: 14.87 to 20.56.
+  These are wording-similarity measures, not human correctness. References are
+  often longer than the concise target style, which can affect similarity.
+- Critical product lexical checks: base 1/8, adapter 0/8. All product checks:
+  base 2/13, adapter 1/13. These checks do not constitute clinical validation.
+- Manual inspection found Twi copied into the English-meaning field and a
+  pregnancy-prevention question mistranslated into setting up a "space".
+
+Decision: save as an unsuccessful semantic/direct-response pilot, NOT a better
+production model. It learned much of the format but did not demonstrate the
+required understanding. No deployment or HF push occurred. The result does not
+justify more epochs of this same narrow recipe or treating the 305 annotations
+as a verified clinical corpus. Test stronger base/mix alternatives with these
+same fixed checks and fix corpus coverage before claiming progress in semantics.
+
+The additional permanent Modal archive of the input corpus was blocked by the
+permission review. It was not uploaded or worked around. The user was asked
+whether they approve that extra retention; no answer at this checkpoint. Inputs
+remain in local `tmp/medical-response-pilot/v1`. Weights and reports persist on
+Modal; local downloads are under `tmp/medical-response-pilot/run-20260908/`.
+
+September 9 close-out: the recursive local optimizer-checkpoint download stalled
+and was interrupted. It did not keep the training GPU running. The separately
+downloaded complete adapter was verified (336 tensors) and restored into the
+local run directory. SHA-256:
+`294fd2815664c0b3140927dc637e5df35fc43563eaa9d8c5bb48f3678c2762de`.
+All 14 root JSON artifacts parse, including tokenizer, metrics and predictions.
+The incomplete optional checkpoint subdirectory is clearly named
+`checkpoints.incomplete-download`; do not use it to resume training. The remote
+checkpoint remains intact. No local download or GPU process remains running
+for this experiment.
+
+Readable comparison with all 93 base/adapter free replies:
+`tmp/medical-response-pilot/run-20260908/annotated_response_pilot_v1_20260908T213218Z/comparison.md`.
+Measured repository summary:
+`data/medical-response-corpus/afrihealth-annotated-pilot.v1.summary.json`.
+The model card is saved as `README.md` beside the adapter on Modal and locally.
+
+Initial app `ap-aZh3Q8bemN4nHLudCDTVZR` failed during module import because
+Modal relocates the file to `/root`. It was explicitly stopped; training did
+not start there. Conditional local mounts and remote-safe root handling fixed
+the issue, verified with a simulated relocated import. The built image was
+reused by the corrected submission.
+
+Full plan, limitations, reproduction and artifact paths:
+[`docs/medical-response-pilot.md`](./medical-response-pilot.md).
+Local artifact directory: `tmp/medical-response-pilot/v1`. Core contracts,
+TypeScript, lint, source-group isolation, unchanged strict export, Python
+contracts and real-tokenizer validation passed. Maximum training length is
+510 tokens; no targets were truncated. The tokenizer's inference-only empty
+think prefix is preserved during supervised training.
+
+## 2026-09-07 full-corpus execution checkpoint
+
+The user explicitly asked to finish the dataset goal. We started the full
+4,407-source Twi training run, not another reference-only benchmark. It stopped
+after the provider returned HTTP 429 `credit_balance_exhausted` again. A read-only
+check verified the configured annotation hostname is `api.openai.com`.
+
+Actual results:
+
+- `data/medical-response-corpus/afrihealth-teacher-v3-train.jsonl` has 305 complete
+  annotations: the 12 saved rows plus 293 newly completed this run.
+- 120 have model consensus; 185 need review. The grounding audit identifies
+  28 selected rows with non-question entity spans; all 28 are in review, none
+  in consensus. This is not proof of full semantic or medical correctness.
+- 4,102 Twi training-source annotations remain. One row also hit an invalid
+  model entity shape (object instead of string): `afrihealth_akan_6842e1caa2d13722b6f3`.
+  The raw output is retained; it must be repaired or explicitly excluded, not
+  silently coerced into a label.
+- Both complete annotations and partial paid teacher-stage caches were retrieved
+  from the VPS. The stopped container has finished; no paid annotation job is
+  currently running. Do not claim the goal completed.
+- The local review data reader now prefers the 305-row v3 batch over the old
+  62-row reference. This data-reader change has NOT been deployed to production.
+- Strict annotated export still admits zero rows: no passing v3 calibration or
+  local saved human reviews were supplied. Output is in
+  `tmp/afrihealth-annotated-corpus/v3/`. No production-review count was asserted
+  from this local-only export.
+
+Broader source work completed:
+
+- Added `data/annotated-source-corpus/sources.v1.jsonl`, containing original
+  English AfriHealth and existing WAXAL/GhanaNLP text sources, with provenance,
+  task separation, hashes, retained splits and exact held-out deduplication.
+- Its training pool is 8,451: 4,402 original English QA, 2,249 GhanaNLP and
+  1,800 WAXAL. Together with 4,407 Twi QA, the target is 12,858 source-training
+  records. This is NOT 12,858 annotated/accepted records.
+- Excluded synthetic symptom rows, seeds, and local recordings from this new
+  pool as requested. Speech datasets are understanding-only, not invented QA.
+- Added `scripts/annotate-source-corpus.ts`: two teachers plus adjudicator,
+  a shared explicit intent/urgency rubric, question-only entities, conditional
+  reference-backed replies, raw request audit, checkpoints and source-hash guards.
+- Its live model check has NOT run because the existing API credit balance
+  was exhausted. The full local mock-service contract test passed, including
+  all three stages and zero new calls when resuming completed output.
+- Added stable work-plan sidecars. The Twi resume plan recovers paid cached
+  multi-row groups instead of regrouping every unfinished row. Completed labels
+  are not overwritten while finishing their incomplete batch partners. Source
+  selection changes fail closed; `--dry-run` checks plans without paid requests.
+- Fixed the Twi circuit breaker so a known funding failure stops subsequent
+  teacher stages and recursive requests, not just new top-level chunks.
+
+API audit for this full Twi attempt (not a dollar charge estimate):
+
+| Returned model | Successful request attempts | Input tokens | Output tokens |
+| --- | ---: | ---: | ---: |
+| gpt-5.4-mini-2026-03-17 | 120 | 226,548 | 250,166 |
+| gpt-5.5-2026-04-23 | 101 | 190,793 | 415,752 |
+| gpt-5.6-sol | 82 | 534,669 | 135,915 |
+
+These totals include cached partial stages and schema retries, not just the
+293 fully completed rows. They exclude the prior calibration and 12-row run.
+An asynchronous question asked the user which provider and amount they topped
+up; no answer has arrived at this checkpoint. Do not assume their remaining
+balance or ask for an unexplained refill. Confirm a spending ceiling and use
+the saved usage to budget the remaining work.
+
+Next: finish funding clarification, live-test the English/language runner on a
+separate output, resume the saved Twi plan, annotate the remaining source pool,
+resolve label/risk disagreements, and run real validation/export gates. Do not
+train a placeholder corpus, bypass calibration, or substitute the old 7,000
+synthetic symptom rows. The generic English/language annotated training exporter
+and final integrated corpus quality report still need completion after live
+outputs are available. No new model was trained or deployed in this pass.
+
+## 2026-09-06 funded annotation restart (23:56 UTC)
+
+The user replenished API credits. Funding is now verified by completed model
+requests, not just authentication. No provider error occurred in either run:
+
+- `afrihealth-teacher-v2-calibration.jsonl`: 62/62 completed, with two teachers
+  and adjudication. These repeat the fixed reference IDs; they are not 62 new
+  source records. Preserve the original v1 reference unchanged.
+- The v2 comparison failed: 82.3% intent agreement, 82.3% safety agreement,
+  67.7% source-answer assessment agreement, and 71.0% mismatch review capture.
+  The reference is model-assisted, so these are consistency metrics, not
+  accuracy against human gold. Report: `afrihealth-teacher-v2-calibration.gate.json`.
+- Inspection exposed answer-to-question entity leakage, including medicines,
+  locations and people introduced only in the reference answer. All 62 selected
+  proposals contain at least one entity outside the question's lexical spans.
+  This does not mean every entity or meaning is wrong; it means the proposals
+  fail the new question-only extraction contract. The 24 old model-consensus
+  labels are not cleared for training.
+- Teacher-v3 explicitly separates question interpretation from reference-answer
+  assessment. Entities must be spans of the original question. Deterministic
+  annotation and export guards reject ungrounded model entity labels, even if
+  the models agree. Resuming into a different prompt/model output now fails
+  before any paid request, instead of mixing pipelines.
+- `afrihealth-teacher-v3-grounding.jsonl`: 12 previously unannotated structural-pass
+  training-source rows, no overlap with the 62 reference IDs or held-out split.
+  All 12 completed and all selected entities passed the lexical grounding check;
+  10 have model consensus and two need review. This is a bounded contract check,
+  not a passing semantic calibration or a training-ready corpus.
+- Audit both runs with `pnpm eval:medical:afrihealth:question-grounding
+  --annotations <file> --strict`. The JSON reports retain per-row violations.
+- Both isolated research containers finished. Results and raw model/usage
+  checkpoints were retrieved locally. No live app or model was deployed.
+
+Next work is annotation quality, not more credit troubleshooting: examine the
+reference disagreements, define ambiguous intent/safety label boundaries, and
+validate teacher-v3 on representative real data before bulk acceptance. Inspect
+coverage too: the latest hash sample is largely adolescent policy/rights QA,
+not a representative patient-conversation evaluation. Broader original-English
+source annotation is still needed for the 7,000 unique-source target. Do not
+increase counts by duplicating translated views or mark these model rows human
+reviewed. The older funding-blocked notes below are historical.
+
+Checks passed: TypeScript, targeted ESLint, annotation-client tests, export
+tests (including answer-only entity rejection), mixed-pipeline resume refusal,
+and the v3 lexical grounding audit. The v2 consistency and grounding audits
+fail as expected; their results have not been overridden.
+
+## 2026-09-06 annotation-system checkpoint
+
+Latest correction and completed work (02:49 UTC):
+
+- The production OpenAI key is valid. The earlier HTTP 401 came from passing
+  the quoted Infisical export directly to `docker run --env-file`. A comparison
+  confirmed that removing the file's outer quotes matched the running app's
+  key. Do not rotate the key on the basis of that earlier diagnosis.
+- A real completion through the active credential now returns HTTP 429
+  `credit_balance_exhausted`. The corrected 62-row teacher-v2 run stopped with
+  zero new annotations. A later one-request probe confirmed the same result.
+- The account needs API funding before model annotation can continue. The
+  production review table has zero AfriHealth reviews at this checkpoint.
+- Added `scripts/run_afrihealth_annotation_remote.py`: it reads the running
+  app's parsed provider variables into memory and passes only those to an
+  isolated research container. It never writes a new secrets file.
+- Added a research-only annotation client with per-stage resumable checkpoints,
+  raw outputs, returned model IDs, token usage, request IDs, and timeouts.
+  Authentication and exhausted-credit errors stop the job without splitting
+  the corpus into repeated failing requests.
+- `--train-only` now intersects the deterministic training pool (4,407 Twi
+  records), rather than including every upstream training record. `--reference`
+  selects the existing real-data calibration IDs.
+- Added `pnpm corpus:medical:afrihealth:export-annotated`. It consumes AfriHealth
+  sources, candidate annotations, and reviewer selections; `--reviews-db` reads
+  Postgres directly and fails if that read fails. The older response export did
+  not include these source records.
+- Export checks reject unmatched/failed pipeline calibration, stale selections,
+  changed source hashes, reviewer exclusions, and held-out overlaps. Human
+  Twi corrections do not inherit stale English reply translations. Clarification
+  comes from the selected label, not the presence of text in an ambiguity field.
+- Paired Twi/English examples retain one source identity and split. They do not
+  count as two unique sources. The full 7,000-unique-source target still needs
+  the broader source annotation work; the 4,407-row Twi lane alone cannot meet
+  that target by doubling translated views.
+- The current strict export admits zero rows: no matching passing calibration
+  or saved human review is available. This is an incomplete corpus, not a
+  completed training export.
+
+Current corpus boundary:
+
+- 8,809 balanced research-train rows: 4,407 Twi and 4,402 English.
+- 2,198 locked evaluation rows: 1,102 Twi and 1,096 English.
+- 5,569 immutable AfriHealth Twi source question-answer rows.
+- 62 stronger dual-teacher annotations used as a calibration reference, not
+  human gold: 31 silver consensus, 31 review, 27 training-eligible.
+
+Do not bulk-run the current open-only annotator. Its 58-row overlap with the
+stronger reference failed the new calibration gate: 56.9% intent agreement,
+72.4% safety agreement, 69.0% source-answer-assessment agreement, and 55.0%
+mismatch-review capture. Qwen3.5-35B plus NLLB remains a useful independent
+proposal path, not accepted training truth. NLLB's CC-BY-NC-4.0 licence also
+prevents treating its output as a clean commercial training source.
+
+Completed in the latest pass:
+
+- Fixed wrapped-JSON field loss in the Modal annotator and importer.
+- Added complete-schema checks and one repair generation for each teacher and
+  adjudicator.
+- Retained raw and repaired outputs, hashes, and attempt counts for audit.
+- Added `scripts/evaluate-afrihealth-annotation-calibration.ts` and the package
+  command `pnpm eval:medical:afrihealth:annotation-calibration`.
+- Changed bounded Modal checks to eager vLLM execution after compiled startup
+  stalled across two GPUs.
+- Modal run `ap-dJE2ONzSTftdrzUs9d4dAe` passed the corrected plumbing: 4/4
+  direct proposals, 4/4 pivot proposals, 4/4 adjudications, and 4/4 importer
+  acceptance. This is a plumbing pass, not a semantic-quality pass.
+- TypeScript, targeted ESLint, Python compilation, and the four-row import
+  check passed.
+
+External dependency:
+
+- The checkpointed teacher-v2 job is ready to run with meaning-first and
+  safety-first teachers plus a separate adjudicator.
+- Infisical Universal Auth currently returns HTTP 502 locally.
+- The production server contains only `OPENAI_API_KEY`; the corrected launch
+  confirms it is valid but API credits are exhausted (HTTP 429).
+- No alternate strong-teacher provider key is configured on the server.
+
+Resume sequence:
+
+1. Replenish the annotation account's API credits. Do not rotate the valid key
+   or put it in a local `.env` file.
+2. Run teacher-v2 on a small real AfriHealth calibration batch and import it.
+3. Compare it with the fixed 62-row reference and manually inspect the
+   disagreement/safety sample. Do not call either set human gold.
+4. Only after the gate passes, run checkpointed training-source annotation in
+   shards. Keep the 2,198-row evaluation set locked.
+5. Export high-confidence silver plus human-reviewed disagreement rows, retain
+   balanced English replay, train the joint semantics-and-response model, and
+   publish only with a complete Hugging Face model card and measured gates.
+
+Resume the corrected calibration on the VPS after syncing the current scripts:
+
+```bash
+python3 /opt/ghana-health-ai/research-annotation-v2/scripts/run_afrihealth_annotation_remote.py \
+  --name gha-research-annotator-calibration-v2 -- \
+  --limit 0 --reference data/medical-response-corpus/afrihealth-akan-annotations.v1.jsonl \
+  --chunk-size 2 --concurrency 6 \
+  --out data/medical-response-corpus/afrihealth-teacher-v2-calibration.jsonl \
+  --summary data/medical-response-corpus/afrihealth-teacher-v2-calibration.summary.json
+```
+
+## 2026-09-06 bilingual response-model checkpoint
+
+Completed:
+
+- Built a deterministic pinned Ghana corpus from AfriHealth-QA: 11,116 source
+  rows, 8,809 balanced research-training rows, 2,198 locked validation rows,
+  and 109 isolated review/reject rows.
+- Trained a LoRA over `ghananlpcommunity/MiniCPM5-1B-Twi` for 600 steps (about
+  1.09 epochs) on Modal. Train loss was 1.936 and in-training eval loss 1.896.
+- Added a proprietary-judge-free base-versus-adapter evaluation over 64 Twi and
+  64 English held-out rows plus 13 product cases.
+- Rebuilt the corpus and reproduced all artifact hashes exactly.
+- Lint, TypeScript checks, Python compilation, and the Modal evaluation runner
+  passed.
+
+Decision:
+
+- Do not publish or deploy this checkpoint.
+- English chrF++ improved from 14.44 to 23.49 and language matching improved
+  from 50% to 98.44% overall.
+- Twi chrF++ regressed from 27.46 to 22.22.
+- Product cases improved only from 2/13 to 3/13; critical cases stayed at 0/8.
+- Generated failures included invented diagnoses, medicines, and unsafe
+  reassurance.
+
+Canonical record:
+
+- `data/medical-response-corpus/afrihealth-response-run.v1.summary.json`
+- Full local evaluation artifact: `tmp/response-eval-full.v1.json`
+- Full Modal adapter path:
+  `/data/sft/ghananlpcommunity_MiniCPM5-1B-Twi_afrihealth_bilingual_response_v1_full`
+
+Next training stage:
+
+1. Build a model-proposed, human-adjudicated response curriculum with explicit
+   normalized Twi, faithful English meaning, intent, entities, ambiguity,
+   safety level, and concise Twi/English response fields.
+2. Use two or three proposals per row and prioritize disagreement,
+   safety-critical, code-switch, negation, and prior product-failure clusters.
+3. Retain balanced English replay and the same locked evaluation set.
+4. Train the joint semantics-plus-response model and require every promotion
+   gate to pass before Hugging Face publication or app exposure.
+
 ## 2026-08-28 understanding research checkpoint
 
 Current checkpoint:

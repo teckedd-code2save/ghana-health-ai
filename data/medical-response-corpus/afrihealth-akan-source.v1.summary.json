@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "source_dataset": "ImhotepSystems/AfriHealth-QA",
+  "source_revision": "61befdaa19e12afdbf9032a602067f0daa3e6c68",
+  "source_url": "https://huggingface.co/datasets/ImhotepSystems/AfriHealth-QA",
+  "license": "cc-by-sa-4.0",
+  "license_evidence_url": "https://zindi.africa/competitions/multilingual-health-question-answering-in-low-resource-african-languages-challenge/discussions/33230",
+  "rows": 5569,
+  "rows_by_source_split": {
+    "train": 4455,
+    "validation": 1114
+  },
+  "empty_question_rows": 0,
+  "empty_answer_rows": 0,
+  "duplicate_question_rows": 0,
+  "unique_record_ids": 5569,
+  "question_characters": {
+    "min": 3,
+    "median": 134,
+    "p90": 226,
+    "p99": 318,
+    "max": 573
+  },
+  "answer_characters": {
+    "min": 18,
+    "median": 504,
+    "p90": 936,
+    "p99": 1394,
+    "max": 3252
+  },
+  "source_files": [
+    {
+      "split": "train",
+      "path": "tmp/external/afrihealth-qa/train.parquet",
+      "url": "https://huggingface.co/datasets/ImhotepSystems/AfriHealth-QA/resolve/61befdaa19e12afdbf9032a602067f0daa3e6c68/train.parquet",
+      "sha256": "4ecf6479b2f7fb2207a5380e6472a8c4918dca28f55453b3f5d08dfee0837e50",
+      "bytes": 9032742,
+      "answered_akan_rows": 4455
+    },
+    {
+      "split": "validation",
+      "path": "tmp/external/afrihealth-qa/validation.parquet",
+      "url": "https://huggingface.co/datasets/ImhotepSystems/AfriHealth-QA/resolve/61befdaa19e12afdbf9032a602067f0daa3e6c68/validation.parquet",
+      "sha256": "fb01097d04e426de9c5e883437c9c9f90eb753f34728552526e6d7d39c203eed",
+      "bytes": 2121271,
+      "answered_akan_rows": 1114
+    }
+  ],
+  "output": "data/medical-response-corpus/afrihealth-akan-source.v1.jsonl",
+  "training_gate": "Source rows are not training-eligible until separate multi-model annotations pass agreement, faithfulness, safety, and held-out leakage checks."
+}

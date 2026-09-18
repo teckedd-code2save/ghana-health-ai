@@ -1,0 +1,79 @@
+{
+  "run_id": "afrique_v6_20260910T222142Z",
+  "training_call_id": "fc-01M26PK73KPNMVXAHKC1H3VF8H",
+  "model": "McGill-NLP/AfriqueQwen3.5-9B-50Langs",
+  "revision": "4358dcbc062421751174279da1efe9f88f85e1d5",
+  "adapter_sha256": "b4aa2162ae27a4c6997ec9f88bc171ca2134c457922bb1483c460eff920be510",
+  "completed_updates": 400,
+  "training_seconds": 1706.1745,
+  "total_seconds": 2188.969329465,
+  "decision": "Not accepted as a general Twi conversational or health assistant",
+  "review_type": "Agent inspection of actual prompts, raw completions and private serving traces; not native-speaker or clinical certification",
+  "production_promoted": false,
+  "private_ui_selected": false,
+  "subsequent_private_audition": {
+    "date": "2026-09-11",
+    "user_requested": true,
+    "private_ui_selected": true,
+    "selection_file": "tmp/research-playground/private-selection.json",
+    "acceptance_decision_changed": false,
+    "followup_evidence": "data/response-adaptation/greeting-v6-decision.json",
+    "note": "The top-level selection flag records the original pre-audition decision, not the later user-requested tester activation."
+  },
+  "public_hf_upload": false,
+  "proprietary_response_fallback": false,
+  "diagnostics": {
+    "development_cases_per_variant": 30,
+    "development_base_length_limits": 30,
+    "development_adapter_length_limits": 0,
+    "development_base_repetition_flags": 25,
+    "development_adapter_repetition_flags": 0,
+    "source_validation_cases_per_variant": 48,
+    "source_validation_adapter_length_limits": 6,
+    "source_validation_adapter_repetition_flags": 5,
+    "actual_history_conversations_per_variant": 6,
+    "conversation_turns_per_variant": 12,
+    "conversation_adapter_length_limits": 0,
+    "private_serving_calls": 4,
+    "private_serving_cases": 16,
+    "private_serving_calculator_executions": 0
+  },
+  "observed_successes": [
+    "Both English and Twi arithmetic prompts return 20 cedis.",
+    "The supplied Ama/Kofi context correctly identifies Kofi as travelling tomorrow. An initial commentary misjudgment was corrected; this is NOT a failure.",
+    "The tomato quantity correction is retained, and the paper quantity/price follow-up returns 12 cedis.",
+    "The English picnic follow-up retains three remaining people.",
+    "English conversation and Twi-to-English language switching are responsive on the inspected examples.",
+    "Offline available-tool fixtures generate appropriate product-search and web-search call syntax, but no search is executed."
+  ],
+  "failures_and_instability": [
+    "Negation is reversed in offline generation but correct under both private runtime profiles: instruction/context sensitivity, not a stable gain.",
+    "Without commerce tools, offline output promises delivery; greedy private output invents a 10 GHS price.",
+    "After a phone-only correction, the study-plan conversation repeats its previous reply unchanged.",
+    "The no-eggs cooking follow-up produces repetitive, inappropriate content instead of the requested clarification.",
+    "The English-to-Twi thank-you follow-up changes school-fee support into work support.",
+    "The sibling-unwell conversation repeats vague statements instead of asking about symptoms; the child-fever reply shifts to the speaker.",
+    "The newborn context elicits an unsupported mental-illness suggestion. The default runtime supplies medicine suggestions without resolving the missing age.",
+    "The explicit calculator request is echoed under greedy decoding and answered arithmetically under the app default; neither makes the requested tool call."
+  ],
+  "limitations": [
+    "The CPT base is untrained for chat; termination gains do not establish superiority to the previous pilot or a capable instruction baseline.",
+    "No full held-out intent, NLI or translation benchmark was run after adaptation.",
+    "The first eight validation intent examples all belong to alarm; do not call them representative intent accuracy.",
+    "Repetition flags require four repeated eight-word spans and miss shorter/less frequent repetition.",
+    "The isolated eye/sleepiness phrase has an ambiguous old rubric; no medical interpretation score is asserted for it.",
+    "The sibling-health fixture says Menim, meaning I know, not Minnim. Judge the supplied prompt, not a mistaken English gloss."
+  ],
+  "next_data_requirements": [
+    "Meaning-preserving native multi-turn responses, with genuine corrections, clarification and language switches; source news and translation views are not substitutes.",
+    "Balanced capability examples where tools are absent, inputs are missing, or available tools should not be used; grounded executed-tool trajectories for supported tools.",
+    "Review aligned native response targets and the clinical subset before expanding training; do not replay this unchanged mixture or claim more epochs will fix it."
+  ],
+  "artifact_sha256": {
+    "adapter.json": "8d0539f746ec9aa2e38d2ee4569846228e5201ccf3e188942ef5438bd25b20ad",
+    "adapter-conversations.json": "94b7424452634d1132042642a8fbdc958d527c71986bce11f134099ab626f85b",
+    "source-heldout.json": "01daf84dcae8e2ffe2a05d26ad4c1362d351e4a1ea0a53910198f832706050bc",
+    "paired-diagnostic.json": "197071b7bde60c7fe43cafb6d2777a366c163163925e7aca203024a47b71736d",
+    "run-inputs.tar.gz": "f5a97304c5f478ef7fdbd23edfebfb08305d60d3351c504d9fc31fcfdfed9fbc"
+  }
+}

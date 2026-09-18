@@ -1,0 +1,275 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-06T23:55:37.878Z",
+  "annotation_sha256": "ecbd61965b48feb9aabbd0332ad91992a1d72aa480940f957a4726d787e7f5da",
+  "source_sha256": "71667239060b881b539e29189a0f42a36289447f8d6c2524601a827c75fcaa2e",
+  "prompt_versions": [
+    "afrihealth-akan-response-teacher-v3"
+  ],
+  "annotations": 12,
+  "selected_rows_with_ungrounded_entities": 0,
+  "silver_rows_with_ungrounded_entities": 0,
+  "selected_entity_violations": 0,
+  "note": "Question-only lexical span check, not semantic or medical validation. No source or annotation is modified. A passing span may still have an incorrect category, negation or experiencer.",
+  "rows": [
+    {
+      "row_id": "afrihealth_akan_074078bdc32a6c1ad7cf",
+      "status": "needs_human_review",
+      "question": "Sɛn na tumi nsonsoeɛ (power dynamics) ka mmabun SRH hokwan?",
+      "question_english": "How do power dynamics affect young people's sexual and reproductive health rights (SRH)?",
+      "selected_violations": [],
+      "proposal_violations": [
+        {
+          "proposal_id": "b36727611cdc71b3d1d2",
+          "role": "teacher_a",
+          "violations": []
+        },
+        {
+          "proposal_id": "f599e57a285eb92662e6",
+          "role": "teacher_b",
+          "violations": []
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_1be48272eb3fdafe165b",
+      "status": "needs_human_review",
+      "question": "Dɛn ne anansesem anaa adwene a ɛnteɛ a abu so wɔ nnuru a wɔde siw nyinsɛn ano ho, na ɔkwan bɛn so na wobetumi afa nhomasua ne nhumu so adi ho dwuma?",
+      "question_english": "What common myths or misconceptions exist about contraceptives, and how can they be addressed through education and awareness?",
+      "selected_violations": [],
+      "proposal_violations": [
+        {
+          "proposal_id": "f2bb973e0aea9844100f",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "obi"
+            },
+            {
+              "category": "persons",
+              "value": "mmea"
+            },
+            {
+              "category": "other",
+              "value": "kɔndɔm"
+            },
+            {
+              "category": "other",
+              "value": "vasectomy"
+            },
+            {
+              "category": "other",
+              "value": "nna mu nyarewa (STIs)"
+            }
+          ]
+        },
+        {
+          "proposal_id": "d437d15fecdb9fe73823",
+          "role": "teacher_b",
+          "violations": []
+        },
+        {
+          "proposal_id": "b03c7f45eb9c514baf64",
+          "role": "adjudicator",
+          "violations": []
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_36fa7d9a0fc2a84fdd59",
+      "status": "silver_consensus",
+      "question": "Dɛn ne ɔhaw ne akwannya ahorow a ɛbata mmarima ne mmea pɛyɛ ne nna mu hokwan ahorow a wɔbɛhyɛ ho nkuran wɔ mpɔtam a amammerɛ ahorow gu ahorow mu?",
+      "question_english": "What are the challenges and opportunities associated with promoting gender equality and sexual rights in communities where cultures are diverse?",
+      "selected_violations": [],
+      "proposal_violations": [
+        {
+          "proposal_id": "28eb460c1d9c8db0d625",
+          "role": "teacher_a",
+          "violations": []
+        },
+        {
+          "proposal_id": "3a8f20ff7bb178e993db",
+          "role": "teacher_b",
+          "violations": []
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_3cb20b87a269b42aa2ac",
+      "status": "silver_consensus",
+      "question": "So mmara anaa nhyehyeɛ bi wɔ hɔ a ɛfa ɔhokafoɔ amanneɛbɔ a ɛfa nna mu yarewa a yɛfrɛ no wɔ broɔfo kasa mu sɛ STI ne HIV ho?",
+      "question_english": "Are there any laws or policies about partner notification related to sexually transmitted infections, called STI in English, and HIV?",
+      "selected_violations": [],
+      "proposal_violations": [
+        {
+          "proposal_id": "bc4ac59ce7f66e64d1ae",
+          "role": "teacher_a",
+          "violations": []
+        },
+        {
+          "proposal_id": "92d63c16beb331ea8e61",
+          "role": "teacher_b",
+          "violations": []
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_4255eed6b89f9a3ded7e",
+      "status": "silver_consensus",
+      "question": "Ɔkwan bɛn so na nkyerɛkyerɛ ne tumi a wɔbɛma anya nkɔso ho nhyehyɛe ahorow betumi ahyɛ suban pa ne nneyɛe a ɛfa mmarima ne mmea pɛyɛ, pene a wɔpene so, nkitahodie pa, ne awo hokwan ahorow ho nkuran wɔ mmabun mu?",
+      "question_english": "How can education and empowerment development programs encourage positive attitudes and practices about gender equality, consent, healthy communication, and reproductive rights among adolescents?",
+      "selected_violations": [],
+      "proposal_violations": [
+        {
+          "proposal_id": "c1aaf45948fdbba103ab",
+          "role": "teacher_a",
+          "violations": []
+        },
+        {
+          "proposal_id": "220144d17d24a2a62a43",
+          "role": "teacher_b",
+          "violations": []
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_4b693200aebecea70c02",
+      "status": "silver_consensus",
+      "question": "Ɔkwan bɛn so na mmabun betumi ako ama wɔn hokwan ahorow ne wɔn yiyedi sɛ wɔn a wɔde wɔn ho hyɛ nhwehwɛmu mu wɔ nhwehwɛmu ahorow a ɛfa nna ne awo apɔmuden ho mu?",
+      "question_english": "In what ways can adolescents advocate for their rights and well-being as participants in studies related to sexual and reproductive health?",
+      "selected_violations": [],
+      "proposal_violations": [
+        {
+          "proposal_id": "b6acedfcb4d2f7452c45",
+          "role": "teacher_a",
+          "violations": []
+        },
+        {
+          "proposal_id": "7b71650acb0065869aec",
+          "role": "teacher_b",
+          "violations": []
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_562309f95423e8a6af58",
+      "status": "silver_consensus",
+      "question": "Ɔkwan bɛn so na nnipa hokwan nnyinasosɛm ahorow te sɛ ahofadi, nidie, ne pɛyɛ ne mmabun nna ne awo akwahosan (ASRH) ho nsɛm di nkitaho wɔ wiase nyinaa?",
+      "question_english": "In what way do human rights principles such as freedom, dignity, and equality interact with adolescent sexual and reproductive health (ASRH) issues worldwide?",
+      "selected_violations": [],
+      "proposal_violations": [
+        {
+          "proposal_id": "101450fc4520afdcead0",
+          "role": "teacher_a",
+          "violations": []
+        },
+        {
+          "proposal_id": "f3e13bf54b7b35448560",
+          "role": "teacher_b",
+          "violations": []
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_78e4278037537671cb1f",
+      "status": "silver_consensus",
+      "question": "Mɛyɛ dɛn ahu nsonsonoe a ɛda nokwasɛm ne ayɛsɛm ntam bere a nsɛm no fa nyinsɛn ano a wosiw ho no?",
+      "question_english": "How can I tell the difference between fact and myth when the information is about contraception or preventing pregnancy?",
+      "selected_violations": [],
+      "proposal_violations": [
+        {
+          "proposal_id": "841806a3bbe5bb466286",
+          "role": "teacher_a",
+          "violations": []
+        },
+        {
+          "proposal_id": "91bdd57615f00f7b905a",
+          "role": "teacher_b",
+          "violations": []
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_96be34c0790d46820c62",
+      "status": "silver_consensus",
+      "question": "Dwuma bɛn na amanaman ntam akwan horow a wɔfa so hwɛ nnipa hokwan ahorow so na wɔbɔ ho amanneɛ, te sɛ apam ahyehyɛde ahorow ne amanneɛbɔfo titiriw, di wɔ aban ahorow a wobu akontaa wɔ wɔn bɔhyɛ ahorow a wɔde ama mmabun nna ne awo akwahosan ho no mu?",
+      "question_english": "What role do international human rights monitoring and reporting mechanisms, such as treaty bodies and special rapporteurs, play in holding governments accountable for their commitments to adolescents’ sexual and reproductive health?",
+      "selected_violations": [],
+      "proposal_violations": [
+        {
+          "proposal_id": "e11b57b4f75b893437ed",
+          "role": "teacher_a",
+          "violations": []
+        },
+        {
+          "proposal_id": "c2127e89b20bb74d4c6f",
+          "role": "teacher_b",
+          "violations": []
+        },
+        {
+          "proposal_id": "6040021d5c91e125e579",
+          "role": "adjudicator",
+          "violations": []
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_ee5a465c44348271834e",
+      "status": "silver_consensus",
+      "question": "Dɛn ne akatua a ɛyɛ pɛ, na dɛn nti na ɛho hia ma mmarima ne mmea pɛyɛ wɔ adwumam?",
+      "question_english": "What is equal pay, and why is it important for equality between men and women at work?",
+      "selected_violations": [],
+      "proposal_violations": [
+        {
+          "proposal_id": "ee65424bf915f68384c8",
+          "role": "teacher_a",
+          "violations": []
+        },
+        {
+          "proposal_id": "03256834aba904ddb9b9",
+          "role": "teacher_b",
+          "violations": []
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_f9291f98964ad91488ab",
+      "status": "silver_consensus",
+      "question": "Adwuma bɛn na mmabun di wɔ ASRH nhwehwɛmu ne nhyehye3 mu na s3n na ɔkwan b3n so na y3de wɔn b3hy3 wɔn nhwehw3mu ho?",
+      "question_english": "What role do adolescents play in ASRH research and planning, and in what way will we involve them in their research?",
+      "selected_violations": [],
+      "proposal_violations": [
+        {
+          "proposal_id": "02be142d8d11305b6963",
+          "role": "teacher_a",
+          "violations": []
+        },
+        {
+          "proposal_id": "26b2b9f5b31c80c6aeed",
+          "role": "teacher_b",
+          "violations": []
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_fd1e58be4c17a2f55b3c",
+      "status": "silver_consensus",
+      "question": "Akwan bɛn na wɔde redi dwuma de ahwɛ sɛ mmabun de wɔn ho bɛhyɛ ASRH mu no yɛ nea ɛfa nhyiamu ho na ɛdi ahiadeɛ ne nsɛnnennen pɔtee a LGBTQ+ mmabun, aborɔfoɔ mmabun, mmabun a wɔadi dɛm, ne akuo foforɔ a wɔato wɔn hintidua hyia no ho dwuma?",
+      "question_english": "What approaches are being used to ensure that adolescents’ participation in ASRH is inclusive and addresses the specific needs and challenges faced by LGBTQ+ youth, aborɔfoɔ youth, youth with disabilities, and other marginalized groups?",
+      "selected_violations": [],
+      "proposal_violations": [
+        {
+          "proposal_id": "35a148f75dda966777fc",
+          "role": "teacher_a",
+          "violations": []
+        },
+        {
+          "proposal_id": "2ecd387dc79efbaf9119",
+          "role": "teacher_b",
+          "violations": []
+        }
+      ]
+    }
+  ]
+}

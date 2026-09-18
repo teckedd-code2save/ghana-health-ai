@@ -15,7 +15,9 @@ Then set:
 from __future__ import annotations
 
 import base64
+import io
 import os
+import re
 import subprocess
 import tempfile
 import time
@@ -26,9 +28,10 @@ import modal
 
 APP_NAME = "ghana-health-tts-stable-twi"
 MODEL_ID = os.environ.get("STABLE_TWI_TTS_MODEL_ID", "ghananlpcommunity/stable-twi-tts")
+MODEL_REVISION = os.environ.get("STABLE_TWI_TTS_MODEL_REVISION", "b6d42942c79e9a3699d2fab85c1a592dfdfd7ca5")
 VOICE_TWI = os.environ.get("STABLE_TWI_TTS_VOICE", "twi-6")
 VOICE_MIXED = os.environ.get("STABLE_TWI_TTS_MIXED_VOICE", "twi-1")
-MAX_CHARS = int(os.environ.get("STABLE_TWI_TTS_MAX_CHARS", "500"))
+MAX_CHARS = int(os.environ.get("STABLE_TWI_TTS_MAX_CHARS", "2000"))
 
 app = modal.App(APP_NAME)
 model_volume = modal.Volume.from_name("ghana-health-tts-stable-twi-models", create_if_missing=True)
@@ -50,7 +53,26 @@ def _clean_text(text: str) -> str:
     clean = " ".join(clean.split())
     if len(clean) <= MAX_CHARS:
         return clean
-    return clean[:MAX_CHARS].rsplit(" ", 1)[0] or clean[:MAX_CHARS]
+    raise ValueError("text_too_long")
+
+
+def _chunk_text(text: str, max_chars: int = 300) -> list[str]:
+    # Keep bracketed English spans intact across synthesis boundaries.
+    words = re.findall(r"(?:\[[^\]]*\]|\S)+", text)
+    chunks, current = [], ""
+    for word in words:
+        if len(word) > max_chars:
+            raise ValueError("speech_span_too_long")
+        if current and len(current) + 1 + len(word) > max_chars:
+            chunks.append(current)
+            current = ""
+        current = f"{current} {word}".strip()
+        if len(current) >= max_chars // 2 and re.search(r"[.!?]$", word):
+            chunks.append(current)
+            current = ""
+    if current:
+        chunks.append(current)
+    return chunks
 
 
 def _language_mode(text: str, language: str | None) -> str:
@@ -60,8 +82,8 @@ def _language_mode(text: str, language: str | None) -> str:
     # Bracketed English spans are the model-card convention for code-switching.
     if "[" in text and "]" in text:
         return "mixed"
-    ascii_words = [word for word in text.split() if word.isascii() and len(word) > 3]
-    return "mixed" if len(ascii_words) >= 2 else "twi"
+    # ASCII spelling is common in Twi too; it is not evidence of English.
+    return "twi"
 
 
 @app.cls(
@@ -79,13 +101,16 @@ class StableTwiTtsEngine:
 
         self.model_dir = snapshot_download(
             MODEL_ID,
+            revision=MODEL_REVISION,
             cache_dir="/models/hf",
-            local_dir="/models/stable-twi-tts",
-            local_dir_use_symlinks=False,
+            allow_patterns=["model.onnx", "config.json", "tokens.txt", "voices.json"],
         )
 
     @modal.method()
     def synthesize(self, text: str, language: str | None = None, voice: str | None = None) -> dict[str, Any]:
+        import numpy as np
+        import soundfile as sf
+
         started = time.time()
         clean = _clean_text(text)
         if not clean:
@@ -101,48 +126,52 @@ class StableTwiTtsEngine:
 
         mode = _language_mode(clean, language)
         picked_voice = voice or (VOICE_MIXED if mode == "mixed" else VOICE_TWI)
+        chunks = _chunk_text(clean)
+        waves, sample_rate = [], None
 
         with tempfile.TemporaryDirectory() as tmp:
-            out_path = Path(tmp) / "speech.wav"
-            cmd = [
-                "stable-twi-tts",
-                "--model",
-                self.model_dir,
-                "--language",
-                mode,
-                "--voice",
-                picked_voice,
-                "--text",
-                clean,
-                "--out",
-                str(out_path),
-            ]
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=150, check=False)
-            if proc.returncode != 0:
-                return {
-                    "audio_base64": "",
-                    "sample_rate": 22050,
-                    "format": "wav",
-                    "latency_ms": int((time.time() - started) * 1000),
-                    "model": MODEL_ID,
-                    "provider": "stable-twi",
-                    "voice": picked_voice,
-                    "language": mode,
-                    "error": (proc.stderr or proc.stdout or "stable-twi-tts failed")[-500:],
-                }
-
-            audio = out_path.read_bytes()
+            for index, chunk in enumerate(chunks):
+                out_path = Path(tmp) / f"speech-{index}.wav"
+                cmd = ["stable-twi-tts", "--model", self.model_dir, "--language", mode,
+                       "--voice", picked_voice, "--text", chunk, "--out", str(out_path)]
+                remaining = 150 - (time.time() - started)
+                if remaining <= 0:
+                    raise TimeoutError("speech_synthesis_timeout")
+                proc = subprocess.run(cmd, capture_output=True, text=True, timeout=remaining, check=False)
+                if proc.returncode != 0:
+                    return {
+                        "audio_base64": "", "sample_rate": sample_rate or 22050,
+                        "format": "wav", "latency_ms": int((time.time() - started) * 1000),
+                        "model": MODEL_ID, "provider": "stable-twi", "voice": picked_voice,
+                        "language": mode, "error": "speech_synthesis_failed",
+                    }
+                wave, rate = sf.read(out_path, dtype="float32")
+                if wave.ndim != 1 or wave.size == 0 or not np.isfinite(wave).all():
+                    raise ValueError("invalid_speech_audio")
+                if sample_rate is not None and rate != sample_rate:
+                    raise ValueError("speech_sample_rate_mismatch")
+                sample_rate = rate
+                if waves:
+                    waves.append(np.zeros(round(rate * 0.08), dtype=np.float32))
+                waves.append(wave)
+            waveform = np.concatenate(waves)
+            audio_buffer = io.BytesIO()
+            sf.write(audio_buffer, waveform, sample_rate, format="WAV", subtype="PCM_16")
+            audio = audio_buffer.getvalue()
 
         return {
             "audio_base64": base64.b64encode(audio).decode("ascii"),
-            "sample_rate": 22050,
+            "sample_rate": sample_rate,
             "format": "wav",
             "latency_ms": int((time.time() - started) * 1000),
             "model": MODEL_ID,
+            "revision": MODEL_REVISION,
             "provider": "stable-twi",
             "voice": picked_voice,
             "language": mode,
             "text": clean,
+            "chunks": len(chunks),
+            "duration": len(waveform) / sample_rate,
         }
 
 

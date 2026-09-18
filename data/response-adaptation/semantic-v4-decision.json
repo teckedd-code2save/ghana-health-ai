@@ -1,0 +1,23 @@
+{
+  "run_id": "response_v4_20260910T111126Z",
+  "call_id": "fc-01M25G7X11X29BAE952HHW73HS",
+  "decision": "agent_requested_quality_stop",
+  "requested_at_utc": "2026-09-10T11:55:29Z",
+  "last_observed_logged_step": 210,
+  "last_saved_evaluated_step": 200,
+  "exact_stop_step": null,
+  "reason": "Twi response regressions at checkpoints 150 and 200, under greedy and publisher sampling. Checkpoint 100 shows no AfriXNLI development gain over base.",
+  "afrixnli_checkpoint100": {
+    "twi_base_correct": 271,
+    "twi_adapter_correct": 270,
+    "english_base_correct": 408,
+    "english_adapter_correct": 408,
+    "rows_per_language": 450,
+    "scope": "Strict generated labels, not conversational or clinical accuracy"
+  },
+  "runtime_fix": "User-supplied decimal numbers followed by sentence-ending punctuation now pass the numeric grounding check. The valid 7.50 times 2 call executes and returns 15.00 GHS; this is not a fine-tune quality gain.",
+  "preserved_checkpoint100_sha256": "63cbde5b213f756667a36249b9ed978c08c48ac733a4c9cfc41fae05d7971fd1",
+  "final_evaluation_completed": false,
+  "public_or_private_ui_promotion": false,
+  "next_supervision": "Native INJONGO intent/entities and additional unchanged Twi-to-English professional source pairs, with response and English replay retained. No AfriXNLI rows enter training."
+}

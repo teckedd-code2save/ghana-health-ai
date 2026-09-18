@@ -1,0 +1,42 @@
+{
+  "date": "2026-09-11",
+  "run_id": "afrique_v6_20260910T222142Z",
+  "adapter_sha256": "b4aa2162ae27a4c6997ec9f88bc171ca2134c457922bb1483c460eff920be510",
+  "decision": "V6 remains unsuitable as a reliable conversational assistant",
+  "reported_failure": {
+    "fixture": "data/response-adaptation/greeting-regressions.v1.json",
+    "local_turn_id": "84cbf7d5-46d9-4d31-904f-d103f701aaa5",
+    "call_id": "fc-01M275V96KTEWRPCT9HP21MA48",
+    "observed": "Invented human age and gender, then repeated until the token limit",
+    "context": "Two earlier Pilot v1 turns were retained. Context sensitivity is not an excuse for the failure."
+  },
+  "clean_paired_check": {
+    "cases_per_variant": 4,
+    "same_user_messages_and_supplied_history": true,
+    "profile": "publisher",
+    "seed": 42,
+    "base_call_id": "fc-01M27RZAZN956F2BNXJTKYWASD",
+    "adapter_call_id": "fc-01M27RMGFZS2VV40T12BJZA3P5",
+    "base_length_limits": 4,
+    "adapter_length_limits": 0,
+    "proprietary_fallback": false,
+    "observed_adapter_defects": [
+      "English How are you receives Twi and an inappropriate follow-up question",
+      "The standard Twi greeting and clean follow-up receive awkward Meyɛ dɛ wording",
+      "The informal clean reply avoids the long loop but does not establish natural, reliable conversation"
+    ],
+    "results_sha256": {
+      "tmp/balanced-afrique-v6/adapter-afrique_v6-publisher-seed42-greeting.results.json": "f053afb3b467c3eed7132577ac917b65a1605baa5b3242eee107ddd87e197e35",
+      "tmp/balanced-afrique-v6/adapter-afrique9_base-publisher-seed42-greeting.results.json": "57e5ced03a86bd9efb7cd34093de8315a6718f9094c6de2a93816a140e98ec82"
+    }
+  },
+  "coverage_evidence": "data/response-adaptation/balanced-v6-coverage.json",
+  "limitations": [
+    "Development checks, not an unseen test set or a statistically powered accuracy estimate",
+    "Agent inspection, not independent native-speaker certification",
+    "The raw CPT base is not a capable-chat benchmark; better stopping is not semantic success",
+    "One sampling seed, four clean contexts; exact cause of the original loop is not isolated",
+    "Prepared task coverage is not proof of causal attribution or actual partial-epoch exposure",
+    "No weights, sampling policy, response postprocessing or production routing changed"
+  ]
+}

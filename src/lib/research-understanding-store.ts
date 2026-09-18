@@ -7,6 +7,7 @@ import {
   type CorpusSynthesis,
 } from "@/lib/research-synthesis";
 import { z } from "zod";
+import { readMedicalResponseSources } from "@/lib/medical-response-store";
 
 const seedPath = path.join(
   /* turbopackIgnore: true */ process.cwd(),
@@ -201,8 +202,8 @@ const corpusCandidateSchema = z.object({
 const reviewSchema = z.object({
   id: z.string().min(1),
   normalizedTwi: z.string().max(1500).default(""),
-  naturalEnglish: z.string().max(1500).default(""),
-  literalEnglish: z.string().max(1500).default(""),
+  naturalEnglish: z.string().max(1800).default(""),
+  literalEnglish: z.string().max(6000).default(""),
   intent: z.string().max(120).default(""),
   entities: z.string().max(2500).default(""),
   ambiguities: z.string().max(2000).default(""),
@@ -564,10 +565,16 @@ export async function saveUnderstandingReview(
   input: z.infer<typeof understandingReviewInputSchema>,
   reviewer: string,
 ) {
-  const [seeds, candidates] = await Promise.all([readBenchmarkSeeds(), readCorpusCandidates()]);
+  const [seeds, candidates, medicalResponseSources] = await Promise.all([
+    readBenchmarkSeeds(),
+    readCorpusCandidates(),
+    readMedicalResponseSources(),
+  ]);
+  const isMedicalResponse = medicalResponseSources.some((row) => row.id === input.id);
   const known =
     seeds.some((seed) => seed.id === input.id) ||
-    candidates.some((candidate) => candidate.id === input.id);
+    candidates.some((candidate) => candidate.id === input.id) ||
+    isMedicalResponse;
   if (!known) {
     throw new Error("Unknown research row");
   }
@@ -586,7 +593,9 @@ export async function saveUnderstandingReview(
     await prisma.researchUnderstandingReview.upsert({
       where: { rowId: input.id },
       update: {
-        rowKind: seeds.some((seed) => seed.id === input.id) ? "benchmark" : "corpus",
+        rowKind: seeds.some((seed) => seed.id === input.id)
+          ? "benchmark"
+          : isMedicalResponse ? "medical_response" : "corpus",
         normalizedTwi: next.normalizedTwi,
         naturalEnglish: next.naturalEnglish,
         literalEnglish: next.literalEnglish,
@@ -603,7 +612,9 @@ export async function saveUnderstandingReview(
       },
       create: {
         rowId: input.id,
-        rowKind: seeds.some((seed) => seed.id === input.id) ? "benchmark" : "corpus",
+        rowKind: seeds.some((seed) => seed.id === input.id)
+          ? "benchmark"
+          : isMedicalResponse ? "medical_response" : "corpus",
         normalizedTwi: next.normalizedTwi,
         naturalEnglish: next.naturalEnglish,
         literalEnglish: next.literalEnglish,

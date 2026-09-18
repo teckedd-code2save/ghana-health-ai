@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "source_dataset": "ImhotepSystems/AfriHealth-QA",
+  "source_revision": "61befdaa19e12afdbf9032a602067f0daa3e6c68",
+  "license": "cc-by-sa-4.0",
+  "source_rows": 11116,
+  "source_rows_by_language": {
+    "en": 5547,
+    "tw": 5569
+  },
+  "quality_status": {
+    "pass": 11007,
+    "reject": 2,
+    "review": 107
+  },
+  "research_train_rows": 8809,
+  "research_train_rows_by_language": {
+    "en": 4402,
+    "tw": 4407
+  },
+  "locked_evaluation_rows": 2198,
+  "locked_evaluation_rows_by_language": {
+    "en": 1096,
+    "tw": 1102
+  },
+  "review_or_reject_rows": 109,
+  "review_reason_counts": {
+    "answer_short_review": 2,
+    "external_link_or_email": 70,
+    "foreign_or_unverified_emergency_number": 1,
+    "non_ghana_care_context": 16,
+    "possible_answer_repetition": 2,
+    "possibly_truncated_answer": 3,
+    "question_too_short": 2,
+    "unbalanced_delimiter": 13
+  },
+  "outputs": {
+    "train": "data/medical-response-corpus/afrihealth-ghana-response-train.v1.jsonl",
+    "evaluation": "data/medical-response-corpus/afrihealth-ghana-response-eval.v1.jsonl",
+    "review": "data/medical-response-corpus/afrihealth-ghana-response-review.v1.jsonl"
+  },
+  "training_policy": "Only deterministic-pass source-train rows are eligible for research training. No row is production-eligible until semantic and medical review is complete."
+}

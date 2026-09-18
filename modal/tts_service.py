@@ -23,7 +23,7 @@ import modal
 APP_NAME = "ghana-health-tts"
 AKA_MODEL = os.environ.get("TTS_MODEL_ID", "facebook/mms-tts-aka")
 ENG_MODEL = os.environ.get("TTS_ENG_MODEL_ID", "facebook/mms-tts-eng")
-MAX_CHARS = int(os.environ.get("TTS_MAX_CHARS", "600"))
+MAX_CHARS = int(os.environ.get("TTS_MAX_CHARS", "2000"))
 # VITS quality drops on very long single passes — chunk then concat
 CHUNK_CHARS = int(os.environ.get("TTS_CHUNK_CHARS", "160"))
 
@@ -166,7 +166,7 @@ def _prepare_text(text: str, language: str) -> str:
         (r"\bANC\b", "antenatal care"),
         (r"\bOTC\b", "over the counter"),
         (r"\bMoMo\b", "mobile money"),
-        (r"\bGHS\b", "Ghana health service" if language == "en" else "Ghana Health Service"),
+        (r"\bGHS\s*(?=\d)", "Ghana cedis "),
         (r"\bWHO\b", "World Health Organization"),
         (r"\bmg\b", "milligrams"),
         (r"\bml\b", "milliliters"),
@@ -183,7 +183,7 @@ def _prepare_text(text: str, language: str) -> str:
     clean = _expand_numbers(clean, language)
 
     if len(clean) > MAX_CHARS:
-        clean = clean[:MAX_CHARS].rsplit(" ", 1)[0] or clean[:MAX_CHARS]
+        raise ValueError("text_too_long")
     return clean
 
 

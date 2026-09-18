@@ -1,0 +1,81 @@
+{
+  "experiment": "balanced_afrique_response_v6",
+  "input_sha256": {
+    "manifest": "7fccbca50a45bd8bfa4daf3c55d1111e908bc503c9f1533d814451d42897e6ed",
+    "train": "d2aee5ac5e65e221f05452789d5f0396ffae95d313826638db9461213159f77a",
+    "tokenization": "8d7de386f9f947e89b97c0f6732b9e8717cd974dc96c95adf9040a13a1bca932"
+  },
+  "rows": 8681,
+  "prepared_target_tokens": 509384,
+  "twi_response_task_rows": 422,
+  "twi_response_task_tokens": 54361,
+  "twi_response_fraction_of_all_target_tokens": 0.10671909600615645,
+  "health_fraction_of_twi_response_tokens": 0.9625834697669285,
+  "twi_final_target_multiturn_rows": 0,
+  "structural_gaps": [
+    "No multi-turn training rows with a Twi-labelled final target"
+  ],
+  "by_task_and_language": {
+    "train:auxiliary_translation:en": {
+      "rows": 1200,
+      "target_tokens": 18230,
+      "multiturn_rows": 0
+    },
+    "train:auxiliary_translation:tw": {
+      "rows": 1200,
+      "target_tokens": 51844,
+      "multiturn_rows": 0
+    },
+    "train:general_conversation:en": {
+      "rows": 1890,
+      "target_tokens": 62962,
+      "multiturn_rows": 1890
+    },
+    "train:general_conversation_replay:en": {
+      "rows": 952,
+      "target_tokens": 197233,
+      "multiturn_rows": 425
+    },
+    "train:grounded_question_answer:tw": {
+      "rows": 225,
+      "target_tokens": 1381,
+      "multiturn_rows": 0
+    },
+    "train:health_response:tw": {
+      "rows": 180,
+      "target_tokens": 52327,
+      "multiturn_rows": 0
+    },
+    "train:native_intent_entities:en": {
+      "rows": 800,
+      "target_tokens": 26210,
+      "multiturn_rows": 0
+    },
+    "train:native_intent_entities:tw": {
+      "rows": 1600,
+      "target_tokens": 59535,
+      "multiturn_rows": 0
+    },
+    "train:native_source_context:tw": {
+      "rows": 17,
+      "target_tokens": 653,
+      "multiturn_rows": 0
+    },
+    "train:source_language_followup:en": {
+      "rows": 17,
+      "target_tokens": 220,
+      "multiturn_rows": 17
+    },
+    "train:tool_call:en": {
+      "rows": 600,
+      "target_tokens": 38789,
+      "multiturn_rows": 0
+    }
+  },
+  "limitations": [
+    "Language and task categories are declared labels, not automatic language or semantic verification.",
+    "Counts describe the prepared pool, not actual sampled exposure in a partial-epoch run.",
+    "Response tasks include short factual answers; none of these counts certify fluent conversation.",
+    "Existing corpus rows and targets are not modified. No automatic training or model acceptance."
+  ]
+}

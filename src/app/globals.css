@@ -1028,6 +1028,46 @@ select {
   line-height: 1.35;
 }
 
+.research-review-card__source-pair {
+  display: grid;
+  gap: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.research-review-card__source-pair > div + div {
+  border-top: 1px solid var(--line);
+}
+
+.research-review-card__source-pair span {
+  display: block;
+  padding: 0.75rem 0.9rem 0;
+  color: var(--fg-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.research-review-card__source--answer {
+  max-height: 10rem;
+  overflow: auto;
+  font-family: var(--font-body), Arial, sans-serif;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.research-review-card__proposal details summary {
+  cursor: pointer;
+  color: var(--fg-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.research-review-card__proposal details p {
+  margin: 0.4rem 0 0;
+  color: var(--fg-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
 .research-review-card__corpus {
   display: flex;
   align-items: center;

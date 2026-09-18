@@ -1,0 +1,38 @@
+{
+  "run_id": "oss120_20260910T142628Z",
+  "call_id": "fc-01M25VD3Q656N48C4381ZDPRAE",
+  "model": "openai/gpt-oss-120b",
+  "revision": "b5c939de8f754692c1647ca79fbf85e8c1e70f8a",
+  "raw_result_sha256": "0a37e818f1aa6f69ddf8eb10e8d50fcd090e7b151c31a9b6a6669d3a81fb1ff0",
+  "result_file": "tmp/oss-response-comparison/results.json",
+  "review_file": "tmp/oss-response-comparison/results.diagnostic.json",
+  "rows": 30,
+  "elapsed_seconds": 511.85143778300005,
+  "load_seconds": 165.371112939,
+  "gpu": "H100",
+  "quantization": "publisher MXFP4",
+  "reasoning_effort": "medium",
+  "decision": "reject_as_chat_replacement_and_unreviewed_twi_teacher",
+  "trained_by_project": false,
+  "private_ui_enabled": false,
+  "production_promoted": false,
+  "semantic_accuracy": null,
+  "clinical_accuracy": null,
+  "observations": [
+    "All 30 outputs completed; zero parse, empty-answer, repetition flags or length limits. This did not establish quality.",
+    "Preserves the tomato negation/time translation, 1kg correction, Kofi referent and arithmetic result of 20.",
+    "Two schema-valid requests: product search and web search. No tools were executed.",
+    "Twi budgeting is long and includes nonsensical expense, goal and category wording.",
+    "No-tool commerce invents unsupported local vendor/delivery availability.",
+    "Breathing/chest-pain reply gives stomach/diet/antacid guidance instead of preserving the urgent reported condition.",
+    "Pregnancy warning-sign reply loses pregnancy context and gives medication/delay advice.",
+    "Newborn follow-up fails to retain supplied age and contains nonsensical time units and hospital wording.",
+    "Code-switched child fever includes unsolicited dosing and a Chinese closing sentence."
+  ],
+  "limitations": [
+    "Agent qualitative inspection, not native-human or clinical validation.",
+    "Same project development cases used in earlier comparisons; not an untouched independent test.",
+    "One sampled medium-reasoning profile, not a controlled architecture-size ablation.",
+    "A foundation comparator is not our trained model. No hosted proprietary response fallback was used."
+  ]
+}

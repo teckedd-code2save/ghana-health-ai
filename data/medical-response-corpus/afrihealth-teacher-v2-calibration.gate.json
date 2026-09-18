@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-06T23:52:38.225Z",
+  "reference_path": "data/medical-response-corpus/afrihealth-akan-annotations.v1.jsonl",
+  "candidate_path": "data/medical-response-corpus/afrihealth-teacher-v2-calibration.jsonl",
+  "candidate_sha256": "c68a5e37a89c231046757268ba95d136ce815967accd2dff9c2fa17eff7c155a",
+  "reference_sha256": "4b455dc3ce64d3605d07517fc0806e43fa04e0fe71fdb930c4fb16a551202385",
+  "pipeline_ids": [
+    "41bdeabd6636df2bccb278ae919256a0c8a9bbaa16f9e26aece8c3bfab8aba35"
+  ],
+  "source_hash_mismatches": [],
+  "reference_note": "The reference is a stronger model-assisted calibration set, not human gold.",
+  "metrics": {
+    "compared_rows": 62,
+    "reference_rows": 62,
+    "candidate_rows": 62,
+    "categorical_agreement": {
+      "intent": 0.8225806451612904,
+      "safety_level": 0.8225806451612904,
+      "requires_clarification": 0.9354838709677419,
+      "source_answer_assessment": 0.6774193548387096
+    },
+    "semantic_similarity": {
+      "topics_jaccard": 0.7986559139784944,
+      "entities_jaccard": 0.5364636593446891,
+      "question_token_jaccard": 0.7530386896846482,
+      "answer_token_jaccard": 0.6855790587433098,
+      "reply_token_jaccard": 0.5382605562656041
+    },
+    "proxy_mismatches": 31,
+    "review_capture_rate": 0.7096774193548387,
+    "proposed_silver_rows": 24,
+    "proposed_silver_proxy_pass_rate": 0.625
+  },
+  "thresholds": {
+    "compared_rows": 50,
+    "intent_agreement": 0.9,
+    "safety_agreement": 0.9,
+    "source_answer_assessment_agreement": 0.85,
+    "review_capture_rate": 0.85,
+    "proposed_silver_proxy_pass_rate": 0.9
+  },
+  "gate": "fail",
+  "failures": [
+    "intent_agreement",
+    "safety_agreement",
+    "source_answer_assessment_agreement",
+    "review_capture_rate",
+    "proposed_silver_proxy_pass_rate"
+  ],
+  "mismatched_row_ids": [
+    "afrihealth_akan_0bd7f4d868fb3cb4b3b0",
+    "afrihealth_akan_1112d1625cb4bf967748",
+    "afrihealth_akan_122ae984af145b411e2a",
+    "afrihealth_akan_125e881176cd4eabd660",
+    "afrihealth_akan_13c631f4077de0a9b443",
+    "afrihealth_akan_13f454710ac49abe3f93",
+    "afrihealth_akan_14586406cdbee11243bb",
+    "afrihealth_akan_147b33d24b2640775eb6",
+    "afrihealth_akan_1bb33dae2c9f73515951",
+    "afrihealth_akan_1f03bdf3a973e5f3cddc",
+    "afrihealth_akan_2023b7643155f2177925",
+    "afrihealth_akan_2ccab0bb940395e77634",
+    "afrihealth_akan_3045a7f6a82ff6efd67d",
+    "afrihealth_akan_31c3d63e27b29a8d5e2b",
+    "afrihealth_akan_36bf9072f4b896ed5779",
+    "afrihealth_akan_4c55aeec8f3713dce646",
+    "afrihealth_akan_5f0f887d26c886d4230a",
+    "afrihealth_akan_727253a2286945a2ce39",
+    "afrihealth_akan_785783325c2cdb7abc52",
+    "afrihealth_akan_79af4f3cac6b4b808319",
+    "afrihealth_akan_8fb0f05d3a3509e68915",
+    "afrihealth_akan_98475be4fe217f07b609",
+    "afrihealth_akan_9cba39893cd81ab7c71d",
+    "afrihealth_akan_9f5452ee6f6baedea3e3",
+    "afrihealth_akan_d1e5b2191504e31040b6",
+    "afrihealth_akan_d1ec3c95d80fc055bb74",
+    "afrihealth_akan_d90d99a8bb766f6143ea",
+    "afrihealth_akan_e6db21f90a62d303db37",
+    "afrihealth_akan_f52905feceb9659b2e4c",
+    "afrihealth_akan_f9c712cbcf7151d0ed61",
+    "afrihealth_akan_fb5904f262c5e74d2231"
+  ]
+}

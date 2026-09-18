@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "purpose": "Full-source text and tokenizer audit, not training acceptance",
+  "sources": [
+    {
+      "name": "pristine_twi",
+      "repo": "ghananlpcommunity/pristine-twi",
+      "revision": "9aca5772a8bec63aafb3008dc2fc0df86227cb19",
+      "origin": "synthetic_gemini_news_conditioned",
+      "license": "cc-by-nc-4.0",
+      "files": {
+        "data/train-00000-of-00004.parquet": "c8bd0598f98070a387a65af1e1d6e0602a435e6056ee13fca0b2e9d7cbf39bf5",
+        "data/train-00001-of-00004.parquet": "4e4952c9d9f8c43a81506a2785aec753c5a91c70d235b29d6706080355b59112",
+        "data/train-00002-of-00004.parquet": "489cdce5eafa469a2b0b363e23ebab3602e2b5d1a81ea4f9b65225a2b05166be",
+        "data/train-00003-of-00004.parquet": "a59dfb429afd8edaab588430084c6c6ef17524bb98e342f0e1792fee7489ee4c"
+      }
+    }
+  ],
+  "tokenizers": [
+    {"name": "qwen35", "repo": "Qwen/Qwen3.5-4B", "revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"},
+    {"name": "gemma4", "repo": "google/gemma-4-31B-it", "revision": "842da3794eaa0b77d5f08bae87a17459d91ff475"}
+  ],
+  "limits": {
+    "max_characters_per_candidate": 20000,
+    "minimum_words_per_candidate": 5,
+    "repeated_eight_word_fraction": 0.3
+  },
+  "limitations": [
+    "Pristine English derivatives are not counted again or imported as trusted translations.",
+    "Original source text is immutable; structural filters do not certify fluent Twi or factual correctness.",
+    "Public research source terms remain attached. No commercial clearance or redistribution is asserted."
+  ]
+}

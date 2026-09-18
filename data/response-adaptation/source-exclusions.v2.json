@@ -1,0 +1,13 @@
+{
+  "reviewer": "project_agent_spot_check",
+  "human_gold": false,
+  "purpose": "Exclude observed source defects without rewriting the original corpus. This spot check does not validate other rows.",
+  "rows": [
+    {"source_id": "ghana_research_conv_0c176298ffbe94b1db643626daecc292", "reason": "Twi answer reverses environmental sustainability into ability to damage the environment."},
+    {"source_id": "ghana_research_conv_76982c1e396daa908dcc952ac41dc013", "reason": "Arcade as a covered pedestrian commercial space is rendered as a playing/sports venue."},
+    {"source_id": "ghana_research_conv_bd3f41a02c47107766101be7f1a68f7b", "reason": "Cocoa-flower answer shifts terminology within the paragraph and needs specialist translation review."},
+    {"source_id": "ghana_research_conv_8a4d2689bed0866ffcf40a7848b44288", "reason": "Unverified pharmacology translation is outside the general-conversation subset."},
+    {"source_id": "ID_TR_Aka_Gha_BBDA0242", "reason": "Extremely underspecified response with apparent lexical error; not useful direct-answer supervision."},
+    {"source_id": "ID_TR_Aka_Gha_BDF66BA5", "reason": "Answer gives media-use advice instead of directly explaining the influence asked about, and includes stray escape characters."}
+  ]
+}

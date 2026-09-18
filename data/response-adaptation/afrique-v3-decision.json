@@ -1,0 +1,28 @@
+{
+  "run_id": "afrique_v3_20260910T103220Z",
+  "call_id": "fc-01M25E0ACC7AEHZYHXJV4HPJ2E",
+  "outcome": "completed_not_accepted",
+  "updates": 691,
+  "adapter_sha256": "6901a6464f1c86ae7d20e08458ed56d879bdec72c9b4a1c07b5aa088c88b6db2",
+  "elapsed_seconds": 1841.798971575,
+  "paired_development_cases": 30,
+  "unpaired_source_holdout_cases": 24,
+  "observed_improvements": [
+    "All 30 final development replies stop without the token limit; the raw CPT base reaches the limit on all 30",
+    "English everyday responses and some Twi quantity correction and tool-argument generation are usable in individual checks",
+    "Checkpoint 200 performs an actual bounded calculation and gives the correct 15 GHS result in Twi"
+  ],
+  "blocking_failures": [
+    "Twi negation flips a declined purchase into wanting to buy",
+    "Named-person and future-time reference picks Ama instead of Kofi",
+    "Twi arithmetic gives contradictory remaining amounts",
+    "Child, pregnancy and breathing responses remain unsuitable for health use",
+    "Tool availability triggers unnecessary calls; checkpoint 400 invents numeric arguments in budget and child-health cases"
+  ],
+  "native_or_clinical_accuracy_claimed": false,
+  "production_promoted": false,
+  "private_ui_enabled": false,
+  "next_experiment": "response_v4_20260910T111126Z",
+  "next_call": "fc-01M25G7X11X29BAE952HHW73HS",
+  "next_changes": "Fresh stronger instruction base at lower LR, no multi-hop general-source translations, no-tool-with-schema supervision and source-grounded human-translated Twi QA"
+}

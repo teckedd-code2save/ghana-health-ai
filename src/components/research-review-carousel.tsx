@@ -6,11 +6,11 @@ import { recordUntilSilence } from "@/lib/browser-audio";
 
 type Decision = "unreviewed" | "reviewed" | "needs_second_review" | "exclude";
 type SafetyLevel = "" | "routine" | "same_day" | "urgent" | "emergency";
-type CorpusFilter = "medical_large" | "language_sources" | "local_audio" | "product_text" | "all";
+type CorpusFilter = "afrihealth_response" | "medical_large" | "language_sources" | "local_audio" | "product_text" | "all";
 
 type AnnotationProposal = {
   proposal_id: string;
-  agent_role: "source" | "translator" | "semantic_annotator" | "adjudicator";
+  agent_role: "source" | "translator" | "semantic_annotator" | "teacher_a" | "teacher_b" | "adjudicator";
   model: string;
   normalized_twi: string;
   natural_english: string;
@@ -31,8 +31,9 @@ type AnnotationSet = {
   synthesized_proposal: AnnotationProposal | null;
   adjudication: {
     confidence: number;
-    status: "recommended" | "synthesized" | "needs_human_review";
+    status: "recommended" | "synthesized" | "silver_consensus" | "needs_human_review" | "rejected";
     disagreement_fields: string[];
+    review_reasons?: string[];
   };
 };
 
@@ -57,6 +58,8 @@ type Row = {
   domain: string;
   language: string;
   source: string;
+  sourceAnswer?: string;
+  responseSource?: boolean;
   modelProposal: {
     normalized_twi: string;
     natural_english: string;
@@ -77,6 +80,7 @@ type Payload = {
 
 const PAGE_SIZE = 50;
 const corpusOptions: Array<{ value: CorpusFilter; label: string; kind: string }> = [
+  { value: "afrihealth_response", label: "Health responses", kind: "Response corpus" },
   { value: "medical_large", label: "Medical corpus", kind: "Semantic corpus" },
   { value: "language_sources", label: "WAXAL + GhanaNLP", kind: "Language corpus" },
   { value: "local_audio", label: "Consented recordings", kind: "Voice corpus" },
@@ -125,7 +129,11 @@ function formFor(row: Row): Review {
 }
 
 function proposalLabel(proposal: AnnotationProposal, recommendedId?: string) {
-  const role = proposal.agent_role === "semantic_annotator"
+  const role = proposal.agent_role === "teacher_a"
+    ? "Teacher 1"
+    : proposal.agent_role === "teacher_b"
+      ? "Teacher 2"
+      : proposal.agent_role === "semantic_annotator"
     ? "Semantic agent"
     : proposal.agent_role === "translator"
       ? "Translation agent"
@@ -136,11 +144,11 @@ function proposalLabel(proposal: AnnotationProposal, recommendedId?: string) {
 }
 
 function needsResponseReview(row: Row) {
-  return Boolean(row.modelProposal.reply_twi.trim() || row.modelProposal.safety_level.trim());
+  return Boolean(row.responseSource || row.modelProposal.reply_twi.trim() || row.modelProposal.safety_level.trim());
 }
 
 export function ResearchReviewCarousel({ onClose }: { onClose: () => void }) {
-  const [filter, setFilter] = useState<CorpusFilter>("medical_large");
+  const [filter, setFilter] = useState<CorpusFilter>("afrihealth_response");
   const [offset, setOffset] = useState(0);
   const [rows, setRows] = useState<Row[]>([]);
   const [total, setTotal] = useState(0);
@@ -295,7 +303,7 @@ export function ResearchReviewCarousel({ onClose }: { onClose: () => void }) {
 
   const responseReview = needsResponseReview(row);
   const ready = form.normalizedTwi.trim() && form.naturalEnglish.trim() && form.intent.trim() &&
-    (!responseReview || (form.replyTwi.trim() && form.safetyLevel));
+    (!responseReview || (form.literalEnglish.trim() && form.replyTwi.trim() && form.safetyLevel));
   const rowNumber = offset + index + 1;
 
   return (
@@ -316,7 +324,16 @@ export function ResearchReviewCarousel({ onClose }: { onClose: () => void }) {
           {corpusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
         </select>
       </label>
-      <p className="research-review-card__source">{row.text}</p>
+      <div className="research-review-card__source-pair">
+        <div>
+          <span>Source question</span>
+          <p className="research-review-card__source">{row.text}</p>
+        </div>
+        {row.sourceAnswer && <div>
+          <span>Source answer</span>
+          <p className="research-review-card__source research-review-card__source--answer">{row.sourceAnswer}</p>
+        </div>}
+      </div>
 
       {row.annotationSet && (
         <div className="research-review-card__proposal">
@@ -339,6 +356,12 @@ export function ResearchReviewCarousel({ onClose }: { onClose: () => void }) {
               ? ` · check ${row.annotationSet.adjudication.disagreement_fields.join(", ")}`
               : ""}
           </span>
+          {row.annotationSet.adjudication.review_reasons && row.annotationSet.adjudication.review_reasons.length > 0 && (
+            <details>
+              <summary>Why this needs review</summary>
+              <p>{row.annotationSet.adjudication.review_reasons.join(" ")}</p>
+            </details>
+          )}
         </div>
       )}
 
@@ -351,6 +374,10 @@ export function ResearchReviewCarousel({ onClose }: { onClose: () => void }) {
           English meaning
           <textarea value={form.naturalEnglish} onChange={(event) => setForm({ ...form, naturalEnglish: event.target.value })} />
         </label>
+        {row.responseSource && <label className="research-review-card__wide">
+          English answer meaning
+          <textarea value={form.literalEnglish} onChange={(event) => setForm({ ...form, literalEnglish: event.target.value })} />
+        </label>}
         <label>
           Intent
           <input value={form.intent} onChange={(event) => setForm({ ...form, intent: event.target.value })} />

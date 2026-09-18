@@ -104,5 +104,13 @@ assertOk(
   !speakableText("Call CHW about MoMo 25kg", "tw").includes("CHW"),
   "speakable text should expand health acronyms",
 );
+assertOk(speakableText("GHS 25", "tw") === "Ghana cedis 25", "prices must not become Ghana Health Service");
+assertOk(speakableText("Mepɛ [computer science]", "tw", true).includes("[computer science]"),
+  "stable Twi needs explicit English spans for mixed phonemization");
+assertOk(!speakableText("Mepɛ [computer science]", "tw").includes("["),
+  "other providers should receive plain text");
+const longReply = "Akwaaba. ".repeat(80) + "The final sentence must remain.";
+assertOk(speakableText(longReply, "tw").endsWith("The final sentence must remain."),
+  "TTS preparation must not silently omit the reply ending");
 
 console.log("ok tts-routing providers=mms,stable-twi,nano-twi,qwen");

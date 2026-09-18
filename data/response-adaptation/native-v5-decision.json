@@ -1,0 +1,44 @@
+{
+  "run_id": "response_v5_20260910T120005Z",
+  "training_call_id": "fc-01M25K0ZZW2A7JX8WVTAS30VHG",
+  "training_completed": true,
+  "optimizer_updates": 320,
+  "adapter_sha256": "407ba8f17bf9376bf031d7f4626340d382ce7d764d8b5da70e75f8bdfe677353",
+  "decision": "retain_for_research_not_a_chat_replacement",
+  "production_promoted": false,
+  "private_ui_enabled": false,
+  "hf_published": false,
+  "measurements": {
+    "afrixnli_development": {
+      "rows_per_language": 450,
+      "twi_correct": {"base": 271, "adapter": 278},
+      "english_correct": {"base": 408, "adapter": 409},
+      "twi_paired_changes": {"improved": 27, "regressed": 20},
+      "english_paired_changes": {"improved": 10, "regressed": 9}
+    },
+    "injongo_twi_development_schema_v2": {
+      "rows": 320,
+      "intent_correct": {"base": 207, "adapter": 212},
+      "exact_records": {"base": 92, "adapter": 103},
+      "entity_micro_f1": {"base": 0.5894263217097863, "adapter": 0.6186252771618626},
+      "invalid_format": {"base": 0, "adapter": 0}
+    },
+    "paired_generation": {
+      "product_cases_per_variant": 30,
+      "source_cases_per_variant": 30,
+      "length_limits": {"base": 8, "adapter": 4},
+      "repeated_eight_word_span_flags": {"base": 0, "adapter": 4},
+      "base_output_sha256": "611c3a71df342525759fc05e86570066013bb24477ec2db87a9b4c2f196f9339",
+      "adapter_output_sha256": "b893bbc5efcede3850c1a228ba07dff5f7dd3db97fbb18e7b24cf70052eea3f6"
+    }
+  },
+  "interpretation": [
+    "Small auxiliary-task gains are measured, not a statistically established broad capability gain.",
+    "Direct replies regress: budget, newborn-fever and pregnancy replies loop; breathing and hospital requests may merely be echoed.",
+    "Length-limit count is not a quality score: fewer long outputs can coexist with more repetitive or empty-content answers.",
+    "The original native intent training instruction omitted the entity schema. Prepared source v3 fixes only instructions, with source text, labels and splits unchanged.",
+    "The next investigation is a bounded stronger open-weight foundation comparison before another training run on weak response targets."
+  ],
+  "clinical_validation": false,
+  "proprietary_fallback": false
+}

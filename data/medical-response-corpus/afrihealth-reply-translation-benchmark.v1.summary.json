@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "benchmark_version": "afrihealth-reply-translation-v1",
+  "created_at": "2026-09-06T00:28:08.111225+00:00",
+  "modal_run": "https://modal.com/apps/createdliving1000/main/ap-prYLR9qtmclB1odSzvIv7p",
+  "rows": 62,
+  "reference_artifact": "afrihealth-akan-annotations.v1.jsonl",
+  "reference_sha256": "4b455dc3ce64d3605d07517fc0806e43fa04e0fe71fdb930c4fb16a551202385",
+  "reference_kind": "selected dual-teacher research replies; not human gold",
+  "full_result_sha256": "07e78e68b3926dbc833877c1a5930bdbd9594041b240d6c12f621019f54d6888",
+  "models": {
+    "nllb": {
+      "id": "ghananlpcommunity/nllb-600m-eng-twi-merged",
+      "revision": "7a9a8df6599b22a346af705c5f19d0fa8567634a",
+      "declared_license": "missing",
+      "bleu": 27.81,
+      "chrf_plus_plus": 51.53,
+      "mean_latency_ms": 319.84,
+      "rows_below_40": 8,
+      "rows_below_50": 21,
+      "rows_at_least_70": 0
+    },
+    "opani": {
+      "id": "ghananlpcommunity/opani-translate_1b-merged-16bit",
+      "revision": "13f250dac71ba974122becfce23a2a98995b9b26",
+      "declared_license": "apache-2.0",
+      "bleu": 17.18,
+      "chrf_plus_plus": 46.78,
+      "mean_latency_ms": 1378.6,
+      "rows_below_40": 13,
+      "rows_below_50": 25,
+      "rows_at_least_70": 6
+    }
+  },
+  "qualitative_failures": {
+    "nllb": [
+      "consent changed to victory in multiple replies",
+      "contraception changed to divorce in a sexual-health reply",
+      "some longer replies lost source-supported clauses"
+    ],
+    "opani": [
+      "severe phrase repetition on multiple rows",
+      "instruction-like prefixes and stray closing brackets",
+      "material omissions and meaning changes"
+    ]
+  },
+  "decision": {
+    "nllb": "retain_as_reviewable_proposal_only_pending_license_provenance",
+    "opani": "reject",
+    "automatic_acceptance": "reject",
+    "next_gate": "benchmark direct Qwen3.5 Twi semantics and response generation"
+  }
+}

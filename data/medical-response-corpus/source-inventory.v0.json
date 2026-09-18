@@ -1,6 +1,6 @@
 {
   "purpose": "Track external medical and Ghanaian-language sources for corpus-scale understanding research. The 50 benchmark rows and 16 response seeds are not the corpus.",
-  "last_reviewed": "2026-09-01",
+  "last_reviewed": "2026-09-05",
   "sources": [
     {
       "id": "ghananlpcommunity/ghana-health-symptoms",
@@ -34,11 +34,19 @@
     {
       "id": "ImhotepSystems/AfriHealth-QA",
       "url": "https://huggingface.co/datasets/ImhotepSystems/AfriHealth-QA",
-      "status": "candidate_needs_schema_license_review",
-      "license": "needs_review",
-      "scale": "African multilingual health QA",
-      "use": "Potential evaluation and coverage source after license/schema inspection.",
-      "restriction": "Do not ingest into training queue until license and columns are verified."
+      "revision": "61befdaa19e12afdbf9032a602067f0daa3e6c68",
+      "status": "approved_for_annotated_response_research",
+      "license": "cc-by-sa-4.0",
+      "license_evidence_url": "https://zindi.africa/competitions/multilingual-health-question-answering-in-low-resource-african-languages-challenge/discussions/33230",
+      "scale": "11,116 answered Ghana rows: 5,569 Akan/Twi and 5,547 Ghanaian English across train and validation",
+      "shape": {
+        "input": "question",
+        "answer": "answer",
+        "language": "language_country=Aka_Gha or Eng_Gha",
+        "id": "id"
+      },
+      "use": "Primary response-capable Ghana health source. Deterministic-pass source rows support balanced Twi/English research SFT; translation, semantics, concise voice replies, and safety judgments remain a separate annotation layer.",
+      "restriction": "Share-alike attribution applies. Research training and production eligibility are separate: no row is production-eligible until semantic and medical review passes. Keep the unlabeled challenge test split out of training."
     },
     {
       "id": "afrimedqa/afrimedqa_v2",
@@ -73,6 +81,6 @@
     "Generate draft normalized Twi, faithful English meaning, intent, entities, ambiguity notes, and safety flags.",
     "Translate English medical QA into Twi in chunks only after source license passes.",
     "Expose rows in the review UI with filters by source, language, domain, risk, and missing fields.",
-    "Export only human-reviewed rows to train/dev/test manifests."
+    "Keep source-supervised research exports separate from human-reviewed production exports and identify that distinction in every model card."
   ]
 }

@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-06T00:13:04.191408+00:00",
+  "decision": "rejected_for_serving",
+  "promotion_status": "research_only_failed_semantic_and_safety_gate",
+  "base_model": "ghananlpcommunity/MiniCPM5-1B-Twi",
+  "training_run_url": "https://modal.com/apps/createdliving1000/main/ap-AfQqd8ubULScDoMJ7mH45d",
+  "evaluation_run_url": "https://modal.com/apps/createdliving1000/main/ap-ZugOdsiyCIcTepdBgkrGgp",
+  "source": {
+    "dataset": "ImhotepSystems/AfriHealth-QA",
+    "revision": "61befdaa19e12afdbf9032a602067f0daa3e6c68",
+    "license": "cc-by-sa-4.0"
+  },
+  "training": {
+    "rows": 8809,
+    "twi_rows": 4407,
+    "english_rows": 4402,
+    "steps": 600,
+    "epochs": 1.0889695869269178,
+    "learning_rate": 0.00008,
+    "train_loss": 1.9359090487162272,
+    "training_eval_rows": 256,
+    "eval_loss": 1.8956955671310425,
+    "runtime_seconds": 1261.7111
+  },
+  "generation_evaluation": {
+    "heldout_rows": 128,
+    "heldout_twi_rows": 64,
+    "heldout_english_rows": 64,
+    "product_cases": 13,
+    "critical_product_cases": 8,
+    "base": {
+      "overall_chrf_pp": 20.911362206489258,
+      "twi_chrf_pp": 27.460850983110983,
+      "english_chrf_pp": 14.436067285832626,
+      "language_match_rate": 0.5,
+      "product_passed": 2,
+      "critical_product_passed": 0
+    },
+    "adapter": {
+      "overall_chrf_pp": 22.903336695768072,
+      "twi_chrf_pp": 22.22286488380546,
+      "english_chrf_pp": 23.493684737644436,
+      "language_match_rate": 0.984375,
+      "product_passed": 3,
+      "critical_product_passed": 0
+    }
+  },
+  "findings": [
+    "Balanced Ghanaian-English replay corrected the base model's tendency to answer English prompts in Twi.",
+    "The adapter reduced Twi held-out reference similarity and did not establish reliable Twi semantic understanding.",
+    "The adapter failed every critical product health case and invented diagnoses, medicines, or unsafe reassurance in multiple generations.",
+    "Raw AfriHealth question-answer supervision is useful as a broad research source but is not sufficient as the final response curriculum."
+  ],
+  "next_gate": [
+    "Build a reviewed response curriculum with explicit meaning, intent, entities, uncertainty, safety level, and concise language-matched answer fields.",
+    "Prioritize native review of model disagreements and product-critical clusters instead of attempting manual review of every source row.",
+    "Train structured semantics and response jointly, retain balanced English replay, and rerun the same locked base-versus-adapter evaluation."
+  ]
+}

@@ -1,0 +1,7080 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-06T23:54:04.215Z",
+  "annotation_sha256": "c68a5e37a89c231046757268ba95d136ce815967accd2dff9c2fa17eff7c155a",
+  "source_sha256": "71667239060b881b539e29189a0f42a36289447f8d6c2524601a827c75fcaa2e",
+  "prompt_versions": [
+    "afrihealth-akan-response-teacher-v2"
+  ],
+  "annotations": 62,
+  "selected_rows_with_ungrounded_entities": 62,
+  "silver_rows_with_ungrounded_entities": 24,
+  "selected_entity_violations": 463,
+  "note": "Question-only lexical span check, not semantic or medical validation. No source or annotation is modified. A passing span may still have an incorrect category, negation or experiencer.",
+  "rows": [
+    {
+      "row_id": "afrihealth_akan_06170f435ae9ddbe71df",
+      "status": "silver_consensus",
+      "question": "Mɛyɛ dɛn ama me hokafo de ne ho ahyɛ awo ho nhyehyɛeho nkɔmmɔbɔ mu na yɛabom asi gyinae wɔ nyinsɛn a wosiw ano?",
+      "question_english": "How can I get my partner involved in discussions about family planning so that we can make decisions together about preventing pregnancy?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "ahokafo baanu"
+        },
+        {
+          "category": "other",
+          "value": "awo ho nhyehyɛe"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "4dbad3c71d59c236cf43",
+          "role": "teacher_a",
+          "violations": []
+        },
+        {
+          "proposal_id": "ff8e85ff3feccaab28e5",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "ahokafo baanu"
+            },
+            {
+              "category": "other",
+              "value": "awo ho nhyehyɛe"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_0bd7f4d868fb3cb4b3b0",
+      "status": "needs_human_review",
+      "question": "Nneɛma atitiriw bɛn na ɛwɔ nhyehyɛe ahorow a etu mpɔn a wɔde siw ano no mu, na ɔkwan bɛn so na ɛma ankorankoro tumi ma wohu nna mu basabasayɛ na wɔyɛ ho biribi?",
+      "question_english": "What are the key elements of effective prevention programs, and how do they enable individuals to recognize and respond to sexual violence?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "wɔn a wɔhwɛ no"
+        },
+        {
+          "category": "persons",
+          "value": "wɔn a wɔde wɔn ho hyɛɛ mu no"
+        },
+        {
+          "category": "persons",
+          "value": "wɔn a wɔanya wɔn ti adidi mu no"
+        },
+        {
+          "category": "persons",
+          "value": "akwahosan ho adwumayɛfoɔ"
+        },
+        {
+          "category": "locations",
+          "value": "sukuu ahodoɔ"
+        },
+        {
+          "category": "locations",
+          "value": "mpɔtam hɔ nnwumakuo"
+        },
+        {
+          "category": "other",
+          "value": "pene a wɔpene so"
+        },
+        {
+          "category": "other",
+          "value": "nkitahodie pa"
+        },
+        {
+          "category": "other",
+          "value": "kɔkɔbɔ nsɛnkyerɛnne"
+        },
+        {
+          "category": "other",
+          "value": "ahye a wɔde si hɔ"
+        },
+        {
+          "category": "other",
+          "value": "amammerɛ mu nkate"
+        },
+        {
+          "category": "other",
+          "value": "ahodwiriw ho nimdeɛ akwan"
+        },
+        {
+          "category": "other",
+          "value": "mmarahyɛ bagua"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "9ce381e144ea220685f5",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "wɔn a wɔhwɛ no"
+            },
+            {
+              "category": "persons",
+              "value": "wɔn a wɔde wɔn ho hyɛɛ mu"
+            },
+            {
+              "category": "persons",
+              "value": "survivors"
+            },
+            {
+              "category": "locations",
+              "value": "sukuu ahodoɔ"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ nnwumakuo"
+            },
+            {
+              "category": "other",
+              "value": "pene"
+            },
+            {
+              "category": "other",
+              "value": "nkitahodie pa"
+            },
+            {
+              "category": "other",
+              "value": "kɔkɔbɔ nsɛnkyerɛnne"
+            },
+            {
+              "category": "other",
+              "value": "de wɔn ho gye mu dwoodwoo"
+            },
+            {
+              "category": "other",
+              "value": "hokwan ahorow"
+            },
+            {
+              "category": "other",
+              "value": "ahokokwaw ne dwumadi"
+            },
+            {
+              "category": "other",
+              "value": "ahye"
+            },
+            {
+              "category": "other",
+              "value": "amammerɛ mu nkate"
+            },
+            {
+              "category": "other",
+              "value": "ahodwiriw ho nimdeɛ akwan"
+            },
+            {
+              "category": "other",
+              "value": "suahunu"
+            },
+            {
+              "category": "other",
+              "value": "nsunsuanso"
+            },
+            {
+              "category": "other",
+              "value": "mmɔdenbɔ a wɔde siw ano"
+            },
+            {
+              "category": "other",
+              "value": "nsɛm a wɔka ne nsɛm a wɔde ma"
+            }
+          ]
+        },
+        {
+          "proposal_id": "0c126523fadd093dc940",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "wɔn a wɔhwɛ no"
+            },
+            {
+              "category": "persons",
+              "value": "wɔn a wɔde wɔn ho hyɛɛ mu"
+            },
+            {
+              "category": "persons",
+              "value": "wɔn a wɔanya wɔn ti adidi mu"
+            },
+            {
+              "category": "persons",
+              "value": "akwahosan ho adwumayɛfoɔ"
+            },
+            {
+              "category": "locations",
+              "value": "sukuu ahodoɔ"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ nnwumakuo"
+            },
+            {
+              "category": "locations",
+              "value": "mmarahyɛ bagua"
+            },
+            {
+              "category": "other",
+              "value": "pene a wɔpene so"
+            },
+            {
+              "category": "other",
+              "value": "nkitahodie pa"
+            },
+            {
+              "category": "other",
+              "value": "kɔkɔbɔ nsɛnkyerɛnne"
+            },
+            {
+              "category": "other",
+              "value": "ahye a wɔde si hɔ"
+            }
+          ]
+        },
+        {
+          "proposal_id": "073be28c3ffc1d2c5d31",
+          "role": "adjudicator",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "wɔn a wɔhwɛ no"
+            },
+            {
+              "category": "persons",
+              "value": "wɔn a wɔde wɔn ho hyɛɛ mu no"
+            },
+            {
+              "category": "persons",
+              "value": "wɔn a wɔanya wɔn ti adidi mu no"
+            },
+            {
+              "category": "persons",
+              "value": "akwahosan ho adwumayɛfoɔ"
+            },
+            {
+              "category": "locations",
+              "value": "sukuu ahodoɔ"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ nnwumakuo"
+            },
+            {
+              "category": "other",
+              "value": "pene a wɔpene so"
+            },
+            {
+              "category": "other",
+              "value": "nkitahodie pa"
+            },
+            {
+              "category": "other",
+              "value": "kɔkɔbɔ nsɛnkyerɛnne"
+            },
+            {
+              "category": "other",
+              "value": "ahye a wɔde si hɔ"
+            },
+            {
+              "category": "other",
+              "value": "amammerɛ mu nkate"
+            },
+            {
+              "category": "other",
+              "value": "ahodwiriw ho nimdeɛ akwan"
+            },
+            {
+              "category": "other",
+              "value": "mmarahyɛ bagua"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_10705e5a909c760e0c61",
+      "status": "needs_human_review",
+      "question": "Dɛn na ɛsɛ sɛ mibisa obi a obetumi ayɛ yaresafo anaa ɔfotufo wɔ bere a edi kan a merekɔ no? (osuahu, nneɛma titiriw, ɔkwan a wɔfa so yɛ adwuma) .",
+      "question_english": "What should I ask someone who could be a healer or counselor during my first visit? (experience, key things, how they work)",
+      "selected_violations": [
+        {
+          "category": "other",
+          "value": "ayaresa ho kwan"
+        },
+        {
+          "category": "other",
+          "value": "ɔkasa ayaresa"
+        },
+        {
+          "category": "other",
+          "value": "adwene mu nneyɛe ho ayaresa"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "1aa76a5f950ae4025cda",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "other",
+              "value": "ayaresa ho kwan"
+            },
+            {
+              "category": "other",
+              "value": "ɔkasa ayaresa"
+            },
+            {
+              "category": "other",
+              "value": "adwene mu nneyɛe ho ayaresa"
+            }
+          ]
+        },
+        {
+          "proposal_id": "68c646516414eb3aae9b",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "other",
+              "value": "ayaresa ho kwan"
+            },
+            {
+              "category": "other",
+              "value": "ɔkasa ayaresa"
+            },
+            {
+              "category": "other",
+              "value": "adwene mu nneyɛe ho ayaresa"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_1112d1625cb4bf967748",
+      "status": "needs_human_review",
+      "question": "Di nneɛma a ɛhaw adwene a ɛtaa ba wɔ mfomso a wɔn a wɔde di dwuma no di ne sɛnea wɔbɛtew asiane a ɛwɔ nyinsɛn a wɔanhyɛ da mu no so ho dwuma.",
+      "question_english": "Address the common concerns about user errors and how to reduce the risk of unintended pregnancy.",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "wo healthcare provider"
+        },
+        {
+          "category": "other",
+          "value": "kɔndɔm"
+        },
+        {
+          "category": "other",
+          "value": "alarm(dɔn a ɛbɔ)"
+        },
+        {
+          "category": "other",
+          "value": "app ahorow"
+        },
+        {
+          "category": "other",
+          "value": "nea ɔde di dwuma"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "3126c4713f298d243d1e",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "wo healthcare provider"
+            },
+            {
+              "category": "other",
+              "value": "kɔndɔm"
+            },
+            {
+              "category": "other",
+              "value": "alarm(dɔn a ɛbɔ)"
+            },
+            {
+              "category": "other",
+              "value": "app ahorow"
+            },
+            {
+              "category": "other",
+              "value": "nea ɔde di dwuma"
+            }
+          ]
+        },
+        {
+          "proposal_id": "4224abc28a2ea2370a85",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "medicines",
+              "value": "nnuru a wɔde kum yare"
+            },
+            {
+              "category": "durations",
+              "value": "daa"
+            },
+            {
+              "category": "persons",
+              "value": "ɔyaresafo"
+            },
+            {
+              "category": "other",
+              "value": "mfomso a ɔde di dwuma"
+            },
+            {
+              "category": "other",
+              "value": "akwankyerɛ"
+            },
+            {
+              "category": "other",
+              "value": "kɔndɔm"
+            },
+            {
+              "category": "other",
+              "value": "alarm"
+            },
+            {
+              "category": "other",
+              "value": "app ahorow"
+            },
+            {
+              "category": "other",
+              "value": "nkaebɔ ahorow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_122ae984af145b411e2a",
+      "status": "needs_human_review",
+      "question": "Ɔkwan bɛn so na mmabun betumi ahwɛ mfe a wɔn hokafo adi de ahwɛ ahu sɛ wodi mfe a wɔde pene so wo mmara so?",
+      "question_english": "How can young people check their partner’s age to make sure they are old enough under the law?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "ahokafo"
+        },
+        {
+          "category": "other",
+          "value": "krataa a ɛkyerɛ sɛ obi te sɛ karka tumi krataa anaa akwantu tumi krataa"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "d7571db0ace743f4576c",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "ahokafo"
+            },
+            {
+              "category": "other",
+              "value": "krataa a ɛkyerɛ sɛ obi te sɛ karka tumi krataa anaa akwantu tumi krataa"
+            }
+          ]
+        },
+        {
+          "proposal_id": "41387c8f53326397731b",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "ahokafo"
+            },
+            {
+              "category": "other",
+              "value": "krataa"
+            },
+            {
+              "category": "other",
+              "value": "karka tumi krataa"
+            },
+            {
+              "category": "other",
+              "value": "akwantu tumi krataa"
+            },
+            {
+              "category": "other",
+              "value": "nokwaredi"
+            },
+            {
+              "category": "other",
+              "value": "ahye"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_125e881176cd4eabd660",
+      "status": "silver_consensus",
+      "question": "Ɔkwan bɛn so na wobetumi de awoɔ apomoden ho nsɛm ho nkyerɛkyerɛ aka nkɔmmɔbɔ a ɛtrɛw a ɛfa nna mu akwahosan, pene a wɔpene so, ne abusuabɔ pa a mmabun nya ho?",
+      "question_english": "How can education about reproductive health be included in broader conversations about sexual health, consent, and healthy relationships among young people?",
+      "selected_violations": [
+        {
+          "category": "conditions",
+          "value": "STI"
+        },
+        {
+          "category": "body_parts",
+          "value": "awo nipadua"
+        },
+        {
+          "category": "persons",
+          "value": "ɔbarima ne ɔbea"
+        },
+        {
+          "category": "other",
+          "value": "awo apomoden"
+        },
+        {
+          "category": "other",
+          "value": "nna mu apomoden"
+        },
+        {
+          "category": "other",
+          "value": "abusuabɔ a ɛyɛ papa"
+        },
+        {
+          "category": "other",
+          "value": "brayɛ akwahosan"
+        },
+        {
+          "category": "other",
+          "value": "nyinsɛn ano a wosiw"
+        },
+        {
+          "category": "other",
+          "value": "ahye"
+        },
+        {
+          "category": "other",
+          "value": "nkitahodi"
+        },
+        {
+          "category": "other",
+          "value": "obu"
+        },
+        {
+          "category": "other",
+          "value": "nkate mu yiyedi"
+        },
+        {
+          "category": "other",
+          "value": "atipɛnfo nhyɛso"
+        },
+        {
+          "category": "other",
+          "value": "amammerɛ mu akwanhwɛ ahorow"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "74d2965319e339c6e358",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "other",
+              "value": "brayɛ akwahosan"
+            },
+            {
+              "category": "other",
+              "value": "nyinsɛn ano a wosiw"
+            },
+            {
+              "category": "other",
+              "value": "STI ano a wosiw"
+            },
+            {
+              "category": "other",
+              "value": "awo nipadua"
+            },
+            {
+              "category": "other",
+              "value": "nkitahodi"
+            },
+            {
+              "category": "other",
+              "value": "nkate mu yiyedi"
+            },
+            {
+              "category": "other",
+              "value": "gyinaesi"
+            },
+            {
+              "category": "other",
+              "value": "atipɛnfo nhyɛso"
+            },
+            {
+              "category": "other",
+              "value": "nsɛm ho amanneɛbɔfo mfonini ahorow"
+            },
+            {
+              "category": "other",
+              "value": "amammerɛ mu akwanhwɛ ahorow"
+            }
+          ]
+        },
+        {
+          "proposal_id": "7efe76e1ceafc7f9e7e4",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "conditions",
+              "value": "STI"
+            },
+            {
+              "category": "body_parts",
+              "value": "awo nipadua"
+            },
+            {
+              "category": "persons",
+              "value": "ɔbarima ne ɔbea"
+            },
+            {
+              "category": "other",
+              "value": "awo apomoden"
+            },
+            {
+              "category": "other",
+              "value": "nna mu apomoden"
+            },
+            {
+              "category": "other",
+              "value": "abusuabɔ a ɛyɛ papa"
+            },
+            {
+              "category": "other",
+              "value": "brayɛ akwahosan"
+            },
+            {
+              "category": "other",
+              "value": "nyinsɛn ano a wosiw"
+            },
+            {
+              "category": "other",
+              "value": "ahye"
+            },
+            {
+              "category": "other",
+              "value": "nkitahodi"
+            },
+            {
+              "category": "other",
+              "value": "obu"
+            },
+            {
+              "category": "other",
+              "value": "nkate mu yiyedi"
+            },
+            {
+              "category": "other",
+              "value": "atipɛnfo nhyɛso"
+            },
+            {
+              "category": "other",
+              "value": "amammerɛ mu akwanhwɛ ahorow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_13c631f4077de0a9b443",
+      "status": "needs_human_review",
+      "question": "Nneɛma ne mmoa nkitahodi bɛn na ɛwɔ hɔ ma mmabun a ebia wobenya ntawntawdi anaa pow afi wɔn nyamesom mpɔtam hɔ esiane wɔn nna ho akɔnnɔ, ɔbarima ne ɔbea nna, anaa awo a wɔpaw nti?",
+      "question_english": "What kinds of resources and support networks are available for adolescents who may face conflict or rejection from their religious communities because of their sexual desire, same-sex relations, or chosen parenthood?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "adolescents"
+        },
+        {
+          "category": "persons",
+          "value": "individuals"
+        },
+        {
+          "category": "locations",
+          "value": "religious community"
+        },
+        {
+          "category": "locations",
+          "value": "community"
+        },
+        {
+          "category": "other",
+          "value": "support groups"
+        },
+        {
+          "category": "other",
+          "value": "online communities"
+        },
+        {
+          "category": "other",
+          "value": "counseling services"
+        },
+        {
+          "category": "other",
+          "value": "international organizations"
+        },
+        {
+          "category": "other",
+          "value": "advocacy groups"
+        },
+        {
+          "category": "other",
+          "value": "legal rights"
+        },
+        {
+          "category": "other",
+          "value": "health options"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "c6c5828bb327536c462f",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "adolescents"
+            },
+            {
+              "category": "persons",
+              "value": "individuals"
+            },
+            {
+              "category": "locations",
+              "value": "religious community"
+            },
+            {
+              "category": "locations",
+              "value": "community"
+            },
+            {
+              "category": "other",
+              "value": "support groups"
+            },
+            {
+              "category": "other",
+              "value": "online communities"
+            },
+            {
+              "category": "other",
+              "value": "counseling services"
+            },
+            {
+              "category": "other",
+              "value": "international organizations"
+            },
+            {
+              "category": "other",
+              "value": "advocacy groups"
+            },
+            {
+              "category": "other",
+              "value": "legal rights"
+            },
+            {
+              "category": "other",
+              "value": "health options"
+            }
+          ]
+        },
+        {
+          "proposal_id": "20ce2c588ba1f823a6a5",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "ankorankoro"
+            },
+            {
+              "category": "persons",
+              "value": "ankorankoro ne mpɔtam a wɔboa wɔn"
+            },
+            {
+              "category": "locations",
+              "value": "intanɛt so mpɔtam"
+            },
+            {
+              "category": "other",
+              "value": "nyiyim"
+            },
+            {
+              "category": "other",
+              "value": "mmoa akuo"
+            },
+            {
+              "category": "other",
+              "value": "afotuo dwumadie"
+            },
+            {
+              "category": "other",
+              "value": "mmara kwan so hokwan ahorow"
+            },
+            {
+              "category": "other",
+              "value": "akwahosan ho akwan horow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_13f454710ac49abe3f93",
+      "status": "silver_consensus",
+      "question": "Akwan bɛn na mɛtumi afa so ahwɛ sɛ manya nna mu nyarewa 'STI' nhwehwɛmu ne ayaresa mmoa sɛ ehia a?",
+      "question_english": "How can I make sure I can get STI testing and treatment support if needed?",
+      "selected_violations": [
+        {
+          "category": "symptoms",
+          "value": "'STI' sɛnkyerɛnne"
+        },
+        {
+          "category": "conditions",
+          "value": "yareɛ bi"
+        },
+        {
+          "category": "persons",
+          "value": "w’apɔmuden adwumayɛfoɔ"
+        },
+        {
+          "category": "persons",
+          "value": "mmabun"
+        },
+        {
+          "category": "locations",
+          "value": "mpɔtam hɔ apɔmuden mmeae"
+        },
+        {
+          "category": "locations",
+          "value": "mpɔtam hɔ apɔmuden ayaresabea"
+        },
+        {
+          "category": "locations",
+          "value": "nna mu apɔmuden mmeae"
+        },
+        {
+          "category": "locations",
+          "value": "wo mpɔtam"
+        },
+        {
+          "category": "other",
+          "value": "nna mu dwumadie"
+        },
+        {
+          "category": "other",
+          "value": "asiane nneɛma"
+        },
+        {
+          "category": "other",
+          "value": "kɔkoam nhwehwɛmu akwan"
+        },
+        {
+          "category": "other",
+          "value": "sika mmoa nhyehyɛeɛ"
+        },
+        {
+          "category": "other",
+          "value": "mmabun mmoa dwumadie"
+        },
+        {
+          "category": "other",
+          "value": "nna mu apɔmuden nkyerɛkyerɛ"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "e45c69a9b5cef2bf28a6",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "wo"
+            },
+            {
+              "category": "persons",
+              "value": "w’apɔmuden adwumayɛfoɔ"
+            },
+            {
+              "category": "persons",
+              "value": "mmabun"
+            },
+            {
+              "category": "locations",
+              "value": "wo mpɔtam"
+            },
+            {
+              "category": "other",
+              "value": "kɔkoam nhwehwɛmu"
+            },
+            {
+              "category": "other",
+              "value": "sika mmoa nhyehyɛeɛ"
+            },
+            {
+              "category": "other",
+              "value": "mmabun mmoa dwumadie"
+            },
+            {
+              "category": "other",
+              "value": "nna mu apɔmuden nkyerɛkyerɛ"
+            }
+          ]
+        },
+        {
+          "proposal_id": "a49b1b675f84290c22dc",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "symptoms",
+              "value": "'STI' sɛnkyerɛnne"
+            },
+            {
+              "category": "conditions",
+              "value": "yareɛ bi"
+            },
+            {
+              "category": "persons",
+              "value": "w’apɔmuden adwumayɛfoɔ"
+            },
+            {
+              "category": "persons",
+              "value": "mmabun"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ apɔmuden mmeae"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ apɔmuden ayaresabea"
+            },
+            {
+              "category": "locations",
+              "value": "nna mu apɔmuden mmeae"
+            },
+            {
+              "category": "locations",
+              "value": "wo mpɔtam"
+            },
+            {
+              "category": "other",
+              "value": "nna mu dwumadie"
+            },
+            {
+              "category": "other",
+              "value": "asiane nneɛma"
+            },
+            {
+              "category": "other",
+              "value": "kɔkoam nhwehwɛmu akwan"
+            },
+            {
+              "category": "other",
+              "value": "sika mmoa nhyehyɛeɛ"
+            },
+            {
+              "category": "other",
+              "value": "mmabun mmoa dwumadie"
+            }
+          ]
+        },
+        {
+          "proposal_id": "6ade1d7d79d5bf82bfb2",
+          "role": "adjudicator",
+          "violations": [
+            {
+              "category": "symptoms",
+              "value": "'STI' sɛnkyerɛnne"
+            },
+            {
+              "category": "conditions",
+              "value": "yareɛ bi"
+            },
+            {
+              "category": "persons",
+              "value": "w’apɔmuden adwumayɛfoɔ"
+            },
+            {
+              "category": "persons",
+              "value": "mmabun"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ apɔmuden mmeae"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ apɔmuden ayaresabea"
+            },
+            {
+              "category": "locations",
+              "value": "nna mu apɔmuden mmeae"
+            },
+            {
+              "category": "locations",
+              "value": "wo mpɔtam"
+            },
+            {
+              "category": "other",
+              "value": "nna mu dwumadie"
+            },
+            {
+              "category": "other",
+              "value": "asiane nneɛma"
+            },
+            {
+              "category": "other",
+              "value": "kɔkoam nhwehwɛmu akwan"
+            },
+            {
+              "category": "other",
+              "value": "sika mmoa nhyehyɛeɛ"
+            },
+            {
+              "category": "other",
+              "value": "mmabun mmoa dwumadie"
+            },
+            {
+              "category": "other",
+              "value": "nna mu apɔmuden nkyerɛkyerɛ"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_14586406cdbee11243bb",
+      "status": "needs_human_review",
+      "question": "Dɛn ne nsunsuanso bɔne anaa asiane ahorow a ebetumi aba wɔ nyinsɛn a wosiw ano ntɛm ho, na ɔkwan bɛn so na mmabun betumi agyina wɔn ankorankoro akwahosan ahiade ne tebea ahorow so asi gyinae a ɛfata wɔ sɛnea wɔde bedi dwuma ho?",
+      "question_english": "What are the negative effects or risks that can happen from stopping pregnancy prevention early, and how can young people make an appropriate decision about how to use it based on their personal health needs and circumstances?",
+      "selected_violations": [
+        {
+          "category": "symptoms",
+          "value": "akisikuru"
+        },
+        {
+          "category": "symptoms",
+          "value": "ɔfe"
+        },
+        {
+          "category": "symptoms",
+          "value": "ɔbrɛ"
+        },
+        {
+          "category": "symptoms",
+          "value": "tiyɛ"
+        },
+        {
+          "category": "persons",
+          "value": "akwasɛm ho adwumayɛfo"
+        },
+        {
+          "category": "other",
+          "value": "mogya a ɛba bere mu"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "fcdb0ad59d9f31a64a39",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "symptoms",
+              "value": "akisikuru"
+            },
+            {
+              "category": "symptoms",
+              "value": "ɔfe"
+            },
+            {
+              "category": "symptoms",
+              "value": "ɔbrɛ"
+            },
+            {
+              "category": "symptoms",
+              "value": "tiyɛ"
+            },
+            {
+              "category": "persons",
+              "value": "akwasɛm ho adwumayɛfo"
+            },
+            {
+              "category": "other",
+              "value": "mogya a ɛba bere mu"
+            }
+          ]
+        },
+        {
+          "proposal_id": "9d380cf350390f3ddf86",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "symptoms",
+              "value": "akisikuru"
+            },
+            {
+              "category": "symptoms",
+              "value": "ɔfe"
+            },
+            {
+              "category": "symptoms",
+              "value": "ɔbrɛ"
+            },
+            {
+              "category": "symptoms",
+              "value": "tiyɛ"
+            },
+            {
+              "category": "symptoms",
+              "value": "nsakrae a ɛba wɔ mogya a ɛba bere mu"
+            },
+            {
+              "category": "persons",
+              "value": "akwahosan ho adwumayɛfo"
+            },
+            {
+              "category": "other",
+              "value": "mfaso"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_147b33d24b2640775eb6",
+      "status": "silver_consensus",
+      "question": "Meyɛ dɛn ne m’atipɛnfo aka m’ahye ho asɛm yiye?",
+      "question_english": "How can I talk well with my peers about my boundaries?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "w’atipɛnfo"
+        },
+        {
+          "category": "other",
+          "value": "wo hye ahorow"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "0d4c9106831c2b97ecfc",
+          "role": "teacher_a",
+          "violations": []
+        },
+        {
+          "proposal_id": "00fa832d616bcfe1461a",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "w’atipɛnfo"
+            },
+            {
+              "category": "other",
+              "value": "wo hye ahorow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_1bb33dae2c9f73515951",
+      "status": "silver_consensus",
+      "question": "Mɛyɛ dɛn anya nsɛm a ɛfa akwannya ahorow a mewɔ wɔ mmara kwan so a ɛfa nna ne awo akwahosan ho?",
+      "question_english": "How can I get information about the legal rights I have regarding sexual and reproductive health?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "mmabun"
+        },
+        {
+          "category": "persons",
+          "value": "adwumayɛfo a wɔatete wɔn"
+        },
+        {
+          "category": "persons",
+          "value": "akwahosan ho adwumayɛfo"
+        },
+        {
+          "category": "persons",
+          "value": "akyerɛkyerɛfo"
+        },
+        {
+          "category": "persons",
+          "value": "akuw a wɔkamfo kyerɛ"
+        },
+        {
+          "category": "locations",
+          "value": "Wɛbsaet ahorow"
+        },
+        {
+          "category": "locations",
+          "value": "intanɛt"
+        },
+        {
+          "category": "locations",
+          "value": "sukuu"
+        },
+        {
+          "category": "locations",
+          "value": "mpɔtam hɔ akwahosan ayaresabea ahorow"
+        },
+        {
+          "category": "locations",
+          "value": "akwahosan ho adwumayɛbea"
+        },
+        {
+          "category": "other",
+          "value": "mmara kwan so akwannya ahorow"
+        },
+        {
+          "category": "other",
+          "value": "nna ho nkyerɛkyerɛ"
+        },
+        {
+          "category": "other",
+          "value": "mmara kwan so hokwan ahorow"
+        },
+        {
+          "category": "other",
+          "value": "Nhomasua nneɛma"
+        },
+        {
+          "category": "other",
+          "value": "adwumayɛbea ahorow"
+        },
+        {
+          "category": "other",
+          "value": "nsɛm a wɔka kyerɛ"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "947a2e8af200c6879122",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "mmabun"
+            },
+            {
+              "category": "persons",
+              "value": "akyerɛkyerɛfo"
+            },
+            {
+              "category": "persons",
+              "value": "akuw"
+            },
+            {
+              "category": "locations",
+              "value": "sukuum mu"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ"
+            },
+            {
+              "category": "other",
+              "value": "mmara kwan so akwannya ahorow"
+            },
+            {
+              "category": "other",
+              "value": "Wɛbsaet ahorow"
+            },
+            {
+              "category": "other",
+              "value": "intanɛt so nneɛma"
+            },
+            {
+              "category": "other",
+              "value": "nhomasua nneɛma"
+            },
+            {
+              "category": "other",
+              "value": "adwumayɛbea ahorow"
+            },
+            {
+              "category": "other",
+              "value": "nsɛm a wɔka kyerɛ"
+            }
+          ]
+        },
+        {
+          "proposal_id": "ede36a25704e7329b244",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "mmabun"
+            },
+            {
+              "category": "persons",
+              "value": "adwumayɛfo a wɔatete wɔn"
+            },
+            {
+              "category": "persons",
+              "value": "akwahosan ho adwumayɛfo"
+            },
+            {
+              "category": "persons",
+              "value": "akyerɛkyerɛfo"
+            },
+            {
+              "category": "persons",
+              "value": "akuw a wɔkamfo kyerɛ"
+            },
+            {
+              "category": "locations",
+              "value": "Wɛbsaet ahorow"
+            },
+            {
+              "category": "locations",
+              "value": "intanɛt"
+            },
+            {
+              "category": "locations",
+              "value": "sukuu"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ akwahosan ayaresabea ahorow"
+            },
+            {
+              "category": "locations",
+              "value": "akwahosan ho adwumayɛbea"
+            },
+            {
+              "category": "other",
+              "value": "mmara kwan so akwannya ahorow"
+            },
+            {
+              "category": "other",
+              "value": "nna ho nkyerɛkyerɛ"
+            },
+            {
+              "category": "other",
+              "value": "mmara kwan so hokwan ahorow"
+            },
+            {
+              "category": "other",
+              "value": "Nhomasua nneɛma"
+            },
+            {
+              "category": "other",
+              "value": "adwumayɛbea ahorow"
+            },
+            {
+              "category": "other",
+              "value": "nsɛm a wɔka kyerɛ"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_1f03bdf3a973e5f3cddc",
+      "status": "needs_human_review",
+      "question": "Dɛn ne nyinsɛn a woyi gu akyi hwɛ, na dɛn nti na ɛho hia ma mmabun a wɔayi nyinsɛn agu?",
+      "question_english": "What is post-abortion care, and why is it important for adolescents who have had an abortion?",
+      "selected_violations": [
+        {
+          "category": "conditions",
+          "value": "post-abortion care"
+        },
+        {
+          "category": "conditions",
+          "value": "pregnancy"
+        },
+        {
+          "category": "persons",
+          "value": "adolescents"
+        },
+        {
+          "category": "persons",
+          "value": "individual"
+        },
+        {
+          "category": "other",
+          "value": "PAC"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "b955c95fba352a428c3d",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "conditions",
+              "value": "post-abortion care"
+            },
+            {
+              "category": "conditions",
+              "value": "pregnancy"
+            },
+            {
+              "category": "persons",
+              "value": "adolescents"
+            },
+            {
+              "category": "persons",
+              "value": "individual"
+            },
+            {
+              "category": "other",
+              "value": "PAC"
+            }
+          ]
+        },
+        {
+          "proposal_id": "464f39180d99cc556f30",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "conditions",
+              "value": "nyinsɛn a wɔanhyɛ da"
+            },
+            {
+              "category": "body_parts",
+              "value": "nipadua"
+            },
+            {
+              "category": "persons",
+              "value": "ankorankoro"
+            },
+            {
+              "category": "other",
+              "value": "PAC"
+            },
+            {
+              "category": "other",
+              "value": "aduruyɛ ne atinka fam mmoa"
+            },
+            {
+              "category": "other",
+              "value": "ayaresa"
+            },
+            {
+              "category": "other",
+              "value": "mmoa ne akwankyerɛ"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_2023b7643155f2177925",
+      "status": "needs_human_review",
+      "question": "Ɛden na wɔn a wɔresi sɔ bɛ yɛ sɛ wɔn awofo de wɔn ho hyɛ mu dodo anaasɛ wɔhyɛ wɔn so wɔ wɔn mmabunbere mu?",
+      "question_english": "What should people do if their parents are too involved in their lives or pressure them during their adolescence?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "ɔpanyin"
+        },
+        {
+          "category": "persons",
+          "value": "ɔfotufo"
+        },
+        {
+          "category": "persons",
+          "value": "sukuu ɔyarehwɛfo"
+        },
+        {
+          "category": "other",
+          "value": "kokoam nsɛm"
+        },
+        {
+          "category": "other",
+          "value": "ahofadi"
+        },
+        {
+          "category": "other",
+          "value": "ahye"
+        },
+        {
+          "category": "other",
+          "value": "obu"
+        },
+        {
+          "category": "other",
+          "value": "ɔdɔ atinka"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "3c97a8191a8fb1aea369",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "ɔpanyin"
+            },
+            {
+              "category": "persons",
+              "value": "ɔfotufo"
+            },
+            {
+              "category": "persons",
+              "value": "sukuu ɔyarehwɛfo"
+            },
+            {
+              "category": "other",
+              "value": "kokoam nsɛm"
+            },
+            {
+              "category": "other",
+              "value": "ahofadi"
+            },
+            {
+              "category": "other",
+              "value": "ahye"
+            },
+            {
+              "category": "other",
+              "value": "obu"
+            },
+            {
+              "category": "other",
+              "value": "ɔdɔ atinka"
+            }
+          ]
+        },
+        {
+          "proposal_id": "32e3fa5321fc41a6d808",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "ɔpanyin"
+            },
+            {
+              "category": "persons",
+              "value": "ɔfotufo"
+            },
+            {
+              "category": "persons",
+              "value": "sukuu ɔyarehwɛfo"
+            },
+            {
+              "category": "locations",
+              "value": "sukuu"
+            },
+            {
+              "category": "other",
+              "value": "Nkɔmmɔdie"
+            },
+            {
+              "category": "other",
+              "value": "ahye"
+            },
+            {
+              "category": "other",
+              "value": "kokoam nsɛm"
+            },
+            {
+              "category": "other",
+              "value": "ahofadi"
+            },
+            {
+              "category": "other",
+              "value": "afotu"
+            },
+            {
+              "category": "other",
+              "value": "mmoa"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_24a0f5c5552689199757",
+      "status": "silver_consensus",
+      "question": "Dɛn ne anansesɛm anaa adwene a ɛnteɛ a abu so fa nna mu agorɔ ho a ɛsɛ sɛ mehu wɔ me mmabunyɛɔ berɛ mu?",
+      "question_english": "What are common myths or wrong ideas about sexual activity that I should know during my adolescence?",
+      "selected_violations": [
+        {
+          "category": "conditions",
+          "value": "STI"
+        },
+        {
+          "category": "medicines",
+          "value": "nnuru a wɔde siw nyinsɛn ano"
+        },
+        {
+          "category": "durations",
+          "value": "bere a edi kan"
+        },
+        {
+          "category": "durations",
+          "value": "ne brayɛ mu"
+        },
+        {
+          "category": "durations",
+          "value": "me mmabunyɛ berɛ mu"
+        },
+        {
+          "category": "persons",
+          "value": "mmabaa"
+        },
+        {
+          "category": "persons",
+          "value": "ɔbea"
+        },
+        {
+          "category": "persons",
+          "value": "ɔbarima"
+        },
+        {
+          "category": "other",
+          "value": "nyinsɛn"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "c021a4021fa46263f433",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "conditions",
+              "value": "STIs"
+            },
+            {
+              "category": "persons",
+              "value": "mmabun"
+            },
+            {
+              "category": "other",
+              "value": "nnuru a wɔde siw nyinsɛn ano"
+            }
+          ]
+        },
+        {
+          "proposal_id": "0c22d450cafc15ab73b2",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "conditions",
+              "value": "STI"
+            },
+            {
+              "category": "medicines",
+              "value": "nnuru a wɔde siw nyinsɛn ano"
+            },
+            {
+              "category": "durations",
+              "value": "bere a edi kan"
+            },
+            {
+              "category": "durations",
+              "value": "ne brayɛ mu"
+            },
+            {
+              "category": "durations",
+              "value": "me mmabunyɛ berɛ mu"
+            },
+            {
+              "category": "persons",
+              "value": "mmabaa"
+            },
+            {
+              "category": "persons",
+              "value": "ɔbea"
+            },
+            {
+              "category": "persons",
+              "value": "ɔbarima"
+            },
+            {
+              "category": "other",
+              "value": "nyinsɛn"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_2803076c228daa1edaaa",
+      "status": "needs_human_review",
+      "question": "kwan bɛn so na mmabun betumi anya STI nhwehwɛmu ne ayaresa ho nhyehyɛe ahorow?",
+      "question_english": "How can young people arrange STI testing and treatment options?",
+      "selected_violations": [
+        {
+          "category": "locations",
+          "value": "sukuu"
+        },
+        {
+          "category": "locations",
+          "value": "mpɔtam hɔ"
+        },
+        {
+          "category": "locations",
+          "value": "mpɔtam hɔ akwahosan asoɛe"
+        },
+        {
+          "category": "locations",
+          "value": "awo akwahosan asoɛe"
+        },
+        {
+          "category": "other",
+          "value": "nnuroyɛfoɔ"
+        },
+        {
+          "category": "other",
+          "value": "ayarehwɛfoɔ"
+        },
+        {
+          "category": "other",
+          "value": "ayaresabea"
+        },
+        {
+          "category": "other",
+          "value": "STI ayaresabea"
+        },
+        {
+          "category": "other",
+          "value": "nna mu akwahosan ayaresabea"
+        },
+        {
+          "category": "other",
+          "value": "akwahosan ho dwumadie"
+        },
+        {
+          "category": "other",
+          "value": "kokoam"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "36933e565f36c3b9b2d4",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "locations",
+              "value": "sukuu"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ akwahosan asoɛe"
+            },
+            {
+              "category": "locations",
+              "value": "awo akwahosan asoɛe"
+            },
+            {
+              "category": "other",
+              "value": "nnuroyɛfoɔ"
+            },
+            {
+              "category": "other",
+              "value": "ayarehwɛfoɔ"
+            },
+            {
+              "category": "other",
+              "value": "ayaresabea"
+            },
+            {
+              "category": "other",
+              "value": "STI ayaresabea"
+            },
+            {
+              "category": "other",
+              "value": "nna mu akwahosan ayaresabea"
+            },
+            {
+              "category": "other",
+              "value": "akwahosan ho dwumadie"
+            },
+            {
+              "category": "other",
+              "value": "kokoam"
+            }
+          ]
+        },
+        {
+          "proposal_id": "0e12f27325c9aa754b6e",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "akwahosan ho adwumayɛfo"
+            },
+            {
+              "category": "persons",
+              "value": "nnuroyɛfoɔ"
+            },
+            {
+              "category": "persons",
+              "value": "ayarehwɛfoɔ"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ ayaresabea ahorow"
+            },
+            {
+              "category": "locations",
+              "value": "STI ayaresabea"
+            },
+            {
+              "category": "locations",
+              "value": "nna mu akwahosan ayaresabea ahorow"
+            },
+            {
+              "category": "locations",
+              "value": "sukuu"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam akwahosan asoɛe"
+            },
+            {
+              "category": "locations",
+              "value": "awo akwahosan asoɛe"
+            },
+            {
+              "category": "other",
+              "value": "kokoam"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_2921c5ddafc19f9fa70e",
+      "status": "silver_consensus",
+      "question": "Dɛn ne adeɛ bi a wɔ frɛ no wɔborɔfo kasa mu sɛ digital citizenship ba ne nsɛm ho amanneɛbɔ ho nimdeɛ, na dɛn nti na ɛyɛ ahokokwaw a ɛho hia a wɔde fa intanɛt wiase no mu?",
+      "question_english": "What are digital citizenship and media literacy, and why are they important skills for navigating the online world?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "nipa"
+        },
+        {
+          "category": "persons",
+          "value": "nnipa"
+        },
+        {
+          "category": "persons",
+          "value": "mmabun"
+        },
+        {
+          "category": "other",
+          "value": "media literacy"
+        },
+        {
+          "category": "other",
+          "value": "abɛɛfo ntentan"
+        },
+        {
+          "category": "other",
+          "value": "ntanɛt"
+        },
+        {
+          "category": "other",
+          "value": "afidie nimdeɛ"
+        },
+        {
+          "category": "other",
+          "value": "afidie ahorow"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "df8c285091389a0689cb",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "mmabun"
+            },
+            {
+              "category": "other",
+              "value": "media literacy"
+            },
+            {
+              "category": "other",
+              "value": "ntentan"
+            },
+            {
+              "category": "other",
+              "value": "abɛɛfo ntentan"
+            },
+            {
+              "category": "other",
+              "value": "afidie"
+            }
+          ]
+        },
+        {
+          "proposal_id": "19512f94e6cbac297f9e",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "nipa"
+            },
+            {
+              "category": "persons",
+              "value": "nnipa"
+            },
+            {
+              "category": "persons",
+              "value": "mmabun"
+            },
+            {
+              "category": "locations",
+              "value": "ntentan no so"
+            },
+            {
+              "category": "other",
+              "value": "media literacy"
+            },
+            {
+              "category": "other",
+              "value": "afidie nimdeɛ"
+            },
+            {
+              "category": "other",
+              "value": "abɛɛfo ntentan"
+            },
+            {
+              "category": "other",
+              "value": "ntanɛt"
+            },
+            {
+              "category": "other",
+              "value": "afidie ahorow"
+            }
+          ]
+        },
+        {
+          "proposal_id": "1120a6c658463f0b40f1",
+          "role": "adjudicator",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "nipa"
+            },
+            {
+              "category": "persons",
+              "value": "nnipa"
+            },
+            {
+              "category": "persons",
+              "value": "mmabun"
+            },
+            {
+              "category": "other",
+              "value": "media literacy"
+            },
+            {
+              "category": "other",
+              "value": "abɛɛfo ntentan"
+            },
+            {
+              "category": "other",
+              "value": "ntanɛt"
+            },
+            {
+              "category": "other",
+              "value": "afidie nimdeɛ"
+            },
+            {
+              "category": "other",
+              "value": "afidie ahorow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_2c2fab4a8f515be0d8a1",
+      "status": "silver_consensus",
+      "question": "Sɛn na yɛbɛyɛ 'health insurance' (apɔmuden nsi-akyire) ma adi mmabun a wɔhia mmoa no ahiasɛm?",
+      "question_english": "How can we make health insurance meet the needs of adolescents who need support?",
+      "selected_violations": [
+        {
+          "category": "conditions",
+          "value": "adwenemyare"
+        },
+        {
+          "category": "durations",
+          "value": "daa"
+        },
+        {
+          "category": "persons",
+          "value": "ayarehwɛfo"
+        },
+        {
+          "category": "locations",
+          "value": "sukuu"
+        },
+        {
+          "category": "locations",
+          "value": "wɔn mpɔtam"
+        },
+        {
+          "category": "other",
+          "value": "awo ho ayarehwɛ"
+        },
+        {
+          "category": "other",
+          "value": "nhwehwɛmu"
+        },
+        {
+          "category": "other",
+          "value": "mmara"
+        },
+        {
+          "category": "other",
+          "value": "gyinaesi"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "39f4c6565a6a4fd12f76",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "other",
+              "value": "suukuo"
+            },
+            {
+              "category": "other",
+              "value": "wɔn mpɔtam adesua dawuro"
+            }
+          ]
+        },
+        {
+          "proposal_id": "112ed985c26a41d97931",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "conditions",
+              "value": "adwenemyare"
+            },
+            {
+              "category": "durations",
+              "value": "daa"
+            },
+            {
+              "category": "persons",
+              "value": "ayarehwɛfo"
+            },
+            {
+              "category": "locations",
+              "value": "sukuu"
+            },
+            {
+              "category": "locations",
+              "value": "wɔn mpɔtam"
+            },
+            {
+              "category": "other",
+              "value": "awo ho ayarehwɛ"
+            },
+            {
+              "category": "other",
+              "value": "nhwehwɛmu"
+            },
+            {
+              "category": "other",
+              "value": "mmara"
+            },
+            {
+              "category": "other",
+              "value": "gyinaesi"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_2ccab0bb940395e77634",
+      "status": "silver_consensus",
+      "question": "Sɛn na bra (afikyireko) kwan no ka nipa adwene ne n’aniagyeɛ, n’ahoɔden, ne n’apɔmuden nyinaa?",
+      "question_english": "How does the menstrual cycle affect a person’s mind and mood/happiness, energy, and overall health?",
+      "selected_violations": [
+        {
+          "category": "symptoms",
+          "value": "nkaeɛ a ɛsakyera basabasa"
+        },
+        {
+          "category": "symptoms",
+          "value": "abofufu"
+        },
+        {
+          "category": "symptoms",
+          "value": "mmerɛyɛ"
+        },
+        {
+          "category": "symptoms",
+          "value": "ɛyaw wɔ yafunu ase ne akyi"
+        },
+        {
+          "category": "symptoms",
+          "value": "ɔbrɛ"
+        },
+        {
+          "category": "symptoms",
+          "value": "ɔbrɛ kɛse"
+        },
+        {
+          "category": "conditions",
+          "value": "Brayɛ mu Akisikuru"
+        },
+        {
+          "category": "body_parts",
+          "value": "awodeɛ"
+        },
+        {
+          "category": "body_parts",
+          "value": "uterus"
+        },
+        {
+          "category": "body_parts",
+          "value": "ababaawa-ba"
+        },
+        {
+          "category": "body_parts",
+          "value": "ovary"
+        },
+        {
+          "category": "body_parts",
+          "value": "yafunu ase"
+        },
+        {
+          "category": "body_parts",
+          "value": "akyi"
+        },
+        {
+          "category": "durations",
+          "value": "nnafua mmiɛnsa kɔsi nson"
+        },
+        {
+          "category": "quantities",
+          "value": "bɛyɛ nnafua mmiɛnsa kɔsi nson"
+        },
+        {
+          "category": "quantities",
+          "value": "bɛyɛ bra kwan no mfinimfini"
+        },
+        {
+          "category": "persons",
+          "value": "ebinom"
+        },
+        {
+          "category": "other",
+          "value": "Menstrual Cycle Phases"
+        },
+        {
+          "category": "other",
+          "value": "Follicular phase"
+        },
+        {
+          "category": "other",
+          "value": "Ovulation"
+        },
+        {
+          "category": "other",
+          "value": "Luteal phase"
+        },
+        {
+          "category": "other",
+          "value": "estrogen"
+        },
+        {
+          "category": "other",
+          "value": "progesterone"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "6c26d7f05b1626082ebe",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "symptoms",
+              "value": "Ɛyaw wɔ yafunu ase ne akyi"
+            },
+            {
+              "category": "symptoms",
+              "value": "ɔbrɛ"
+            },
+            {
+              "category": "symptoms",
+              "value": "ɔbrɛ kɛseɛ"
+            },
+            {
+              "category": "symptoms",
+              "value": "abofufu"
+            },
+            {
+              "category": "symptoms",
+              "value": "mmerɛyɛ"
+            },
+            {
+              "category": "body_parts",
+              "value": "yafunu ase"
+            },
+            {
+              "category": "body_parts",
+              "value": "akyi"
+            },
+            {
+              "category": "body_parts",
+              "value": "awodeɛ (uterus)"
+            },
+            {
+              "category": "body_parts",
+              "value": "nkesua (egg)"
+            },
+            {
+              "category": "body_parts",
+              "value": "ababaawa-ba (ovary)"
+            },
+            {
+              "category": "durations",
+              "value": "nnafua mmiɛnsa kɔsi nson"
+            },
+            {
+              "category": "other",
+              "value": "estrogen"
+            },
+            {
+              "category": "other",
+              "value": "progesterone"
+            },
+            {
+              "category": "other",
+              "value": "Follicular phase"
+            },
+            {
+              "category": "other",
+              "value": "Ovulation"
+            },
+            {
+              "category": "other",
+              "value": "Luteal phase"
+            }
+          ]
+        },
+        {
+          "proposal_id": "27d9e15e36c597df88cc",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "symptoms",
+              "value": "nkaeɛ a ɛsakyera basabasa"
+            },
+            {
+              "category": "symptoms",
+              "value": "abofufu"
+            },
+            {
+              "category": "symptoms",
+              "value": "mmerɛyɛ"
+            },
+            {
+              "category": "symptoms",
+              "value": "ɛyaw wɔ yafunu ase ne akyi"
+            },
+            {
+              "category": "symptoms",
+              "value": "ɔbrɛ"
+            },
+            {
+              "category": "symptoms",
+              "value": "ɔbrɛ kɛse"
+            },
+            {
+              "category": "conditions",
+              "value": "Brayɛ mu Akisikuru"
+            },
+            {
+              "category": "body_parts",
+              "value": "awodeɛ"
+            },
+            {
+              "category": "body_parts",
+              "value": "uterus"
+            },
+            {
+              "category": "body_parts",
+              "value": "ababaawa-ba"
+            },
+            {
+              "category": "body_parts",
+              "value": "ovary"
+            },
+            {
+              "category": "body_parts",
+              "value": "yafunu ase"
+            },
+            {
+              "category": "body_parts",
+              "value": "akyi"
+            },
+            {
+              "category": "durations",
+              "value": "nnafua mmiɛnsa kɔsi nson"
+            },
+            {
+              "category": "quantities",
+              "value": "bɛyɛ nnafua mmiɛnsa kɔsi nson"
+            },
+            {
+              "category": "quantities",
+              "value": "bɛyɛ bra kwan no mfinimfini"
+            },
+            {
+              "category": "persons",
+              "value": "ebinom"
+            },
+            {
+              "category": "other",
+              "value": "Menstrual Cycle Phases"
+            },
+            {
+              "category": "other",
+              "value": "Follicular phase"
+            },
+            {
+              "category": "other",
+              "value": "Ovulation"
+            },
+            {
+              "category": "other",
+              "value": "Luteal phase"
+            },
+            {
+              "category": "other",
+              "value": "estrogen"
+            },
+            {
+              "category": "other",
+              "value": "progesterone"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_3045a7f6a82ff6efd67d",
+      "status": "silver_consensus",
+      "question": "Mɛyɛ dɛn ako ama 'sexual health screenings' ne nkyerɛkyerɛ?",
+      "question_english": "How can I advocate for sexual health screenings and education?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "akannifo"
+        },
+        {
+          "category": "other",
+          "value": "ɔsatu ahorow"
+        },
+        {
+          "category": "other",
+          "value": "Adesrɛ krataa"
+        },
+        {
+          "category": "other",
+          "value": "nhyiam horow"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "8e03209136cd1fba315a",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "akannifo"
+            },
+            {
+              "category": "other",
+              "value": "Nhumu (ɔsatu ahorow)"
+            },
+            {
+              "category": "other",
+              "value": "Adesrɛ krataa"
+            },
+            {
+              "category": "other",
+              "value": "nhyiam horow"
+            }
+          ]
+        },
+        {
+          "proposal_id": "4fb4a14d6feb673b8d01",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "akannifo"
+            },
+            {
+              "category": "other",
+              "value": "ɔsatu ahorow"
+            },
+            {
+              "category": "other",
+              "value": "Adesrɛ krataa"
+            },
+            {
+              "category": "other",
+              "value": "nhyiam horow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_31c3d63e27b29a8d5e2b",
+      "status": "silver_consensus",
+      "question": "Mɛyɛ dɛn akamfo nkyerɛkyerɛ a edi mũ a ɛfa awo nhyehyɛe akwahosan ho wɔ sukuu ahorow, mpɔtam, ne akwahosan ho nhyehyɛe ahorow ahorow mu?",
+      "question_english": "How can I advocate for comprehensive reproductive health education in schools, communities, and health systems?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "asuafo"
+        },
+        {
+          "category": "persons",
+          "value": "sukuu so ahwɛfo"
+        },
+        {
+          "category": "persons",
+          "value": "mpɔtam hɔ akannifo"
+        },
+        {
+          "category": "persons",
+          "value": "akwahosan ho adwumayɛfo"
+        },
+        {
+          "category": "persons",
+          "value": "nkurɔfo"
+        },
+        {
+          "category": "locations",
+          "value": "mpɔtam hɔ mmeae ahorow"
+        },
+        {
+          "category": "other",
+          "value": "nna mu akwahosan ho nkyerɛkyerɛ"
+        },
+        {
+          "category": "other",
+          "value": "nna ho nkyerɛkyerɛ nhyehyɛe"
+        },
+        {
+          "category": "other",
+          "value": "awo akwahosan ho nnwuma"
+        },
+        {
+          "category": "other",
+          "value": "nhomasua nhyiam ahorow"
+        },
+        {
+          "category": "other",
+          "value": "sohyial media nhyehyɛe"
+        },
+        {
+          "category": "other",
+          "value": "mpɔtam hɔ nhyehyɛe mmɔdenbɔ"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "0085307872f27bc9044b",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "asuafo"
+            },
+            {
+              "category": "persons",
+              "value": "sukuup so ahwɛfo"
+            },
+            {
+              "category": "persons",
+              "value": "mpɔtam hɔ akannifo"
+            },
+            {
+              "category": "persons",
+              "value": "akwahosan ho adwumayɛfo"
+            },
+            {
+              "category": "locations",
+              "value": "sukuup"
+            },
+            {
+              "category": "other",
+              "value": "nna mu akwahosan"
+            },
+            {
+              "category": "other",
+              "value": "awo akwahosan ho nnwuma"
+            },
+            {
+              "category": "other",
+              "value": "sohyial media nhyehyɛe"
+            }
+          ]
+        },
+        {
+          "proposal_id": "5a009b8a1e1ac39ae4e0",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "Asuafo"
+            },
+            {
+              "category": "persons",
+              "value": "sukuu so ahwɛfo"
+            },
+            {
+              "category": "persons",
+              "value": "mpɔtam hɔ akannifo"
+            },
+            {
+              "category": "persons",
+              "value": "akwahosan ho adwumayɛfo"
+            },
+            {
+              "category": "persons",
+              "value": "nkurɔfo"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ mmeae ahorow"
+            },
+            {
+              "category": "other",
+              "value": "nna mu akwahosan ho nsɛm"
+            },
+            {
+              "category": "other",
+              "value": "nna ho nkyerɛkyerɛ nhyehyɛe"
+            },
+            {
+              "category": "other",
+              "value": "awo akwahosan ho nnwuma"
+            },
+            {
+              "category": "other",
+              "value": "Nhomasua nhyiam ahorow"
+            },
+            {
+              "category": "other",
+              "value": "sohyial media nhyehyɛeɛ"
+            },
+            {
+              "category": "other",
+              "value": "mpɔtam hɔ nhyehyɛeɛ mmɔdenbɔ"
+            }
+          ]
+        },
+        {
+          "proposal_id": "c32c396d7ba9c2c0676c",
+          "role": "adjudicator",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "asuafo"
+            },
+            {
+              "category": "persons",
+              "value": "sukuu so ahwɛfo"
+            },
+            {
+              "category": "persons",
+              "value": "mpɔtam hɔ akannifo"
+            },
+            {
+              "category": "persons",
+              "value": "akwahosan ho adwumayɛfo"
+            },
+            {
+              "category": "persons",
+              "value": "nkurɔfo"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ mmeae ahorow"
+            },
+            {
+              "category": "other",
+              "value": "nna mu akwahosan ho nkyerɛkyerɛ"
+            },
+            {
+              "category": "other",
+              "value": "nna ho nkyerɛkyerɛ nhyehyɛe"
+            },
+            {
+              "category": "other",
+              "value": "awo akwahosan ho nnwuma"
+            },
+            {
+              "category": "other",
+              "value": "nhomasua nhyiam ahorow"
+            },
+            {
+              "category": "other",
+              "value": "sohyial media nhyehyɛe"
+            },
+            {
+              "category": "other",
+              "value": "mpɔtam hɔ nhyehyɛe mmɔdenbɔ"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_36bf9072f4b896ed5779",
+      "status": "needs_human_review",
+      "question": "So nyinsɛn a woyi gu wɔ mmara kwan so wɔ baabi a mete no? (Eyi ho hia sɛ wobua a, egyina beae a wowɔ so)",
+      "question_english": "Is abortion legal where I live? (It’s important to answer based on your location.)",
+      "selected_violations": [
+        {
+          "category": "locations",
+          "value": "Ghana"
+        },
+        {
+          "category": "other",
+          "value": "tebea ahorow bi"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "d81828ff7009f62cdfa7",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "locations",
+              "value": "Ghana"
+            },
+            {
+              "category": "other",
+              "value": "tebea ahorow bi"
+            }
+          ]
+        },
+        {
+          "proposal_id": "7672f0065db10687d8d1",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "locations",
+              "value": "Ghana"
+            },
+            {
+              "category": "other",
+              "value": "tebea ahorow bi"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_3b06d945cf469baaa327",
+      "status": "needs_human_review",
+      "question": "So wɔde telefon a wɔde boa wɔ ɔhaw mu wɔ hɔ 24/7, na ɛbɛyɛ dɛn na mmabun atumi anya telefon a wɔde asi hɔ so titiriw sɛ wɔde bɛboa victims wɔ nna mu basabasayɛ mu wɔ wɔn mantam anaa wɔn man mu?",
+      "question_english": "So is there a helpline available 24/7, and how can young people get a dedicated hotline to help victims of sexual violence in their region or country?",
+      "selected_violations": [
+        {
+          "category": "locations",
+          "value": "ɔman mu"
+        },
+        {
+          "category": "other",
+          "value": "telefon a wɔde boa ɔhaw ahorow"
+        },
+        {
+          "category": "other",
+          "value": "mmoa nhama"
+        },
+        {
+          "category": "other",
+          "value": "nna mu basabasayɛ ho telefon"
+        },
+        {
+          "category": "other",
+          "value": "mmonnaato ho haw beae"
+        },
+        {
+          "category": "other",
+          "value": "mmoa a wɔde ma victims"
+        },
+        {
+          "category": "other",
+          "value": "mpɔtam hɔ akuo ahorow"
+        },
+        {
+          "category": "other",
+          "value": "akwahosan ho adwumayɛfo"
+        },
+        {
+          "category": "other",
+          "value": "sukuu ahorow"
+        },
+        {
+          "category": "other",
+          "value": "afotubea ahorow"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "e206d04fb1e67714d2a1",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "locations",
+              "value": "ɔman mu"
+            },
+            {
+              "category": "other",
+              "value": "telefon a wɔde boa ɔhaw ahorow"
+            },
+            {
+              "category": "other",
+              "value": "mmoa nhama"
+            },
+            {
+              "category": "other",
+              "value": "nna mu basabasayɛ ho telefon"
+            },
+            {
+              "category": "other",
+              "value": "mmonnaato ho haw beae"
+            },
+            {
+              "category": "other",
+              "value": "mmoa a wɔde ma victims"
+            },
+            {
+              "category": "other",
+              "value": "mpɔtam hɔ akuo ahorow"
+            },
+            {
+              "category": "other",
+              "value": "akwahosan ho adwumayɛfo"
+            },
+            {
+              "category": "other",
+              "value": "sukuu ahorow"
+            },
+            {
+              "category": "other",
+              "value": "afotubea ahorow"
+            }
+          ]
+        },
+        {
+          "proposal_id": "5b601e03ed018262f4d2",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "ankorankoro a wɔwɔ ɔhaw mu"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ"
+            },
+            {
+              "category": "other",
+              "value": "nna mu basabasayɛ ho telefon"
+            },
+            {
+              "category": "other",
+              "value": "mmonnaato ho haw beae"
+            },
+            {
+              "category": "other",
+              "value": "mmoa a wɔde ma victims"
+            },
+            {
+              "category": "other",
+              "value": "mpɔtam hɔ akuo ahorow"
+            },
+            {
+              "category": "other",
+              "value": "akwahosan ho adwumayɛfo"
+            },
+            {
+              "category": "other",
+              "value": "sukuu ahorow"
+            },
+            {
+              "category": "other",
+              "value": "afotubea ahorow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_3fa96c625ac3c0137deb",
+      "status": "needs_human_review",
+      "question": "Dɛn ne akwan horow bi a wɔfa so di atipɛnfo nhyɛso so wɔ asetra mu tebea horow mu bere a yɛde yɛn adwene mu akwahosan si kan?",
+      "question_english": "What are some ways to resist peer pressure in different life situations while prioritizing our mental health?",
+      "selected_violations": [
+        {
+          "category": "locations",
+          "value": "National Youth Authority (NYA)"
+        },
+        {
+          "category": "locations",
+          "value": "Ghana Education Service"
+        },
+        {
+          "category": "other",
+          "value": "peer pressure"
+        },
+        {
+          "category": "other",
+          "value": "boundaries"
+        },
+        {
+          "category": "other",
+          "value": "principles"
+        },
+        {
+          "category": "other",
+          "value": "assertiveness"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "7efbd6d3a9a0d987735a",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "locations",
+              "value": "National Youth Authority (NYA)"
+            },
+            {
+              "category": "locations",
+              "value": "Ghana Education Service"
+            },
+            {
+              "category": "other",
+              "value": "peer pressure"
+            },
+            {
+              "category": "other",
+              "value": "boundaries"
+            },
+            {
+              "category": "other",
+              "value": "principles"
+            },
+            {
+              "category": "other",
+              "value": "assertiveness"
+            }
+          ]
+        },
+        {
+          "proposal_id": "dca815a7470d926e7ccc",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "mfɛfo"
+            },
+            {
+              "category": "persons",
+              "value": "nnamfo"
+            },
+            {
+              "category": "locations",
+              "value": "National Youth Authority (NYA)"
+            },
+            {
+              "category": "locations",
+              "value": "Ghana Education Service wɛbsait"
+            },
+            {
+              "category": "other",
+              "value": "gyidi"
+            },
+            {
+              "category": "other",
+              "value": "gyinapɛn"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_40f0881153aec6148f20",
+      "status": "silver_consensus",
+      "question": "Mɛyɛ dɛn atumi ne m’abusuafo ne me nnamfo aka kwan foforo a meresusu ho no ho asɛm? (nkitahodi ho afotu) .",
+      "question_english": "How can I talk with my family members and my friends about the new path or option that I am considering? (communication advice).",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "w’adɔfo"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "71d1d66c2eaf2057df3d",
+          "role": "teacher_a",
+          "violations": []
+        },
+        {
+          "proposal_id": "b7889961a5bc69e148f0",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "w’adɔfo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_44c75ebb2bce7ebd5920",
+      "status": "silver_consensus",
+      "question": "Dwuma bɛn na pene a wɔpene so di wɔ nkitahodi a ɛyɛ papa mu, na mɛyɛ dɛn ahwɛ ahu sɛ wɔde pene bere nyinaa na wobu no?",
+      "question_english": "What role does consent play in a good relationship, and how can I make sure consent is always given and respected?",
+      "selected_violations": [
+        {
+          "category": "durations",
+          "value": "bere biara"
+        },
+        {
+          "category": "quantities",
+          "value": "baanu"
+        },
+        {
+          "category": "persons",
+          "value": "ahokafo baanu"
+        },
+        {
+          "category": "persons",
+          "value": "wo hokafo"
+        },
+        {
+          "category": "other",
+          "value": "nkitahodi pa"
+        },
+        {
+          "category": "other",
+          "value": "nna mu dwumadi"
+        },
+        {
+          "category": "other",
+          "value": "ahye"
+        },
+        {
+          "category": "other",
+          "value": "akɔnnɔ"
+        },
+        {
+          "category": "other",
+          "value": "awerɛkyekye dodow"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "2b35aaf0361e24b91674",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "ahokafo baanu"
+            },
+            {
+              "category": "persons",
+              "value": "wo hokafo"
+            },
+            {
+              "category": "other",
+              "value": "fahodi"
+            },
+            {
+              "category": "other",
+              "value": "anigye"
+            },
+            {
+              "category": "other",
+              "value": "ahye"
+            },
+            {
+              "category": "other",
+              "value": "akɔnnɔ"
+            },
+            {
+              "category": "other",
+              "value": "awerɛkyekye"
+            }
+          ]
+        },
+        {
+          "proposal_id": "0ad97f092c67510dfd09",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "durations",
+              "value": "bere biara"
+            },
+            {
+              "category": "quantities",
+              "value": "baanu"
+            },
+            {
+              "category": "persons",
+              "value": "ahokafo baanu"
+            },
+            {
+              "category": "persons",
+              "value": "wo hokafo"
+            },
+            {
+              "category": "other",
+              "value": "nkitahodi pa"
+            },
+            {
+              "category": "other",
+              "value": "nna mu dwumadi"
+            },
+            {
+              "category": "other",
+              "value": "ahye"
+            },
+            {
+              "category": "other",
+              "value": "akɔnnɔ"
+            },
+            {
+              "category": "other",
+              "value": "awerɛkyekye dodow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_45260178f6eb4bab43b1",
+      "status": "silver_consensus",
+      "question": "Dɛn ne adwennwen, na ɔkwan bɛn so na ɛka yɛn adwene ne yɛn nipadua akwahosan wɔ berɛ a yɛyɛ babun?",
+      "question_english": "What is stress, and how does it affect our mental and physical health when we are adolescents?",
+      "selected_violations": [
+        {
+          "category": "symptoms",
+          "value": "dadwen"
+        },
+        {
+          "category": "symptoms",
+          "value": "abufuw"
+        },
+        {
+          "category": "symptoms",
+          "value": "adwene a ɛba fam"
+        },
+        {
+          "category": "symptoms",
+          "value": "aduan ho akɔnnɔ mu nsakrae"
+        },
+        {
+          "category": "symptoms",
+          "value": "nna a ɛyɛ basaa"
+        },
+        {
+          "category": "symptoms",
+          "value": "tiyɛ"
+        },
+        {
+          "category": "body_parts",
+          "value": "ti"
+        },
+        {
+          "category": "durations",
+          "value": "wɔ berɛ a woyɛ babun"
+        },
+        {
+          "category": "other",
+          "value": "ɔhaw"
+        },
+        {
+          "category": "other",
+          "value": "nneɛma a ɛhwehwɛ"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "9d28dcd639b5a6508249",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "symptoms",
+              "value": "dadwen"
+            },
+            {
+              "category": "symptoms",
+              "value": "abufuw"
+            },
+            {
+              "category": "symptoms",
+              "value": "adwene a ɛba fam"
+            },
+            {
+              "category": "conditions",
+              "value": "adwenemyare"
+            },
+            {
+              "category": "other",
+              "value": "nna a ɛyɛ basaa"
+            },
+            {
+              "category": "other",
+              "value": "tiyɛ mu"
+            }
+          ]
+        },
+        {
+          "proposal_id": "41c84ae45bde6259d382",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "symptoms",
+              "value": "dadwen"
+            },
+            {
+              "category": "symptoms",
+              "value": "abufuw"
+            },
+            {
+              "category": "symptoms",
+              "value": "adwene a ɛba fam"
+            },
+            {
+              "category": "symptoms",
+              "value": "aduan ho akɔnnɔ mu nsakrae"
+            },
+            {
+              "category": "symptoms",
+              "value": "nna a ɛyɛ basaa"
+            },
+            {
+              "category": "symptoms",
+              "value": "tiyɛ"
+            },
+            {
+              "category": "body_parts",
+              "value": "ti"
+            },
+            {
+              "category": "durations",
+              "value": "wɔ berɛ a woyɛ babun"
+            },
+            {
+              "category": "other",
+              "value": "ɔhaw"
+            },
+            {
+              "category": "other",
+              "value": "nneɛma a ɛhwehwɛ"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_4afb38618558e5b0367a",
+      "status": "needs_human_review",
+      "question": "Mɛyɛ dɛn anya ahotoso sɛ m’ankasa me ho nsɛm, te sɛ nna ho nsɛm  anaa suahu ahorow, aka abusua no mu woberɛ a ɛrenkɔ abɔnte?",
+      "question_english": "How can I be sure that my personal information, such as sexual information or experiences, will stay within the family and not go outside?",
+      "selected_violations": [
+        {
+          "category": "other",
+          "value": "nna mu akwahosan ho nsɛm"
+        },
+        {
+          "category": "other",
+          "value": "osuahu ahorow"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "1e21fc99d188338a79b1",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "other",
+              "value": "nna mu akwahosan ho nsɛm"
+            },
+            {
+              "category": "other",
+              "value": "osuahu ahorow"
+            }
+          ]
+        },
+        {
+          "proposal_id": "4b074a06e9995f1a348e",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "other",
+              "value": "ahye"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_4affde0bb6a1b4bf5959",
+      "status": "silver_consensus",
+      "question": "So amammerɛ anaa nyamesom mu nneɛma bi wɔ hɔ a ebetumi aka mmabun a wobenya nna ne awo ho akwahosan ho nhyehyɛe?",
+      "question_english": "Are there any cultural or religious factors that could affect adolescents getting sexual and reproductive health services?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "nkurɔfo"
+        },
+        {
+          "category": "persons",
+          "value": "akwahosan ho adwumayɛfo"
+        },
+        {
+          "category": "persons",
+          "value": "mpɔtam hɔfo"
+        },
+        {
+          "category": "other",
+          "value": "nyamesom mu gyidi"
+        },
+        {
+          "category": "other",
+          "value": "nyinsɛn a wosiw ano"
+        },
+        {
+          "category": "other",
+          "value": "nyinsɛn"
+        },
+        {
+          "category": "other",
+          "value": "nyinsɛn a woyi gu"
+        },
+        {
+          "category": "other",
+          "value": "animtiaabu"
+        },
+        {
+          "category": "other",
+          "value": "aniwu"
+        },
+        {
+          "category": "other",
+          "value": "nneɛma a wɔabara"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "2bd321cbc1ae65055a2a",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "nkurofo"
+            },
+            {
+              "category": "persons",
+              "value": "akwahosan ho adwumayɛfo"
+            },
+            {
+              "category": "persons",
+              "value": "mpɔtam hɔfo"
+            },
+            {
+              "category": "other",
+              "value": "nyinsɛn a wosiw ano"
+            },
+            {
+              "category": "other",
+              "value": "nyinsɛn"
+            },
+            {
+              "category": "other",
+              "value": "nyinsɛn a woyi gu"
+            },
+            {
+              "category": "other",
+              "value": "animtiaabu"
+            },
+            {
+              "category": "other",
+              "value": "aniwu"
+            },
+            {
+              "category": "other",
+              "value": "nneɛma a wɔabara"
+            }
+          ]
+        },
+        {
+          "proposal_id": "c24c49320b00ae15c9e9",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "nkurɔfo"
+            },
+            {
+              "category": "persons",
+              "value": "akwahosan ho adwumayɛfo"
+            },
+            {
+              "category": "persons",
+              "value": "mpɔtam hɔfo"
+            },
+            {
+              "category": "other",
+              "value": "nyamesom mu gyidi"
+            },
+            {
+              "category": "other",
+              "value": "nyinsɛn a wosiw ano"
+            },
+            {
+              "category": "other",
+              "value": "nyinsɛn"
+            },
+            {
+              "category": "other",
+              "value": "nyinsɛn a woyi gu"
+            },
+            {
+              "category": "other",
+              "value": "animtiaabu"
+            },
+            {
+              "category": "other",
+              "value": "aniwu"
+            },
+            {
+              "category": "other",
+              "value": "nneɛma a wɔabara"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_4c55aeec8f3713dce646",
+      "status": "needs_human_review",
+      "question": "Nsɛnkyerɛnne bɛn na ɛtaa kyerɛ sɛ obi wɔ abusuabɔ a ɛnteɛ anaa ayayade \"unhaelthy or abusive relaionship\", na ɔkwan bɛn so na mmabun betumi ahu frankaa kɔkɔɔ anaa kɔkɔbɔ nsɛnkyerɛnne?",
+      "question_english": "What signs commonly show that someone is in an unhealthy or abusive relationship, and how can young people recognize red flags or warning signs?",
+      "selected_violations": [
+        {
+          "category": "conditions",
+          "value": "ayayade abusuabɔ"
+        },
+        {
+          "category": "persons",
+          "value": "ɔhokafo"
+        },
+        {
+          "category": "persons",
+          "value": "nnamfo"
+        },
+        {
+          "category": "persons",
+          "value": "abusuafo"
+        },
+        {
+          "category": "persons",
+          "value": "mpanyimfo a wogye wɔn di"
+        },
+        {
+          "category": "other",
+          "value": "Ahyɛde"
+        },
+        {
+          "category": "other",
+          "value": "Ahoɔyaw"
+        },
+        {
+          "category": "other",
+          "value": "Isolation"
+        },
+        {
+          "category": "other",
+          "value": "gaslighting"
+        },
+        {
+          "category": "other",
+          "value": "nhyɛso"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "0601d04f181e87d2a1a6",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "conditions",
+              "value": "abusuabɔ a ɛnyɛ papa"
+            },
+            {
+              "category": "persons",
+              "value": "ɔhokafo biako"
+            },
+            {
+              "category": "persons",
+              "value": "ɔfoforo no"
+            },
+            {
+              "category": "other",
+              "value": "Ahyɛde"
+            },
+            {
+              "category": "other",
+              "value": "Ahoɔyaw"
+            },
+            {
+              "category": "other",
+              "value": "Tew a Wɔtew ne Ho"
+            },
+            {
+              "category": "other",
+              "value": "gaslighting"
+            }
+          ]
+        },
+        {
+          "proposal_id": "9d5ac436f81469938fd9",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "conditions",
+              "value": "ayayade abusuabɔ"
+            },
+            {
+              "category": "persons",
+              "value": "ɔhokafo"
+            },
+            {
+              "category": "persons",
+              "value": "nnamfo"
+            },
+            {
+              "category": "persons",
+              "value": "abusuafo"
+            },
+            {
+              "category": "persons",
+              "value": "mpanyimfo a wogye wɔn di"
+            },
+            {
+              "category": "other",
+              "value": "Ahyɛde"
+            },
+            {
+              "category": "other",
+              "value": "Ahoɔyaw"
+            },
+            {
+              "category": "other",
+              "value": "Isolation"
+            },
+            {
+              "category": "other",
+              "value": "gaslighting"
+            },
+            {
+              "category": "other",
+              "value": "nhyɛso"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_4f0e19ddaef64a061729",
+      "status": "needs_human_review",
+      "question": "Mɛyɛ dɛn ahu na mako atia atipɛnfo nhyɛso a ɛfa nna anaa nneyɛe a asiane wumu ho?",
+      "question_english": "How can I recognize and resist peer pressure related to sex or risky behaviors?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "nnamfo"
+        },
+        {
+          "category": "persons",
+          "value": "mpanyimfo a wogye wɔn di"
+        },
+        {
+          "category": "persons",
+          "value": "obi"
+        },
+        {
+          "category": "other",
+          "value": "nneyɛe a asiane wɔ mu"
+        },
+        {
+          "category": "other",
+          "value": "ahye"
+        },
+        {
+          "category": "other",
+          "value": "DABI"
+        },
+        {
+          "category": "other",
+          "value": "gyinaesi"
+        },
+        {
+          "category": "other",
+          "value": "nna mu nneyɛe"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "6677c74035e5b03e7e83",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "mpanyimfo"
+            },
+            {
+              "category": "persons",
+              "value": "nnamfo"
+            },
+            {
+              "category": "other",
+              "value": "nna mu nneyɛe"
+            }
+          ]
+        },
+        {
+          "proposal_id": "9a6208921d32052d2cc4",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "nnipa a wɔboa wo"
+            },
+            {
+              "category": "persons",
+              "value": "nnamfo"
+            },
+            {
+              "category": "persons",
+              "value": "mpanyimfo a wogye wɔn di"
+            },
+            {
+              "category": "persons",
+              "value": "obi"
+            },
+            {
+              "category": "other",
+              "value": "nneyɛe a asiane wɔ mu"
+            },
+            {
+              "category": "other",
+              "value": "ahye"
+            },
+            {
+              "category": "other",
+              "value": "DABI"
+            },
+            {
+              "category": "other",
+              "value": "gyinaesi ahorow"
+            },
+            {
+              "category": "other",
+              "value": "nna mu nneyɛe"
+            }
+          ]
+        },
+        {
+          "proposal_id": "93903e0d7f82dca6dea6",
+          "role": "adjudicator",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "nnamfo"
+            },
+            {
+              "category": "persons",
+              "value": "mpanyimfo a wogye wɔn di"
+            },
+            {
+              "category": "persons",
+              "value": "obi"
+            },
+            {
+              "category": "other",
+              "value": "nneyɛe a asiane wɔ mu"
+            },
+            {
+              "category": "other",
+              "value": "ahye"
+            },
+            {
+              "category": "other",
+              "value": "DABI"
+            },
+            {
+              "category": "other",
+              "value": "gyinaesi"
+            },
+            {
+              "category": "other",
+              "value": "nna mu nneyɛe"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_5f0f887d26c886d4230a",
+      "status": "needs_human_review",
+      "question": "Atoro anaa adwene bɔne bɛn na ɛtaa kɔ so wɔ ahokyere mmoa wɔ telefon so 'crisis helplines', na ɔkwan bɛn so na mmabun betumi aboa ma wɔatu atoro yi ase na wɔahyɛ mmoa ne nneɛma a wɔbɛhwehwɛ ho nimdeɛ nkuran?",
+      "question_english": "What myths or misconceptions commonly circulate about phone-based crisis helplines, and how can young people help correct these myths and encourage seeking help and information?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "hotline workers"
+        },
+        {
+          "category": "persons",
+          "value": "young people"
+        },
+        {
+          "category": "persons",
+          "value": "people who called the help line"
+        },
+        {
+          "category": "other",
+          "value": "hotline"
+        },
+        {
+          "category": "other",
+          "value": "privacy policies"
+        },
+        {
+          "category": "other",
+          "value": "training"
+        },
+        {
+          "category": "other",
+          "value": "knowledge"
+        },
+        {
+          "category": "other",
+          "value": "kinds of issues"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "d5a82835af4a606357df",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "hotline workers"
+            },
+            {
+              "category": "persons",
+              "value": "young people"
+            },
+            {
+              "category": "persons",
+              "value": "people who called the help line"
+            },
+            {
+              "category": "other",
+              "value": "hotline"
+            },
+            {
+              "category": "other",
+              "value": "privacy policies"
+            },
+            {
+              "category": "other",
+              "value": "training"
+            },
+            {
+              "category": "other",
+              "value": "knowledge"
+            },
+            {
+              "category": "other",
+              "value": "kinds of issues"
+            }
+          ]
+        },
+        {
+          "proposal_id": "23bd0479a9ddadc602df",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "hotline adwumayɛfoɔ"
+            },
+            {
+              "category": "persons",
+              "value": "nkurɔfoɔ a wɔfrɛɛ mmoa ntelefon"
+            },
+            {
+              "category": "other",
+              "value": "crisis hotlines"
+            },
+            {
+              "category": "other",
+              "value": "kɔkoam nhyehyɛeɛ"
+            },
+            {
+              "category": "other",
+              "value": "nteteeɛ"
+            },
+            {
+              "category": "other",
+              "value": "ankorankoro nsɛm"
+            },
+            {
+              "category": "other",
+              "value": "adanseɛ"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_6e3ae35acab621dd7179",
+      "status": "silver_consensus",
+      "question": "So ahyehyɛde anaa nnwumakuw bi wɔ hɔ a wɔde akwankyerɛ anaa afotu a ɛfa wɔn ankasa ho ma mmabun a wɔrehwehwɛ sika fam mmoa wɔ nhomasua ne ntetee mu?",
+      "question_english": "Are there any organizations or companies that provide personalized guidance or advice for young people seeking financial support for education and training?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "sukuu afotufo"
+        },
+        {
+          "category": "persons",
+          "value": "asuafoɔ"
+        },
+        {
+          "category": "other",
+          "value": "ahyehyɛde ahorow"
+        },
+        {
+          "category": "other",
+          "value": "kɔlege kwan a wɔfa so nya nhyehyɛe"
+        },
+        {
+          "category": "other",
+          "value": "ahyehyɛde ahorow a wɔnyɛ adwuma a wɔde hwehwɛ mfaso"
+        },
+        {
+          "category": "other",
+          "value": "aban ahyehyɛde ahorow"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "c568612d93a41d9f9a23",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "asuafoɔ"
+            },
+            {
+              "category": "other",
+              "value": "sukuu afotufo"
+            },
+            {
+              "category": "other",
+              "value": "kɔlege kwan a wɔfa so nya nhyehyɛe"
+            },
+            {
+              "category": "other",
+              "value": "ahyehyɛde ahorow a wɔnyɛ adwuma a wɔde hwehwɛ mfaso"
+            },
+            {
+              "category": "other",
+              "value": "aban ahyehyɛde ahorow"
+            },
+            {
+              "category": "other",
+              "value": "sika a wɔde bɛhwehwɛ adesua mu"
+            },
+            {
+              "category": "other",
+              "value": "sikasɛm mu mmoa akwammisa"
+            },
+            {
+              "category": "other",
+              "value": "kɔlege a wɔgye nkurɔfoɔ ho nhyehyɛe"
+            },
+            {
+              "category": "other",
+              "value": "adwumayɛ ho afotuo"
+            },
+            {
+              "category": "other",
+              "value": "sikasɛm ho nimdeɛ ho adesua"
+            }
+          ]
+        },
+        {
+          "proposal_id": "67cb73c66057a9d8f9ba",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "sukuu afotufo"
+            },
+            {
+              "category": "persons",
+              "value": "asuafoɔ"
+            },
+            {
+              "category": "other",
+              "value": "ahyehyɛde ahorow"
+            },
+            {
+              "category": "other",
+              "value": "kɔlege kwan a wɔfa so nya nhyehyɛe"
+            },
+            {
+              "category": "other",
+              "value": "ahyehyɛde ahorow a wɔnyɛ adwuma a wɔde hwehwɛ mfaso"
+            },
+            {
+              "category": "other",
+              "value": "aban ahyehyɛde ahorow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_727253a2286945a2ce39",
+      "status": "needs_human_review",
+      "question": "Ɔkwan bɛn so na ɛsono mmara ne abrabɔ pa ho nsusuwii ma mmabun a wɔyem anaa wɔreyɛ awofo wɔ STI/HIV ano aduru ne nkyerɛkyerɛ nnwuma a wobenya ho?",
+      "question_english": "How do legal and ethical considerations differ for adolescents who are pregnant or parenting in relation to STI/HIV treatment and counseling services they receive?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "mma"
+        },
+        {
+          "category": "other",
+          "value": "kokoamsɛm"
+        },
+        {
+          "category": "other",
+          "value": "asɛyɛde"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "ecb8429687a540f4bc0e",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "mma"
+            },
+            {
+              "category": "other",
+              "value": "kokoamsɛm"
+            },
+            {
+              "category": "other",
+              "value": "asɛyɛde"
+            }
+          ]
+        },
+        {
+          "proposal_id": "200e58238603f1089240",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "mmabun a wɔyɛ awofo"
+            },
+            {
+              "category": "persons",
+              "value": "mmofra nkumaa"
+            },
+            {
+              "category": "other",
+              "value": "kokoamsɛm"
+            },
+            {
+              "category": "other",
+              "value": "pene so"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_785783325c2cdb7abc52",
+      "status": "needs_human_review",
+      "question": "Dɛn nti na ma atenka sesa sesa  bere a meyɛ bra?",
+      "question_english": "Why do my emotions change a lot when I am menstruating?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "wo"
+        },
+        {
+          "category": "other",
+          "value": "babunbere"
+        },
+        {
+          "category": "other",
+          "value": "mmerantebere"
+        },
+        {
+          "category": "other",
+          "value": "mmabaabere"
+        },
+        {
+          "category": "other",
+          "value": "estrogen"
+        },
+        {
+          "category": "other",
+          "value": "testosterone"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "8604f4d6c8a667557d41",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "wo"
+            },
+            {
+              "category": "other",
+              "value": "babunbere"
+            },
+            {
+              "category": "other",
+              "value": "mmerantebere"
+            },
+            {
+              "category": "other",
+              "value": "mmabaabere"
+            },
+            {
+              "category": "other",
+              "value": "estrogen"
+            },
+            {
+              "category": "other",
+              "value": "testosterone"
+            }
+          ]
+        },
+        {
+          "proposal_id": "0836ea00ed3630733271",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "symptoms",
+              "value": "ne ho yeraw no"
+            },
+            {
+              "category": "symptoms",
+              "value": "ne bo fuw"
+            },
+            {
+              "category": "symptoms",
+              "value": "ne nkate mu yɛ den"
+            },
+            {
+              "category": "symptoms",
+              "value": "adwene mu nsesae"
+            },
+            {
+              "category": "body_parts",
+              "value": "nipadua"
+            },
+            {
+              "category": "durations",
+              "value": "wo babunbere mu"
+            },
+            {
+              "category": "durations",
+              "value": "mmerantebere ne mmabaabere"
+            },
+            {
+              "category": "persons",
+              "value": "me"
+            },
+            {
+              "category": "persons",
+              "value": "wo"
+            },
+            {
+              "category": "persons",
+              "value": "obi"
+            },
+            {
+              "category": "other",
+              "value": "nkwaadɔm"
+            },
+            {
+              "category": "other",
+              "value": "estrogen"
+            },
+            {
+              "category": "other",
+              "value": "testosterone"
+            },
+            {
+              "category": "other",
+              "value": "apɔw-mu-teɛteɛ"
+            },
+            {
+              "category": "other",
+              "value": "ahomegye"
+            },
+            {
+              "category": "other",
+              "value": "nna"
+            },
+            {
+              "category": "other",
+              "value": "aduan a aduannuru pii wom"
+            },
+            {
+              "category": "other",
+              "value": "home a emu dɔ"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_7865c40c86707d3384a3",
+      "status": "silver_consensus",
+      "question": "Sɛ merehyia adwennwen, dadwen, anaa adwenemhaw a, ɛbɛyɛ dɛn na m’abusua atumi aboa me?",
+      "question_english": "If I am experiencing stress, anxiety, or depression, how can my family help me?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "adwumayɛfo"
+        },
+        {
+          "category": "other",
+          "value": "ayaresa"
+        },
+        {
+          "category": "other",
+          "value": "afotu"
+        },
+        {
+          "category": "other",
+          "value": "da biara da nnwuma"
+        },
+        {
+          "category": "other",
+          "value": "asɛyɛde ahorow"
+        },
+        {
+          "category": "other",
+          "value": "nantew"
+        },
+        {
+          "category": "other",
+          "value": "adwene a wode bedi dwuma"
+        },
+        {
+          "category": "other",
+          "value": "anigyede ahorow"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "6aead346997f0474d424",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "other",
+              "value": "ayaresa"
+            },
+            {
+              "category": "other",
+              "value": "afotu"
+            },
+            {
+              "category": "other",
+              "value": "nantew"
+            },
+            {
+              "category": "other",
+              "value": "adwene a wode bedi dwuma"
+            },
+            {
+              "category": "other",
+              "value": "anigyede ahorow"
+            }
+          ]
+        },
+        {
+          "proposal_id": "beb5c046c79d47c014f8",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "adwumayɛfo"
+            },
+            {
+              "category": "other",
+              "value": "ayaresa"
+            },
+            {
+              "category": "other",
+              "value": "afotu"
+            },
+            {
+              "category": "other",
+              "value": "da biara da nnwuma"
+            },
+            {
+              "category": "other",
+              "value": "asɛyɛde ahorow"
+            },
+            {
+              "category": "other",
+              "value": "nantew"
+            },
+            {
+              "category": "other",
+              "value": "adwene a wode bedi dwuma"
+            },
+            {
+              "category": "other",
+              "value": "anigyede ahorow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_78fffe864b989908df5d",
+      "status": "needs_human_review",
+      "question": "So mfe a obi adi ho anohyeto anaa ahwehwɛde ahorow bi wɔ hɔ a ɛbɛma wanya nna ne awoɔ ho akpomoden ho nhyehyɛe ahorow bi?",
+      "question_english": "Are there age limits or requirements that determine whether someone can get sexual and reproductive health services?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "mmabun"
+        },
+        {
+          "category": "persons",
+          "value": "awofo"
+        },
+        {
+          "category": "other",
+          "value": "nyinsɛn a wosiw ano"
+        },
+        {
+          "category": "other",
+          "value": "nna mu yareɛ nhwehwɛmu"
+        },
+        {
+          "category": "other",
+          "value": "nyinsɛn a woyi gu ho nnwuma"
+        },
+        {
+          "category": "other",
+          "value": "mmara ne nhyehyɛe ahorow"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "4cbe13936f737f759f65",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "mmabun"
+            },
+            {
+              "category": "persons",
+              "value": "awofo"
+            },
+            {
+              "category": "other",
+              "value": "nyinsɛn a wosiw ano"
+            },
+            {
+              "category": "other",
+              "value": "nna mu yareɛ nhwehwɛmu"
+            },
+            {
+              "category": "other",
+              "value": "nyinsɛn a woyi gu ho nnwuma"
+            },
+            {
+              "category": "other",
+              "value": "mmara ne nhyehyɛe ahorow"
+            }
+          ]
+        },
+        {
+          "proposal_id": "359dd45a485c1f665398",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "conditions",
+              "value": "nna mu yareɛ"
+            },
+            {
+              "category": "quantities",
+              "value": "mfe biara"
+            },
+            {
+              "category": "quantities",
+              "value": "mfe pɔtee bi"
+            },
+            {
+              "category": "persons",
+              "value": "mmabun"
+            },
+            {
+              "category": "persons",
+              "value": "awofo"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ"
+            },
+            {
+              "category": "other",
+              "value": "mmara"
+            },
+            {
+              "category": "other",
+              "value": "nyinsɛn a wosiw ano"
+            },
+            {
+              "category": "other",
+              "value": "nna mu yareɛ nhwehwɛmu"
+            },
+            {
+              "category": "other",
+              "value": "nyinsɛn a woyi gu ho nnwuma"
+            },
+            {
+              "category": "other",
+              "value": "pene"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_79af4f3cac6b4b808319",
+      "status": "silver_consensus",
+      "question": "Ɔkwan bɛn so na mmabun betumi ahwɛ ahu sɛ wobenya nsɛm a ɛyɛ nokware a ɛfa akwan a wɔfa so siw HIV ano, a kɔndɔm, PrEP, ne akwan a wɔfa so tew ɔhaw so ka ho?",
+      "question_english": "How can young people make sure they get accurate information about ways to prevent HIV, including condoms, PrEP, and ways to reduce risk?",
+      "selected_violations": [
+        {
+          "category": "locations",
+          "value": "Google Play Store"
+        },
+        {
+          "category": "other",
+          "value": "Ghana Health Service YMK app"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "2ea4da0c6037e39e9d88",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "locations",
+              "value": "Google Play Store"
+            },
+            {
+              "category": "other",
+              "value": "Ghana Health Service YMK app"
+            }
+          ]
+        },
+        {
+          "proposal_id": "f6fe4aa90cf4e69a4796",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "conditions",
+              "value": "nna mu yare (HIV)"
+            },
+            {
+              "category": "persons",
+              "value": "akwahosan ho adwumayɛfo"
+            },
+            {
+              "category": "persons",
+              "value": "atipɛnfo"
+            },
+            {
+              "category": "locations",
+              "value": "Ghana"
+            },
+            {
+              "category": "locations",
+              "value": "google playstore"
+            },
+            {
+              "category": "other",
+              "value": "Ghana Health Service YMK app"
+            },
+            {
+              "category": "other",
+              "value": "abɛɛfo ntentan ahorow"
+            },
+            {
+              "category": "other",
+              "value": "nhomasua nneɛma"
+            },
+            {
+              "category": "other",
+              "value": "nna mu akwahosan ho nhyiam ahorow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_87222309897b008c6be0",
+      "status": "silver_consensus",
+      "question": "Ɔkwan bɛn so na mmabun betumi ne nhyehyɛeyɛfo, mpɔtamfo akannifo, ne ahyehyɛde ahorow a wɔkamfo kyerɛ no ayɛ biako de anya sikasɛm ho nhyehyɛe ne nneyɛe so nkɛntɛnso?",
+      "question_english": "How can young people unite with policymakers, community leaders, and recommended organizations to influence economic policies and actions?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "mpɔtam hɔ akannifo"
+        },
+        {
+          "category": "persons",
+          "value": "wɔn a wɔde wɔn ho hyɛ mu titiriw"
+        },
+        {
+          "category": "persons",
+          "value": "mmerante ne mmabaa"
+        },
+        {
+          "category": "other",
+          "value": "nkabom"
+        },
+        {
+          "category": "other",
+          "value": "nhyehyɛe nhyiam ahorow"
+        },
+        {
+          "category": "other",
+          "value": "gyinaesi nhyehyɛe ahorow"
+        },
+        {
+          "category": "other",
+          "value": "abusuabɔ"
+        },
+        {
+          "category": "other",
+          "value": "apam"
+        },
+        {
+          "category": "other",
+          "value": "sikasɛm mu ahoɔden"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "33877676ca67309aa62e",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ"
+            },
+            {
+              "category": "other",
+              "value": "nkabom"
+            },
+            {
+              "category": "other",
+              "value": "nhyehyɛe nhyiam ahorow"
+            },
+            {
+              "category": "other",
+              "value": "gyinaesi nhyehyɛe ahorow"
+            },
+            {
+              "category": "other",
+              "value": "abusuabɔ"
+            },
+            {
+              "category": "other",
+              "value": "apam"
+            },
+            {
+              "category": "other",
+              "value": "wɔn a wɔde wɔn ho hyɛ mu titiriw no"
+            },
+            {
+              "category": "other",
+              "value": "ano aduru"
+            },
+            {
+              "category": "other",
+              "value": "adwene a wɔahyia so"
+            },
+            {
+              "category": "other",
+              "value": "sikasɛm mu ahoɔden"
+            }
+          ]
+        },
+        {
+          "proposal_id": "ed7206b409d2ba2fbad8",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "mpɔtam hɔ akannifo"
+            },
+            {
+              "category": "persons",
+              "value": "wɔn a wɔde wɔn ho hyɛ mu titiriw"
+            },
+            {
+              "category": "persons",
+              "value": "mmerante ne mmabaa"
+            },
+            {
+              "category": "other",
+              "value": "nkabom"
+            },
+            {
+              "category": "other",
+              "value": "nhyehyɛe nhyiam ahorow"
+            },
+            {
+              "category": "other",
+              "value": "gyinaesi nhyehyɛe ahorow"
+            },
+            {
+              "category": "other",
+              "value": "abusuabɔ"
+            },
+            {
+              "category": "other",
+              "value": "apam"
+            },
+            {
+              "category": "other",
+              "value": "sikasɛm mu ahoɔden"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_8fb0f05d3a3509e68915",
+      "status": "needs_human_review",
+      "question": "Mɛyɛ dɛn ahu na makwati abɛɛfo ntenten anaa Intanɛt so nsisi, mmɔden a wɔbɔ sɛ wɔbɛkyere nkurɔfo, ne kɔmputa so ahunahuna afoforo?",
+      "question_english": "How do I know and avoid fake websites or Internet scams, attempts to trick people, and cyberbullying of others?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "trusted adult"
+        },
+        {
+          "category": "other",
+          "value": "abɛɛfo nkyerew nteten"
+        },
+        {
+          "category": "other",
+          "value": "nkrasɛm"
+        },
+        {
+          "category": "other",
+          "value": "link ahorow"
+        },
+        {
+          "category": "other",
+          "value": "URLs"
+        },
+        {
+          "category": "other",
+          "value": "malware"
+        },
+        {
+          "category": "other",
+          "value": "virus"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "3459dd65a77516440dcf",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "trusted adult"
+            },
+            {
+              "category": "other",
+              "value": "abɛɛfo nkyerew nteten"
+            },
+            {
+              "category": "other",
+              "value": "nkrasɛm"
+            },
+            {
+              "category": "other",
+              "value": "link ahorow"
+            },
+            {
+              "category": "other",
+              "value": "URLs"
+            },
+            {
+              "category": "other",
+              "value": "malware"
+            },
+            {
+              "category": "other",
+              "value": "virus"
+            }
+          ]
+        },
+        {
+          "proposal_id": "b3eb8f911a7228f16f05",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "ɔpanyin bi a wowɔ ne mu ahotoso"
+            },
+            {
+              "category": "other",
+              "value": "abɛɛfo nkyerew nteten"
+            },
+            {
+              "category": "other",
+              "value": "nkrasɛm"
+            },
+            {
+              "category": "other",
+              "value": "link ahorow"
+            },
+            {
+              "category": "other",
+              "value": "URLs"
+            },
+            {
+              "category": "other",
+              "value": "sikasɛm ho nsɛm"
+            },
+            {
+              "category": "other",
+              "value": "Security Software"
+            },
+            {
+              "category": "other",
+              "value": "malware"
+            },
+            {
+              "category": "other",
+              "value": "virus"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_97101a68fce5ef9fbcf8",
+      "status": "needs_human_review",
+      "question": "Akwan ahorow a wɔde siw awo ano no tu mpɔn dɛn, na dɛn ade na ebetumi afi mu aba?",
+      "question_english": "How effective are the different methods used to prevent pregnancy, and what side effects can result?",
+      "selected_violations": [
+        {
+          "category": "medicines",
+          "value": "nnuru a wɔde siw awo ano"
+        },
+        {
+          "category": "medicines",
+          "value": "nnuru a wɔde twitwiw nipadua mu"
+        },
+        {
+          "category": "persons",
+          "value": "mmabun"
+        },
+        {
+          "category": "persons",
+          "value": "akwahosan ho ɔyaresafo bi"
+        },
+        {
+          "category": "other",
+          "value": "Akwan a wɔde hormone di dwuma"
+        },
+        {
+          "category": "other",
+          "value": "Akwan a wɔfa so siw akwanside"
+        },
+        {
+          "category": "other",
+          "value": "LARCs"
+        },
+        {
+          "category": "other",
+          "value": "IUD"
+        },
+        {
+          "category": "other",
+          "value": "nneɛma a wɔde hyɛ nipadua mu"
+        },
+        {
+          "category": "other",
+          "value": "Akwan a ɛtra hɔ daa"
+        },
+        {
+          "category": "other",
+          "value": "oprehyɛn"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "b40f8ac4c8941b96b5f3",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "medicines",
+              "value": "nnuru a wɔde siw awo ano"
+            },
+            {
+              "category": "medicines",
+              "value": "nnuru a wɔde twitwiw nipadua mu"
+            },
+            {
+              "category": "persons",
+              "value": "mmabun"
+            },
+            {
+              "category": "persons",
+              "value": "akwahosan ho ɔyaresafo bi"
+            },
+            {
+              "category": "other",
+              "value": "Akwan a wɔde hormone di dwuma"
+            },
+            {
+              "category": "other",
+              "value": "Akwan a wɔfa so siw akwanside"
+            },
+            {
+              "category": "other",
+              "value": "LARCs"
+            },
+            {
+              "category": "other",
+              "value": "IUD"
+            },
+            {
+              "category": "other",
+              "value": "nneɛma a wɔde hyɛ nipadua mu"
+            },
+            {
+              "category": "other",
+              "value": "Akwan a ɛtra hɔ daa"
+            },
+            {
+              "category": "other",
+              "value": "oprehyɛn"
+            }
+          ]
+        },
+        {
+          "proposal_id": "2bc8fdea1d35755935c0",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "symptoms",
+              "value": "akisikuru"
+            },
+            {
+              "category": "symptoms",
+              "value": "tiyɛ"
+            },
+            {
+              "category": "symptoms",
+              "value": "adwene a ɛsakra"
+            },
+            {
+              "category": "symptoms",
+              "value": "mogya a ɛnkɔ so daa"
+            },
+            {
+              "category": "symptoms",
+              "value": "pimples"
+            },
+            {
+              "category": "symptoms",
+              "value": "nsakrae a ɛba brayɛ mu"
+            },
+            {
+              "category": "conditions",
+              "value": "nyinsɛn"
+            },
+            {
+              "category": "medicines",
+              "value": "nnuru a wɔde siw awo ano"
+            },
+            {
+              "category": "medicines",
+              "value": "nnuru a wɔde twitwiw nipadua mu"
+            },
+            {
+              "category": "medicines",
+              "value": "nnuru a wɔde siw nyinsɛn ano"
+            },
+            {
+              "category": "body_parts",
+              "value": "nipadua"
+            },
+            {
+              "category": "durations",
+              "value": "bere tenten"
+            },
+            {
+              "category": "durations",
+              "value": "ɛtra hɔ daa"
+            },
+            {
+              "category": "persons",
+              "value": "mmabun"
+            },
+            {
+              "category": "persons",
+              "value": "akwahosan ho ɔyaresafo"
+            },
+            {
+              "category": "other",
+              "value": "hormone"
+            },
+            {
+              "category": "other",
+              "value": "kɔndɔm"
+            },
+            {
+              "category": "other",
+              "value": "diaphragms"
+            },
+            {
+              "category": "other",
+              "value": "LARCs"
+            },
+            {
+              "category": "other",
+              "value": "IUD"
+            },
+            {
+              "category": "other",
+              "value": "nneɛma a wɔde hyɛ nipadua mu"
+            },
+            {
+              "category": "other",
+              "value": "oprehyɛn"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_98475be4fe217f07b609",
+      "status": "silver_consensus",
+      "question": "Ɔkwan bɛn so na mmabun betumi akamfo nhyehyɛe, ne nnwuma a ɛhyɛ ɔhye so nkyerɛkyerɛ, pene amammerɛ, ne abusuabɔ a obu wom ho nkuran wɔ sukuu, mpɔtam, ne intanɛt so mmeae ahorow?",
+      "question_english": "How can young people advocate for policies and services that encourage boundary education, consent culture, and respectful relationships in schools, communities, and online spaces?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "asuafo"
+        },
+        {
+          "category": "persons",
+          "value": "nkurɔfo"
+        },
+        {
+          "category": "persons",
+          "value": "akyerɛkyerɛfo"
+        },
+        {
+          "category": "persons",
+          "value": "nhyehyɛeyɛfo"
+        },
+        {
+          "category": "persons",
+          "value": "mpɔtam hɔ akannifo"
+        },
+        {
+          "category": "persons",
+          "value": "ankorankoro nyinaa"
+        },
+        {
+          "category": "locations",
+          "value": "sohyial media"
+        },
+        {
+          "category": "locations",
+          "value": "adwumayɛbea ahorow"
+        },
+        {
+          "category": "other",
+          "value": "asuafo agyinatukuw"
+        },
+        {
+          "category": "other",
+          "value": "mmabun akuw"
+        },
+        {
+          "category": "other",
+          "value": "mpɔtam hɔ ahyehyɛde ahorow"
+        },
+        {
+          "category": "other",
+          "value": "nna ho nkyerɛkyerɛ nhyehyɛe ahorow"
+        },
+        {
+          "category": "other",
+          "value": "ahye"
+        },
+        {
+          "category": "other",
+          "value": "abusuabɔ pa"
+        },
+        {
+          "category": "other",
+          "value": "ahobammɔ"
+        },
+        {
+          "category": "other",
+          "value": "ahofadi"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "843483e160faabce34d6",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "asuafo"
+            },
+            {
+              "category": "persons",
+              "value": "akannifo"
+            },
+            {
+              "category": "locations",
+              "value": "sukuup"
+            },
+            {
+              "category": "other",
+              "value": "sohyial media ɔsatu ahorow"
+            },
+            {
+              "category": "other",
+              "value": "nsɛm a wɔma nkurɔfo hu"
+            },
+            {
+              "category": "other",
+              "value": "adwumayɛbea ahorow"
+            }
+          ]
+        },
+        {
+          "proposal_id": "40bd0c7d0d54a9ccc2ea",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "asuafo"
+            },
+            {
+              "category": "persons",
+              "value": "nkurɔfo"
+            },
+            {
+              "category": "persons",
+              "value": "akyerɛkyerɛfo"
+            },
+            {
+              "category": "persons",
+              "value": "nhyehyɛeyɛfo"
+            },
+            {
+              "category": "persons",
+              "value": "mpɔtam hɔ akannifo"
+            },
+            {
+              "category": "persons",
+              "value": "ankorankoro nyinaa"
+            },
+            {
+              "category": "locations",
+              "value": "sohyial media"
+            },
+            {
+              "category": "locations",
+              "value": "adwumayɛbea ahorow"
+            },
+            {
+              "category": "other",
+              "value": "asuafo agyinatukuw"
+            },
+            {
+              "category": "other",
+              "value": "mmabun akuw"
+            },
+            {
+              "category": "other",
+              "value": "mpɔtam hɔ ahyehyɛde ahorow"
+            },
+            {
+              "category": "other",
+              "value": "nna ho nkyerɛkyerɛ nhyehyɛe ahorow"
+            },
+            {
+              "category": "other",
+              "value": "ahye"
+            },
+            {
+              "category": "other",
+              "value": "abusuabɔ pa"
+            },
+            {
+              "category": "other",
+              "value": "ahobammɔ"
+            },
+            {
+              "category": "other",
+              "value": "ahofadi"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_9a9479a2f85c74b917a0",
+      "status": "silver_consensus",
+      "question": "Ɔkwan bɛn so na mmabun betumi ahunu mmabun adwumayɛ nhyehyɛeɛ ne nteteeɛ (internships) wɔ wɔn mpɔtam?",
+      "question_english": "How can young people find youth employment programs and internships in their local area?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "asukuufoɔ"
+        },
+        {
+          "category": "persons",
+          "value": "abusua"
+        },
+        {
+          "category": "persons",
+          "value": "nnamfo"
+        },
+        {
+          "category": "persons",
+          "value": "akyerɛkyerɛfoɔ"
+        },
+        {
+          "category": "persons",
+          "value": "afotufoɔ"
+        },
+        {
+          "category": "persons",
+          "value": "adwumawura"
+        },
+        {
+          "category": "locations",
+          "value": "mpɔtam hɔ"
+        },
+        {
+          "category": "other",
+          "value": "Sukuu"
+        },
+        {
+          "category": "other",
+          "value": "kɔlɛgye"
+        },
+        {
+          "category": "other",
+          "value": "Indeed"
+        },
+        {
+          "category": "other",
+          "value": "LinkedIn"
+        },
+        {
+          "category": "other",
+          "value": "Glassdoor"
+        },
+        {
+          "category": "other",
+          "value": "Idealist"
+        },
+        {
+          "category": "other",
+          "value": "Intanɛt so adwuma mmeae"
+        },
+        {
+          "category": "other",
+          "value": "wɛbsaet"
+        },
+        {
+          "category": "other",
+          "value": "Nkitahodiɛ"
+        },
+        {
+          "category": "other",
+          "value": "aban adwumadibea"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "e5c394cbea3bd627c33e",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "other",
+              "value": "Indeed"
+            },
+            {
+              "category": "other",
+              "value": "LinkedIn"
+            },
+            {
+              "category": "other",
+              "value": "Glassdoor"
+            },
+            {
+              "category": "other",
+              "value": "Idealist"
+            },
+            {
+              "category": "other",
+              "value": "Nkitahodiɛ"
+            },
+            {
+              "category": "other",
+              "value": "aban adwumadibea"
+            }
+          ]
+        },
+        {
+          "proposal_id": "27931b64260f2ce1c655",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "asukuufoɔ"
+            },
+            {
+              "category": "persons",
+              "value": "abusua"
+            },
+            {
+              "category": "persons",
+              "value": "nnamfo"
+            },
+            {
+              "category": "persons",
+              "value": "akyerɛkyerɛfoɔ"
+            },
+            {
+              "category": "persons",
+              "value": "afotufoɔ"
+            },
+            {
+              "category": "persons",
+              "value": "adwumawura"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ"
+            },
+            {
+              "category": "other",
+              "value": "Sukuu"
+            },
+            {
+              "category": "other",
+              "value": "kɔlɛgye"
+            },
+            {
+              "category": "other",
+              "value": "Indeed"
+            },
+            {
+              "category": "other",
+              "value": "LinkedIn"
+            },
+            {
+              "category": "other",
+              "value": "Glassdoor"
+            },
+            {
+              "category": "other",
+              "value": "Idealist"
+            },
+            {
+              "category": "other",
+              "value": "Intanɛt so adwuma mmeae"
+            },
+            {
+              "category": "other",
+              "value": "wɛbsaet"
+            },
+            {
+              "category": "other",
+              "value": "Nkitahodiɛ"
+            },
+            {
+              "category": "other",
+              "value": "aban adwumadibea"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_9ad63db87824c3a09134",
+      "status": "needs_human_review",
+      "question": "Dɛn ne anansesɛm ne adwene a ɛnteɛ a abu so wɔ abusuabɔ ne pene a wɔpene so ho a ebia mmabun bɛhyia, na ɔkwan bɛn so na wobetumi afa nhomasua so abu no agu?",
+      "question_english": "What are the common myths and wrong ideas about relationships and consent that young people may encounter, and how can education be used to dispel them?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "obi"
+        },
+        {
+          "category": "persons",
+          "value": "wɔn ho wɔn ho"
+        },
+        {
+          "category": "other",
+          "value": "ahye"
+        },
+        {
+          "category": "other",
+          "value": "nkitahodi"
+        },
+        {
+          "category": "other",
+          "value": "assault"
+        },
+        {
+          "category": "other",
+          "value": "mmonnaato"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "3c5629f63a75b39d2afc",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "other",
+              "value": "assault"
+            }
+          ]
+        },
+        {
+          "proposal_id": "ce5d069fc97001307bb6",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "obi"
+            },
+            {
+              "category": "persons",
+              "value": "wɔn ho wɔn ho"
+            },
+            {
+              "category": "other",
+              "value": "ahye"
+            },
+            {
+              "category": "other",
+              "value": "nkitahodi"
+            },
+            {
+              "category": "other",
+              "value": "assault"
+            },
+            {
+              "category": "other",
+              "value": "mmonnaato"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_9cba39893cd81ab7c71d",
+      "status": "needs_human_review",
+      "question": "So kɔkɔbɔ nsɛnkyerɛnne bi wɔ hɔ a ɛkyerɛ bere a atipɛnfo nhyɛso betumi ayɛ kɛse abɛyɛ biribi a epira anaa asiane wom?",
+      "question_english": "Are there warning signs showing when peer pressure may become harmful or dangerous?",
+      "selected_violations": [
+        {
+          "category": "symptoms",
+          "value": "nkate fam ahokyere"
+        },
+        {
+          "category": "symptoms",
+          "value": "honam fam opira"
+        },
+        {
+          "category": "body_parts",
+          "value": "honam"
+        },
+        {
+          "category": "durations",
+          "value": "ɛkɔ so tra hɔ"
+        },
+        {
+          "category": "quantities",
+          "value": "mpɛn pii"
+        },
+        {
+          "category": "other",
+          "value": "nneyɛe a asiane wom anaa epira"
+        },
+        {
+          "category": "other",
+          "value": "wɔrehunahuna wɔn"
+        },
+        {
+          "category": "other",
+          "value": "ɔpow no"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "64da17632daae49c08bd",
+          "role": "teacher_a",
+          "violations": []
+        },
+        {
+          "proposal_id": "8b81fdab7d5aa74e70df",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "symptoms",
+              "value": "nkate fam ahokyere"
+            },
+            {
+              "category": "symptoms",
+              "value": "honam fam opira"
+            },
+            {
+              "category": "body_parts",
+              "value": "honam"
+            },
+            {
+              "category": "durations",
+              "value": "ɛkɔ so tra hɔ"
+            },
+            {
+              "category": "quantities",
+              "value": "mpɛn pii"
+            },
+            {
+              "category": "other",
+              "value": "nneyɛe a asiane wom anaa epira"
+            },
+            {
+              "category": "other",
+              "value": "wɔrehunahuna wɔn"
+            },
+            {
+              "category": "other",
+              "value": "ɔpow no"
+            }
+          ]
+        },
+        {
+          "proposal_id": "cae90e6fd0b692505de2",
+          "role": "adjudicator",
+          "violations": [
+            {
+              "category": "symptoms",
+              "value": "nkate fam ahokyere"
+            },
+            {
+              "category": "symptoms",
+              "value": "honam fam opira"
+            },
+            {
+              "category": "body_parts",
+              "value": "honam"
+            },
+            {
+              "category": "durations",
+              "value": "ɛkɔ so tra hɔ"
+            },
+            {
+              "category": "quantities",
+              "value": "mpɛn pii"
+            },
+            {
+              "category": "other",
+              "value": "nneyɛe a asiane wom anaa epira"
+            },
+            {
+              "category": "other",
+              "value": "wɔrehunahuna wɔn"
+            },
+            {
+              "category": "other",
+              "value": "ɔpow no"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_9f5452ee6f6baedea3e3",
+      "status": "needs_human_review",
+      "question": "Hyɛ ahwɛfoɔ a wɔde wɔn ho bɛhyɛ mu ne ayɔnkofa ho nimdeɛ ho nkuran de akasa atia nyiyim na wɔayɛ tebea a ɛma akwaaba kɛseɛ.",
+      "question_english": "Encourage caregivers who will participate and knowledge about relationships to speak out against discrimination and create a more welcoming environment.",
+      "selected_violations": [
+        {
+          "category": "conditions",
+          "value": "LGBTQ+"
+        },
+        {
+          "category": "persons",
+          "value": "wo sukuu ɔyarehwɛfo"
+        },
+        {
+          "category": "persons",
+          "value": "akwahosan ho dwumayɛni"
+        },
+        {
+          "category": "locations",
+          "value": "Ghana"
+        },
+        {
+          "category": "other",
+          "value": "nna ho nsɛm"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "e97c77506bf8c4098043",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "conditions",
+              "value": "LGBTQ+"
+            },
+            {
+              "category": "persons",
+              "value": "wo sukuu ɔyarehwɛfo"
+            },
+            {
+              "category": "persons",
+              "value": "akwahosan ho dwumayɛni"
+            },
+            {
+              "category": "locations",
+              "value": "Ghana"
+            },
+            {
+              "category": "other",
+              "value": "nna ho nsɛm"
+            }
+          ]
+        },
+        {
+          "proposal_id": "380a046357dc75e10817",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "sukuu ɔyarehwɛfo"
+            },
+            {
+              "category": "persons",
+              "value": "akwahosan ho dwumayɛni"
+            },
+            {
+              "category": "persons",
+              "value": "LGBTQ+"
+            },
+            {
+              "category": "locations",
+              "value": "Ghana"
+            },
+            {
+              "category": "other",
+              "value": "nna ho nsɛm"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_aa7b1507780413d87d18",
+      "status": "needs_human_review",
+      "question": "Si hia a nkitahodi ne obu a wobedi hokafo apɛde ho hia bere a worepaw akwan horow no so dua.",
+      "question_english": "Emphasize the importance of communication and respect for a partner’s wishes when choosing among the options.",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "wo hokafo"
+        },
+        {
+          "category": "persons",
+          "value": "mo baanu"
+        },
+        {
+          "category": "other",
+          "value": "akwan abien a wobɛfa so abɔ wo ho ban"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "0043a28f56f853ee2e14",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "wo hokafo"
+            },
+            {
+              "category": "persons",
+              "value": "mo baanu"
+            },
+            {
+              "category": "other",
+              "value": "akwan abien a wobɛfa so abɔ wo ho ban"
+            }
+          ]
+        },
+        {
+          "proposal_id": "f8a4f360232d0f291f9c",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "quantities",
+              "value": "abien"
+            },
+            {
+              "category": "persons",
+              "value": "wo hokafo"
+            },
+            {
+              "category": "persons",
+              "value": "mo baanu"
+            },
+            {
+              "category": "other",
+              "value": "akwahosan/ahobammɔ akwan"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_c146103d843ac063350a",
+      "status": "silver_consensus",
+      "question": "Ɔkwan bɛn so na mmabun betumi ne wɔn atipɛnfo, abusuafo, ne mpanyimfo a wogye wɔn di abɔ nkɔmmɔ a ntease wom afa abrabɔ pa ho nsusuwii a ɛwɔ nsɛm ho amanneɛbɔ a wɔde di dwuma mu ne nkɛntɛnso a enya wɔ ntease a wɔwɔ wɔ nna mu akwahosan ho no ho?",
+      "question_english": "How can young people have meaningful conversations with their peers, family members, and trusted adults about ethical ideas in the media they use and how that media influences their understanding of sexual health?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "afoforo"
+        },
+        {
+          "category": "other",
+          "value": "nna ne awo akwahosan"
+        },
+        {
+          "category": "other",
+          "value": "nkɔmmɔbɔ a wɔabue ano na obu wom"
+        },
+        {
+          "category": "other",
+          "value": "tema ne ntease"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "147f548516c6a0d74315",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "other",
+              "value": "nna ne awo akwahosan"
+            }
+          ]
+        },
+        {
+          "proposal_id": "96b49236cd21037d6d18",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "afoforo"
+            },
+            {
+              "category": "other",
+              "value": "nna ne awo akwahosan"
+            },
+            {
+              "category": "other",
+              "value": "nkɔmmɔbɔ a wɔabue ano na obu wom"
+            },
+            {
+              "category": "other",
+              "value": "tema ne ntease"
+            }
+          ]
+        },
+        {
+          "proposal_id": "efcd2f4c54152c72f2c3",
+          "role": "adjudicator",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "afoforo"
+            },
+            {
+              "category": "other",
+              "value": "nna ne awo akwahosan"
+            },
+            {
+              "category": "other",
+              "value": "nkɔmmɔbɔ a wɔabue ano na obu wom"
+            },
+            {
+              "category": "other",
+              "value": "tema ne ntease"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_cda7f5bc37243b5bd546",
+      "status": "needs_human_review",
+      "question": "Dɛn ne akwan foforo a wɔfa so boa wɔn a wonyaa wɔn ti didii mu wɔ nna mu basabasayɛ mu a ebia wɔbɛtwentwɛn wɔn nan ase sɛ wɔbɛkɔ akɔfa ahomatrofo a wɔde boa wɔ ɔhaw mu, te sɛ intanɛt so mmoa akuo, wɔn a wɔanya wɔn ti adidi mu nhyiam ahorow, nneɛma a wɔde boa wɔn ho, ne atipɛnfo mmoa nkitahodibea ahorow?",
+      "question_english": "What are other ways to support people who have been sexually assaulted who may hesitate to seek professional help, such as online support groups, survivor gatherings, self-help resources, and peer support hotlines?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "wɔn a wɔanya wɔn ti didii mu"
+        },
+        {
+          "category": "other",
+          "value": "Nkwagyefoɔ Nhyiamu"
+        },
+        {
+          "category": "other",
+          "value": "Atipɛnfo Mmoa Nkitahodi"
+        },
+        {
+          "category": "other",
+          "value": "Adebɔ mu Nneɛma"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "566c5cca10390e4c700b",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "wɔn a wɔanya wɔn ti didii mu"
+            },
+            {
+              "category": "other",
+              "value": "Nkwagyefoɔ Nhyiamu"
+            },
+            {
+              "category": "other",
+              "value": "Atipɛnfo Mmoa Nkitahodi"
+            },
+            {
+              "category": "other",
+              "value": "Adebɔ mu Nneɛma"
+            }
+          ]
+        },
+        {
+          "proposal_id": "c58c09b111fde4dedbfd",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "symptoms",
+              "value": "adwenemhaw"
+            },
+            {
+              "category": "symptoms",
+              "value": "atinka"
+            },
+            {
+              "category": "persons",
+              "value": "nnamfo"
+            },
+            {
+              "category": "persons",
+              "value": "abusua mufo"
+            },
+            {
+              "category": "persons",
+              "value": "afotufo a wogye wɔn di"
+            },
+            {
+              "category": "persons",
+              "value": "atipɛnfoɔ"
+            },
+            {
+              "category": "other",
+              "value": "nhyiamu"
+            },
+            {
+              "category": "other",
+              "value": "nhoma"
+            },
+            {
+              "category": "other",
+              "value": "nsɛm"
+            },
+            {
+              "category": "other",
+              "value": "podcast"
+            },
+            {
+              "category": "other",
+              "value": "telefon apps"
+            },
+            {
+              "category": "other",
+              "value": "adwinni"
+            },
+            {
+              "category": "other",
+              "value": "nnwom"
+            },
+            {
+              "category": "other",
+              "value": "akyerɛw"
+            },
+            {
+              "category": "other",
+              "value": "nsɛmma nhoma kyerɛw"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_d1e5b2191504e31040b6",
+      "status": "needs_human_review",
+      "question": "Mɛyɛ dɛn ahyɛ mpanyimfo a wɔwɔ me mpɔtamu hɔ, te sɛ akyerɛkyerɛfo, afotufo, anaa nhyehyɛeyɛfo nkuran sɛ wɔnyɛ ASRR ahorow ho akansifo? (Nsɛm ne data a wɔkyɛ, fekubɔ a wɔbɛkyekye)",
+      "question_english": "How can I encourage adults in my community, such as teachers, advisers, or program planners, to become champions for ASRRs? (Sharing information and data, building partnerships)",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "mmeranteɛ ne mmabaa"
+        },
+        {
+          "category": "locations",
+          "value": "me mpɔtam hɔ"
+        },
+        {
+          "category": "other",
+          "value": "ASRH nhomasua"
+        },
+        {
+          "category": "other",
+          "value": "nnwuma"
+        },
+        {
+          "category": "other",
+          "value": "akontabuo"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "3fe60de9c11fd969645a",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "mmeranteɛ"
+            },
+            {
+              "category": "persons",
+              "value": "mmabaa"
+            },
+            {
+              "category": "other",
+              "value": "ASRH"
+            },
+            {
+              "category": "other",
+              "value": "akontabuo"
+            },
+            {
+              "category": "other",
+              "value": "nkɛntɛnso pa"
+            },
+            {
+              "category": "other",
+              "value": "adwuma bom"
+            }
+          ]
+        },
+        {
+          "proposal_id": "a2857e5fef1c1ff10627",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "mmeranteɛ ne mmabaa"
+            },
+            {
+              "category": "locations",
+              "value": "me mpɔtam hɔ"
+            },
+            {
+              "category": "other",
+              "value": "ASRH nhomasua"
+            },
+            {
+              "category": "other",
+              "value": "nnwuma"
+            },
+            {
+              "category": "other",
+              "value": "akontabuo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_d1ec3c95d80fc055bb74",
+      "status": "needs_human_review",
+      "question": "Dɛn ne nna, abusuabɔ, ne ɔbarima ne ɔbea dwumadi ho mfonini ahorow bi a wɔtaa yɛ wɔ nsɛm ho amanneɛbɔ mu, na ɔkwan bɛn so na ɛka ntease a mmabun wɔwɔ nsɛm yi ho?",
+      "question_english": "What are some common portrayals of sex, relationships, and male and female roles in the media, and how do they affect young people's understanding of these issues?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "mmarima"
+        },
+        {
+          "category": "persons",
+          "value": "mmea"
+        },
+        {
+          "category": "other",
+          "value": "Heteronormative"
+        },
+        {
+          "category": "other",
+          "value": "bɔbeasu ho adwene"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "886530c029181182d928",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "other",
+              "value": "narrow and stereotypical"
+            },
+            {
+              "category": "other",
+              "value": "'Heteronormative'"
+            }
+          ]
+        },
+        {
+          "proposal_id": "0d68f4f0e16c8e372cad",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "mmarima"
+            },
+            {
+              "category": "persons",
+              "value": "mmea"
+            },
+            {
+              "category": "other",
+              "value": "Heteronormative"
+            },
+            {
+              "category": "other",
+              "value": "bɔbeasu ho adwene"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_d5b01dafb6a4dab7e2d5",
+      "status": "needs_human_review",
+      "question": "Dɛn ne ahobammɔ abien na dɛn nti na wɔkamfo kyerɛ?",
+      "question_english": "What is dual protection and why is it recommended?",
+      "selected_violations": [
+        {
+          "category": "conditions",
+          "value": "nyinsɛn"
+        },
+        {
+          "category": "conditions",
+          "value": "nna mu nyarewa (STI)"
+        },
+        {
+          "category": "quantities",
+          "value": "soronko abien"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "fd6d2197c28fdc0545d6",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "conditions",
+              "value": "nyinsɛn"
+            },
+            {
+              "category": "conditions",
+              "value": "nna mu nyarewa (STI)"
+            },
+            {
+              "category": "quantities",
+              "value": "soronko abien"
+            }
+          ]
+        },
+        {
+          "proposal_id": "c3752203a8f2e38b94e5",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "conditions",
+              "value": "nyinsɛn"
+            },
+            {
+              "category": "conditions",
+              "value": "nna mu nyarewa"
+            },
+            {
+              "category": "conditions",
+              "value": "STI"
+            },
+            {
+              "category": "quantities",
+              "value": "ɔkwan biako pɛ"
+            },
+            {
+              "category": "other",
+              "value": "akwan soronko abien"
+            },
+            {
+              "category": "other",
+              "value": "siw nyinsɛn ano"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_d90d99a8bb766f6143ea",
+      "status": "needs_human_review",
+      "question": "Dɛn ne ahyehyɛde ahorow a egyina mpɔtam hɔ anaa akuw a ɛwɔ fam a wɔreyɛ adwuma de ama mmabun anya nnuan a ahoɔden wom ne adan a ɛfata a wobenya no atu mpɔn?",
+      "question_english": "What are the community-based organizations or grassroots groups that are working to improve access for youth to nutritious food and decent housing?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "ankorankoro"
+        },
+        {
+          "category": "persons",
+          "value": "mmusua"
+        },
+        {
+          "category": "persons",
+          "value": "mmeranteɛ"
+        },
+        {
+          "category": "persons",
+          "value": "mmabaa"
+        },
+        {
+          "category": "locations",
+          "value": "Ghana"
+        },
+        {
+          "category": "other",
+          "value": "Feeding America"
+        },
+        {
+          "category": "other",
+          "value": "Nkwagye Asraafo"
+        },
+        {
+          "category": "other",
+          "value": "Habitat for Humanity"
+        },
+        {
+          "category": "other",
+          "value": "National Low Income Housing Coalition"
+        },
+        {
+          "category": "other",
+          "value": "Growing Power"
+        },
+        {
+          "category": "other",
+          "value": "Urban Harvest"
+        },
+        {
+          "category": "other",
+          "value": "Youth Harvest Foundation Ghana"
+        },
+        {
+          "category": "other",
+          "value": "Street Children Empowerment Foundation"
+        },
+        {
+          "category": "other",
+          "value": "Duan ma Afrika Nyinaa"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "2f8ba49bfcdbee01415b",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "ankorankoro"
+            },
+            {
+              "category": "persons",
+              "value": "mmusua"
+            },
+            {
+              "category": "persons",
+              "value": "mmeranteɛ"
+            },
+            {
+              "category": "persons",
+              "value": "mmabaa"
+            },
+            {
+              "category": "locations",
+              "value": "Ghana"
+            },
+            {
+              "category": "other",
+              "value": "Feeding America"
+            },
+            {
+              "category": "other",
+              "value": "Nkwagye Asraafo"
+            },
+            {
+              "category": "other",
+              "value": "Habitat for Humanity"
+            },
+            {
+              "category": "other",
+              "value": "National Low Income Housing Coalition"
+            },
+            {
+              "category": "other",
+              "value": "Growing Power"
+            },
+            {
+              "category": "other",
+              "value": "Urban Harvest"
+            },
+            {
+              "category": "other",
+              "value": "Youth Harvest Foundation Ghana"
+            },
+            {
+              "category": "other",
+              "value": "Street Children Empowerment Foundation"
+            },
+            {
+              "category": "other",
+              "value": "Duan ma Afrika Nyinaa"
+            }
+          ]
+        },
+        {
+          "proposal_id": "61b46ebf790f677563d6",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "conditions",
+              "value": "ɔkɔm"
+            },
+            {
+              "category": "conditions",
+              "value": "aduan pa a wonnya nni"
+            },
+            {
+              "category": "quantities",
+              "value": "pii"
+            },
+            {
+              "category": "persons",
+              "value": "ankorankoro"
+            },
+            {
+              "category": "persons",
+              "value": "mmusua"
+            },
+            {
+              "category": "persons",
+              "value": "mmeranteɛ ne mmabaa"
+            },
+            {
+              "category": "persons",
+              "value": "mmabun a wɔnni afie"
+            },
+            {
+              "category": "persons",
+              "value": "wɔn a wɔn ho yɛ den"
+            },
+            {
+              "category": "persons",
+              "value": "mmabun a wonni ahobammɔ"
+            },
+            {
+              "category": "locations",
+              "value": "Ghana"
+            },
+            {
+              "category": "locations",
+              "value": "Afrika"
+            },
+            {
+              "category": "other",
+              "value": "Feeding America"
+            },
+            {
+              "category": "other",
+              "value": "Nkwagye Asraafo"
+            },
+            {
+              "category": "other",
+              "value": "Habitat for Humanity"
+            },
+            {
+              "category": "other",
+              "value": "National Low Income Housing Coalition"
+            },
+            {
+              "category": "other",
+              "value": "Growing Power"
+            },
+            {
+              "category": "other",
+              "value": "Urban Harvest"
+            },
+            {
+              "category": "other",
+              "value": "Youth Harvest Foundation Ghana"
+            },
+            {
+              "category": "other",
+              "value": "Street Children Empowerment Foundation"
+            },
+            {
+              "category": "other",
+              "value": "Aduan ma Afrika Nyinaa"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_e2a06de2680edbbdeef9",
+      "status": "silver_consensus",
+      "question": "Dwuma bɛn na nkɛntɛnsofo, nnipa a wɔagye din, ne amammerɛ a agye din di wɔ adwene a mmabun kura wɔ nna ne awoɔ apomoden ho no mu, na ɔkwan bɛn so na nsɛm ho amanneɛbɔ ho nimdeɛ betumi ama mmabun tumi ma wɔagye nkɛntɛnso ahorow yi ho kyim na wɔakasa atia?",
+      "question_english": "What role do influencers, celebrities, and popular culture play in adolescents’ views about sexual and reproductive health, and how can media literacy empower adolescents to question and speak against these influences?",
+      "selected_violations": [
+        {
+          "category": "other",
+          "value": "nyansahu mu adanse"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "3665044c86e8b0946704",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "influencers"
+            },
+            {
+              "category": "persons",
+              "value": "famous people"
+            },
+            {
+              "category": "persons",
+              "value": "young people"
+            },
+            {
+              "category": "other",
+              "value": "popular culture"
+            },
+            {
+              "category": "other",
+              "value": "media literacy"
+            },
+            {
+              "category": "other",
+              "value": "scientific evidence"
+            },
+            {
+              "category": "other",
+              "value": "reliable sources"
+            }
+          ]
+        },
+        {
+          "proposal_id": "a528029f9f0cd9992b55",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "other",
+              "value": "nyansahu mu adanse"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_e6db21f90a62d303db37",
+      "status": "needs_human_review",
+      "question": "Nsɛm bɛn na ɛfa nna ne awo akwahosan ho a wobu sɛ ɛfata ma me mfe?",
+      "question_english": "What topics about sex and reproductive health are considered appropriate for my age?",
+      "selected_violations": [
+        {
+          "category": "conditions",
+          "value": "nna mu nyarewa"
+        },
+        {
+          "category": "conditions",
+          "value": "STIs"
+        },
+        {
+          "category": "conditions",
+          "value": "HIV"
+        },
+        {
+          "category": "conditions",
+          "value": "nyinsɛn"
+        },
+        {
+          "category": "body_parts",
+          "value": "awo nipadua"
+        },
+        {
+          "category": "other",
+          "value": "mmabunbere"
+        },
+        {
+          "category": "other",
+          "value": "brayɛ akwahosan"
+        },
+        {
+          "category": "other",
+          "value": "nyinsɛn a wosiw ano"
+        },
+        {
+          "category": "other",
+          "value": "pene a wobɛpene so"
+        },
+        {
+          "category": "other",
+          "value": "abusuabɔ a ɛfata"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "af5c0f5570fb0e61d790",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "conditions",
+              "value": "STIs"
+            },
+            {
+              "category": "conditions",
+              "value": "HIV"
+            },
+            {
+              "category": "other",
+              "value": "puberty"
+            },
+            {
+              "category": "other",
+              "value": "reproductive organs"
+            },
+            {
+              "category": "other",
+              "value": "menstrual health"
+            },
+            {
+              "category": "other",
+              "value": "pregnancy prevention"
+            },
+            {
+              "category": "other",
+              "value": "consent"
+            },
+            {
+              "category": "other",
+              "value": "healthy relationships"
+            }
+          ]
+        },
+        {
+          "proposal_id": "ac55faab2826e1e7cf7a",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "conditions",
+              "value": "nna mu nyarewa"
+            },
+            {
+              "category": "conditions",
+              "value": "STIs"
+            },
+            {
+              "category": "conditions",
+              "value": "HIV"
+            },
+            {
+              "category": "conditions",
+              "value": "nyinsɛn"
+            },
+            {
+              "category": "body_parts",
+              "value": "awo nipadua"
+            },
+            {
+              "category": "other",
+              "value": "mmabunbere"
+            },
+            {
+              "category": "other",
+              "value": "brayɛ akwahosan"
+            },
+            {
+              "category": "other",
+              "value": "nyinsɛn a wosiw ano"
+            },
+            {
+              "category": "other",
+              "value": "pene a wobɛpene so"
+            },
+            {
+              "category": "other",
+              "value": "abusuabɔ a ɛfata"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_e8ea1c37900932a2c884",
+      "status": "needs_human_review",
+      "question": "Mɛyɛ dɛn adi akasakasa a me ne m’abusuafo anaa me nnamfonom ntam wɔ mmerantebere ne mmabaabere mu no ho dwuma?",
+      "question_english": "How can I deal with disagreements between me and my family members or my friends during adolescence?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "ɔpanyin"
+        },
+        {
+          "category": "persons",
+          "value": "ɔfotufo"
+        },
+        {
+          "category": "other",
+          "value": "Nkitahodi"
+        },
+        {
+          "category": "other",
+          "value": "Boundaries"
+        },
+        {
+          "category": "other",
+          "value": "Ntamgyinafo"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "3177f3cfcb2f2152ca6c",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "ɔpanyin"
+            },
+            {
+              "category": "persons",
+              "value": "fotufo"
+            }
+          ]
+        },
+        {
+          "proposal_id": "0c296b50d6545515a68a",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "ɔpanyin"
+            },
+            {
+              "category": "persons",
+              "value": "ɔfotufo"
+            },
+            {
+              "category": "other",
+              "value": "Nkitahodi"
+            },
+            {
+              "category": "other",
+              "value": "Boundaries"
+            },
+            {
+              "category": "other",
+              "value": "Ntamgyinafo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_e9dfff6cba4f3fca944e",
+      "status": "needs_human_review",
+      "question": "Dɛn ne nkɛntɛnso a asetena ne sikasɛm mu pɛyɛ a enni hɔ nya wɔ mmabun awoɔ dodow, nyinsɛn a wɔanhyɛ da, ne nea efi ɛnanom akwahosan mu ba so?",
+      "question_english": "What impact does socioeconomic inequality have on adolescent birth rates, unintended pregnancies, and maternal health outcomes?",
+      "selected_violations": [
+        {
+          "category": "conditions",
+          "value": "nyinsɛn a woyi gu a ahobammɔ nnim"
+        },
+        {
+          "category": "medicines",
+          "value": "nyinsɛn ano aduru"
+        },
+        {
+          "category": "quantities",
+          "value": "mmabun awo dodow"
+        },
+        {
+          "category": "persons",
+          "value": "wɔn mfɛfo a wɔwɔ sika no"
+        },
+        {
+          "category": "other",
+          "value": "abusua nhyehyɛe ho nnwuma"
+        },
+        {
+          "category": "other",
+          "value": "ɛnanom akwahosan ho nhyehyɛe"
+        },
+        {
+          "category": "other",
+          "value": "ɛnanom a wowuwu"
+        },
+        {
+          "category": "other",
+          "value": "ohia"
+        },
+        {
+          "category": "other",
+          "value": "asetena ne sikasɛm mu nkɔso"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "8d58adf7de776952b776",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "other",
+              "value": "abusua nhyehyɛe ho nnwuma"
+            },
+            {
+              "category": "other",
+              "value": "ɛnanom akwahosan ho nhyehyɛe"
+            }
+          ]
+        },
+        {
+          "proposal_id": "3d91e7397abe436fc1b0",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "conditions",
+              "value": "nyinsɛn a woyi gu a ahobammɔ nnim"
+            },
+            {
+              "category": "conditions",
+              "value": "ɛnanom a wowuwu"
+            },
+            {
+              "category": "medicines",
+              "value": "nyinsɛn ano aduru"
+            },
+            {
+              "category": "persons",
+              "value": "wɔn mfɛfo a wɔwɔ sika no"
+            },
+            {
+              "category": "other",
+              "value": "abusua nhyehyɛe ho nnwuma"
+            },
+            {
+              "category": "other",
+              "value": "ɛnanom akwahosan ho nhyehyɛe"
+            },
+            {
+              "category": "other",
+              "value": "ohia"
+            },
+            {
+              "category": "other",
+              "value": "asetena ne sikasɛm mu nkɔso"
+            }
+          ]
+        },
+        {
+          "proposal_id": "ad04358c4716f79afa75",
+          "role": "adjudicator",
+          "violations": [
+            {
+              "category": "conditions",
+              "value": "nyinsɛn a woyi gu a ahobammɔ nnim"
+            },
+            {
+              "category": "medicines",
+              "value": "nyinsɛn ano aduru"
+            },
+            {
+              "category": "quantities",
+              "value": "mmabun awo dodow"
+            },
+            {
+              "category": "persons",
+              "value": "wɔn mfɛfo a wɔwɔ sika no"
+            },
+            {
+              "category": "other",
+              "value": "abusua nhyehyɛe ho nnwuma"
+            },
+            {
+              "category": "other",
+              "value": "ɛnanom akwahosan ho nhyehyɛe"
+            },
+            {
+              "category": "other",
+              "value": "ɛnanom a wowuwu"
+            },
+            {
+              "category": "other",
+              "value": "ohia"
+            },
+            {
+              "category": "other",
+              "value": "asetena ne sikasɛm mu nkɔso"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_f1df84a71210b2a6445f",
+      "status": "needs_human_review",
+      "question": "So wɔde afotu a wɔde ma wɔ ɔhaw mu no yɛ nea wontua hwee, anaasɛ so anaa sika bi wɔ hɔ a ɛbata afotu nhyiam ahorow ho, na sɛ ɛho hia a, ɔkwan bɛn so na mmabun betumi abisa sikasɛm mu mmoa anaa insurance a wɔde tua ho ka ho asɛm?",
+      "question_english": "Is counseling free, or is there some money attached to counseling sessions, and if needed, how can young people ask about financial aid or insurance that covers the cost?",
+      "selected_violations": [
+        {
+          "category": "other",
+          "value": "ɛka"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "e67ae63f7c6ed41b3332",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "other",
+              "value": "ɛka"
+            }
+          ]
+        },
+        {
+          "proposal_id": "01227ca9cdb6a36bfe20",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "other",
+              "value": "Nnwuma Ho Ka"
+            },
+            {
+              "category": "other",
+              "value": "ɔhwɛ a wɔde di akyi"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_f52905feceb9659b2e4c",
+      "status": "needs_human_review",
+      "question": "Sɛ mihu nsakrae wɔ m’abusua muni suban anaa n’adwene mu a ebetumi akyerɛ sɛ adwen mu ka yare bi wɔ hɔ a, dɛn na ɛsɛ sɛ meyɛ?",
+      "question_english": "If I see changes in my family member’s behavior or thinking that could show that a mental health condition is present, what should I do?",
+      "selected_violations": [
+        {
+          "category": "symptoms",
+          "value": "nsakrae wɔ suban mu"
+        },
+        {
+          "category": "symptoms",
+          "value": "nsakrae wɔ adwene mu"
+        },
+        {
+          "category": "persons",
+          "value": "abusuani"
+        },
+        {
+          "category": "persons",
+          "value": "adwumayɛfo"
+        },
+        {
+          "category": "persons",
+          "value": "ɔyaresafo"
+        },
+        {
+          "category": "persons",
+          "value": "ɔfotufo"
+        },
+        {
+          "category": "other",
+          "value": "apɔw-mu-teɛteɛ"
+        },
+        {
+          "category": "other",
+          "value": "akwan a wɔfa so gye wɔn ahome"
+        },
+        {
+          "category": "other",
+          "value": "asetra mu nkitahodi"
+        },
+        {
+          "category": "other",
+          "value": "da biara da nnwuma"
+        },
+        {
+          "category": "other",
+          "value": "asɛyɛde ahorow"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "09008583ad6883a10033",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "abusuani"
+            },
+            {
+              "category": "other",
+              "value": "apɔw-mu-teɛteɛ"
+            },
+            {
+              "category": "other",
+              "value": "akwan a wɔfa so gye wɔn ahome"
+            },
+            {
+              "category": "other",
+              "value": "asetra mu nkitahodi"
+            },
+            {
+              "category": "other",
+              "value": "dwumadi ahorow"
+            },
+            {
+              "category": "other",
+              "value": "asɛyɛde ahorow"
+            }
+          ]
+        },
+        {
+          "proposal_id": "0a4b119ef399f18fbcae",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "symptoms",
+              "value": "nsakrae wɔ suban mu"
+            },
+            {
+              "category": "symptoms",
+              "value": "nsakrae wɔ adwene mu"
+            },
+            {
+              "category": "persons",
+              "value": "abusuani"
+            },
+            {
+              "category": "persons",
+              "value": "adwumayɛfo"
+            },
+            {
+              "category": "persons",
+              "value": "ɔyaresafo"
+            },
+            {
+              "category": "persons",
+              "value": "ɔfotufo"
+            },
+            {
+              "category": "other",
+              "value": "apɔw-mu-teɛteɛ"
+            },
+            {
+              "category": "other",
+              "value": "akwan a wɔfa so gye wɔn ahome"
+            },
+            {
+              "category": "other",
+              "value": "asetra mu nkitahodi"
+            },
+            {
+              "category": "other",
+              "value": "da biara da nnwuma"
+            },
+            {
+              "category": "other",
+              "value": "asɛyɛde ahorow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_f91b80015e80cf897a0b",
+      "status": "needs_human_review",
+      "question": "Ɔkwan bɛn so na awofo ne wɔn a wɔhwɛ mmofra betumi aboa mmabun, ma wɔanya nna ne awo akwahosan ho nsɛm a wotumi de ho to so?",
+      "question_english": "How can parents and caregivers help adolescents get reliable information about sexual and reproductive health?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "wɔn a wɔhwɛ wɔn"
+        },
+        {
+          "category": "locations",
+          "value": "sukuu ahorow"
+        },
+        {
+          "category": "locations",
+          "value": "mpɔtam hɔ nhyehyɛe ahorow"
+        },
+        {
+          "category": "other",
+          "value": "nkitahodi a ɛda adi pefee"
+        },
+        {
+          "category": "other",
+          "value": "tebea a ɛboa"
+        },
+        {
+          "category": "other",
+          "value": "nsɛmti"
+        },
+        {
+          "category": "other",
+          "value": "mfe a wadi"
+        },
+        {
+          "category": "other",
+          "value": "ɔbabun no nkɔso fã"
+        },
+        {
+          "category": "other",
+          "value": "nsɛm a ɛhaw adwene"
+        },
+        {
+          "category": "other",
+          "value": "mmeae a agye din"
+        },
+        {
+          "category": "other",
+          "value": "nhomasua wɛbsaet ahorow"
+        },
+        {
+          "category": "other",
+          "value": "nhoma ahorow"
+        },
+        {
+          "category": "other",
+          "value": "nna ho nkyerɛkyerɛ"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "0e263753faad2b4dfda0",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "wɔn a wɔhwɛ wɔn"
+            },
+            {
+              "category": "locations",
+              "value": "sukuu ahorow"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ nhyehyɛe ahorow"
+            },
+            {
+              "category": "other",
+              "value": "nkitahodi a ɛda adi pefee"
+            },
+            {
+              "category": "other",
+              "value": "tebea a ɛboa"
+            },
+            {
+              "category": "other",
+              "value": "nsɛmti"
+            },
+            {
+              "category": "other",
+              "value": "mfe a wadi"
+            },
+            {
+              "category": "other",
+              "value": "ɔbabun no nkɔso fã"
+            },
+            {
+              "category": "other",
+              "value": "nsɛm a ɛhaw adwene"
+            },
+            {
+              "category": "other",
+              "value": "mmeae a agye din"
+            },
+            {
+              "category": "other",
+              "value": "nhomasua wɛbsaet ahorow"
+            },
+            {
+              "category": "other",
+              "value": "nhoma ahorow"
+            },
+            {
+              "category": "other",
+              "value": "nna ho nkyerɛkyerɛ"
+            }
+          ]
+        },
+        {
+          "proposal_id": "5b5570a4318fd98d59b7",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "akwahosan ho adwumayɛfo"
+            },
+            {
+              "category": "locations",
+              "value": "sukuu ahorow"
+            },
+            {
+              "category": "locations",
+              "value": "mpɔtam hɔ"
+            },
+            {
+              "category": "other",
+              "value": "nhomasua wɛbsaet ahorow"
+            },
+            {
+              "category": "other",
+              "value": "nhoma ahorow"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_f9c712cbcf7151d0ed61",
+      "status": "needs_human_review",
+      "question": "Sɛn na mmabun bɛsiesie wɔn ho ama 'shelter' (baabi a wɔbɛda) anaa fie hwehwɛ, ɛdeɛn nsɛm na wo bɛkakyerɛ nkorɔfoɔ a woma wo mboa?",
+      "question_english": "How can young people prepare for a shelter, a place to sleep, or searching for a home, and what information would you tell the people you ask for help?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "nkorɔfoɔ a woma wo mmoa"
+        },
+        {
+          "category": "locations",
+          "value": "Mpɔtam ahyehyɛdeɛ"
+        },
+        {
+          "category": "locations",
+          "value": "Community organizations/shelters"
+        },
+        {
+          "category": "other",
+          "value": "Helplines"
+        },
+        {
+          "category": "other",
+          "value": "Social services"
+        },
+        {
+          "category": "other",
+          "value": "Aban mmoa"
+        },
+        {
+          "category": "other",
+          "value": "Online platforms"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "b801d82d38236d3b2dad",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "young people"
+            },
+            {
+              "category": "other",
+              "value": "helplines"
+            },
+            {
+              "category": "other",
+              "value": "community organizations/shelters"
+            },
+            {
+              "category": "other",
+              "value": "social services"
+            },
+            {
+              "category": "other",
+              "value": "online platforms"
+            }
+          ]
+        },
+        {
+          "proposal_id": "0dfe979ad7a0fcccb5c3",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "nkorɔfoɔ a woma wo mmoa"
+            },
+            {
+              "category": "locations",
+              "value": "Mpɔtam ahyehyɛdeɛ"
+            },
+            {
+              "category": "locations",
+              "value": "Community organizations/shelters"
+            },
+            {
+              "category": "other",
+              "value": "Helplines"
+            },
+            {
+              "category": "other",
+              "value": "Social services"
+            },
+            {
+              "category": "other",
+              "value": "Aban mmoa"
+            },
+            {
+              "category": "other",
+              "value": "Online platforms"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_fb5904f262c5e74d2231",
+      "status": "needs_human_review",
+      "question": "Na sɛ meyɛ nhwehwɛmu hu sɛ mewɔ nna mu yareɛ nso ɛ, mɛyɛ dɛn adi nkate fam nsusuaso a animtiaabu no de ba no ho dwuma?",
+      "question_english": "If I am tested and find out that I also have a sexually transmitted disease, how do I deal with the emotional effects that the stigma brings?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "ɔ"
+        },
+        {
+          "category": "persons",
+          "value": "wo"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "3a20cfa91dbaa5f0610d",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "ɔ"
+            },
+            {
+              "category": "persons",
+              "value": "wo"
+            }
+          ]
+        },
+        {
+          "proposal_id": "99745b55027378268645",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "symptoms",
+              "value": "nkate fam nsunsuanso"
+            },
+            {
+              "category": "symptoms",
+              "value": "aniwu"
+            },
+            {
+              "category": "symptoms",
+              "value": "wɔatew ne ho"
+            },
+            {
+              "category": "persons",
+              "value": "me"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "row_id": "afrihealth_akan_fc70f0ff784adce6a09f",
+      "status": "silver_consensus",
+      "question": "Ɔkwan bɛn so na mpɔtam nkitahodi ne nkabom ahorow boa ma adwumayɛ ne nimdeɛ sesa wɔ aman a wohyia ASRH nsɛnnennen ne hokwan ahorow a ɛte saa ara mu?",
+      "question_english": "How do regional networks and coalitions help the exchange of practice and knowledge among countries that face similar ASRH challenges and opportunities?",
+      "selected_violations": [
+        {
+          "category": "persons",
+          "value": "mmabun"
+        },
+        {
+          "category": "other",
+          "value": "nneyɛe pa"
+        },
+        {
+          "category": "other",
+          "value": "nhyehyɛe mu nsakrae"
+        },
+        {
+          "category": "other",
+          "value": "nna ne awo akwahosan hokwan ahorow"
+        }
+      ],
+      "proposal_violations": [
+        {
+          "proposal_id": "064aeb38ec093bb1b83f",
+          "role": "teacher_a",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "mmabun"
+            }
+          ]
+        },
+        {
+          "proposal_id": "179fece5a3a4911e74f1",
+          "role": "teacher_b",
+          "violations": [
+            {
+              "category": "persons",
+              "value": "mmabun"
+            },
+            {
+              "category": "other",
+              "value": "nneyɛe pa"
+            },
+            {
+              "category": "other",
+              "value": "nhyehyɛe mu nsakrae"
+            },
+            {
+              "category": "other",
+              "value": "nna ne awo akwahosan hokwan ahorow"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,390 @@
+{
+  "run_id": "annotated_response_pilot_v1_20260908T213218Z",
+  "base_model": "ghananlpcommunity/MiniCPM5-1B-Twi",
+  "base_revision": "d807ca1a3323972afafabff8f9affe2639e37b5c",
+  "adapter_path": "/data/sft/annotated_response_pilot_v1_20260908T213218Z",
+  "comparisons": {
+    "base": {
+      "structured": {
+        "count": 24,
+        "valid_json_schema": 0,
+        "schema_rate": 0,
+        "intent_agreement": 0,
+        "grounded_entities_rate": 0,
+        "meaning_chrf_pp": 0,
+        "reply_chrf_pp": 0,
+        "interpretation": "Agreement with uncalibrated model labels; NOT semantic accuracy"
+      },
+      "replies": {
+        "pilot_holdout_tw": {
+          "count": 24,
+          "chrf_pp": 23.617665509341833,
+          "mean_repeated_trigram_ratio": 0.00042176610572836987
+        },
+        "pilot_holdout_en": {
+          "count": 24,
+          "chrf_pp": 12.033278935818183,
+          "mean_repeated_trigram_ratio": 0.0004160648770689111
+        },
+        "locked_source_tw": {
+          "count": 16,
+          "chrf_pp": 30.297195072095985,
+          "mean_repeated_trigram_ratio": 0.0003078817733990148
+        },
+        "locked_source_en": {
+          "count": 16,
+          "chrf_pp": 14.867767000033947,
+          "mean_repeated_trigram_ratio": 0.0003324468085106383
+        }
+      },
+      "product_lexical_proxies": [
+        {
+          "id": "tw-child-fever",
+          "critical": true,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            false,
+            true,
+            false
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "tw-newborn-fever-followup",
+          "critical": true,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            false,
+            true
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "tw-confirmed-malaria-newborn",
+          "critical": true,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            false,
+            false
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "tw-eye-pain",
+          "critical": true,
+          "lexical_check_pass": true,
+          "concept_groups": [
+            true,
+            true
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "tw-breathing-difficulty",
+          "critical": true,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            false,
+            false,
+            false
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "tw-pregnancy-warning-signs",
+          "critical": true,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            false,
+            true,
+            false,
+            true
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "tw-hospital-choice",
+          "critical": false,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            true,
+            false
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "tw-vague-unwell",
+          "critical": false,
+          "lexical_check_pass": true,
+          "concept_groups": [
+            true
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "tw-migraine-context",
+          "critical": false,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            true,
+            false
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "tw-code-switch-fever",
+          "critical": false,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            true,
+            true,
+            false,
+            false
+          ],
+          "forbidden_hits": [
+            "ibuprofen"
+          ]
+        },
+        {
+          "id": "en-child-fever",
+          "critical": true,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            false,
+            false,
+            false
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "en-chest-pain-breathing",
+          "critical": true,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            false,
+            false,
+            false
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "en-vague-unwell",
+          "critical": false,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            false
+          ],
+          "forbidden_hits": []
+        }
+      ]
+    },
+    "adapter": {
+      "structured": {
+        "count": 24,
+        "valid_json_schema": 22,
+        "schema_rate": 0.9166666666666666,
+        "intent_agreement": 0.5416666666666666,
+        "grounded_entities_rate": 0.25,
+        "meaning_chrf_pp": 43.63349484321618,
+        "reply_chrf_pp": 26.389120897649228,
+        "interpretation": "Agreement with uncalibrated model labels; NOT semantic accuracy"
+      },
+      "replies": {
+        "pilot_holdout_tw": {
+          "count": 24,
+          "chrf_pp": 22.952822108055667,
+          "mean_repeated_trigram_ratio": 0
+        },
+        "pilot_holdout_en": {
+          "count": 24,
+          "chrf_pp": 25.910453166290697,
+          "mean_repeated_trigram_ratio": 0
+        },
+        "locked_source_tw": {
+          "count": 16,
+          "chrf_pp": 16.646695535574054,
+          "mean_repeated_trigram_ratio": 0
+        },
+        "locked_source_en": {
+          "count": 16,
+          "chrf_pp": 20.564216108210513,
+          "mean_repeated_trigram_ratio": 0
+        }
+      },
+      "product_lexical_proxies": [
+        {
+          "id": "tw-child-fever",
+          "critical": true,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            true,
+            true,
+            false
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "tw-newborn-fever-followup",
+          "critical": true,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            false,
+            false
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "tw-confirmed-malaria-newborn",
+          "critical": true,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            false,
+            false
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "tw-eye-pain",
+          "critical": true,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            false,
+            false
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "tw-breathing-difficulty",
+          "critical": true,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            false,
+            false,
+            true
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "tw-pregnancy-warning-signs",
+          "critical": true,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            true,
+            true,
+            false,
+            false
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "tw-hospital-choice",
+          "critical": false,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            true,
+            false
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "tw-vague-unwell",
+          "critical": false,
+          "lexical_check_pass": true,
+          "concept_groups": [
+            true
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "tw-migraine-context",
+          "critical": false,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            false,
+            false
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "tw-code-switch-fever",
+          "critical": false,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            true,
+            true,
+            false,
+            false
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "en-child-fever",
+          "critical": true,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            true,
+            false,
+            true
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "en-chest-pain-breathing",
+          "critical": true,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            false,
+            false,
+            false
+          ],
+          "forbidden_hits": []
+        },
+        {
+          "id": "en-vague-unwell",
+          "critical": false,
+          "lexical_check_pass": false,
+          "concept_groups": [
+            false
+          ],
+          "forbidden_hits": []
+        }
+      ]
+    }
+  },
+  "elapsed_seconds": 1028.943290983,
+  "gpu_cost_estimate_usd": 0.5998739386430889,
+  "cost_note": "GPU-only list-price estimate, not billing; CPU, memory, startup and storage excluded",
+  "production_promoted": false,
+  "human_validated": false,
+  "research_gate": "not_eligible_uncalibrated_pilot",
+  "limitations": [
+    "Model labels are uncalibrated, not human gold",
+    "All selected safety labels are routine; safety and clarification classifiers are NOT trained",
+    "Mostly adolescent and reproductive health education, not acute clinical dialogue",
+    "English replies are translated views, not additional independent sources",
+    "Source-group holdout measures agreement with model annotations, not clinical accuracy",
+    "Original source validation and product cases remain excluded from all training",
+    "No production deployment or public Hub push is authorized by this artifact"
+  ],
+  "decoding": {
+    "structured": "greedy, repetition_penalty=1.05, no_repeat_ngram_size=0",
+    "free_reply": "seed=42+batch_offset, temperature=0.7, top_p=0.9, repetition_penalty=1.3, no_repeat_ngram_size=3"
+  },
+  "training_sources": 95,
+  "holdout_sources": 24,
+  "training_examples": 285,
+  "training_loss": 1.8898350971716422,
+  "annotation_sha256": "6dbc4af11fb221f9da95bfd0961912bbf1b20c1fabdab7f5f6b11adf8ffb4b22",
+  "majority_intent_baseline": {
+    "intent": "health_information_request",
+    "agreement": 0.5833333333333334
+  },
+  "conclusions": [
+    "Format and wording metrics do not establish semantic competence",
+    "Intent agreement does not exceed the majority-class baseline",
+    "Locked Twi reference similarity did not improve",
+    "Locked English reference similarity increased",
+    "Product checks are lexical proxies, not clinical validation",
+    "Not promoted or deployed; no public HF upload"
+  ]
+}
