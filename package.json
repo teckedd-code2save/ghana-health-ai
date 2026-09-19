@@ -79,7 +79,8 @@
     "postinstall": "prisma generate",
     "corpus:gen": "node --import tsx scripts/gen-corpus-pack.ts",
     "corpus:synthesize-twi": "node --import tsx scripts/synthesize-twi-voice-notes.ts",
-    "corpus:medical:twi": "node --import tsx scripts/build-medical-twi-response-corpus.ts"
+    "corpus:medical:twi": "node --import tsx scripts/build-medical-twi-response-corpus.ts",
+    "metrics:scorecard": "node --import tsx scripts/usage-scorecard.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
