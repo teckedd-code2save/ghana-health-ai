@@ -266,14 +266,20 @@ def jsonl_filter_rows(path: Path, split: str, source: str | None = None) -> Iter
         yield row
 
 
+def stable_values_sha(values: Iterable[str]) -> str:
+    digest = hashlib.sha256()
+    for value in sorted(values):
+        digest.update(value.encode())
+        digest.update(b"\n")
+    return digest.hexdigest()
+
+
 def metadata_scan_jsonl(path: Path, split: str, source: str | None) -> dict:
-    matched = 0
-    checksum = hashlib.sha256()
+    ids = []
     with measured() as metrics:
         for row in jsonl_filter_rows(path, split, source):
-            matched += 1
-            checksum.update(str(row.get("id") or "").encode())
-    return {**metrics, "rows": matched, "result_sha256": checksum.hexdigest()}
+            ids.append(str(row.get("id") or ""))
+    return {**metrics, "rows": len(ids), "result_sha256": stable_values_sha(ids)}
 
 
 def metadata_scan_parquet(dataset_dir: Path, split: str, source: str | None) -> dict:
@@ -283,16 +289,12 @@ def metadata_scan_parquet(dataset_dir: Path, split: str, source: str | None) -> 
     filt = ds.field("split") == split
     if source:
         filt = filt & (ds.field("source") == source)
-    checksum = hashlib.sha256()
-    rows = 0
+    ids = []
     with measured() as metrics:
         scanner = dataset.scanner(columns=["id"], filter=filt, batch_size=4096)
         for batch in scanner.to_batches():
-            values = batch.column(0).to_pylist()
-            rows += len(values)
-            for value in values:
-                checksum.update((value or "").encode())
-    return {**metrics, "rows": rows, "result_sha256": checksum.hexdigest()}
+            ids.extend(str(value or "") for value in batch.column(0).to_pylist())
+    return {**metrics, "rows": len(ids), "result_sha256": stable_values_sha(ids)}
 
 
 def load_subset_jsonl(path: Path, split: str, source: str | None) -> dict:
@@ -300,6 +302,8 @@ def load_subset_jsonl(path: Path, split: str, source: str | None) -> dict:
     with measured() as metrics:
         for row in jsonl_filter_rows(path, split, source):
             rows.append(tuple(str(row.get(col) or "") for col in ("id", *TEXT_COLUMNS)))
+    rows.sort(key=lambda row: row[0])
+    rows.sort(key=lambda row: row[0])
     digest = hashlib.sha256(json.dumps(rows, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
     return {**metrics, "rows": len(rows), "result_sha256": digest}
 
@@ -328,24 +332,29 @@ def load_tokenizer(repo: str, revision: str):
     return Tokenizer.from_file(path), path
 
 
-def tokenize_batches(batches: Iterable[list[str]], tokenizer) -> tuple[int, int, str]:
+def tokenize_batches(batches: Iterable[list[tuple[str, str]]], tokenizer) -> tuple[int, int, str]:
     rows = 0
     tokens = 0
-    digest = hashlib.sha256()
-    for texts in batches:
+    row_digests = []
+    for batch in batches:
+        ids = [item[0] for item in batch]
+        texts = [item[1] for item in batch]
         encoded = tokenizer.encode_batch(texts, add_special_tokens=False)
         rows += len(encoded)
-        for item in encoded:
+        for row_id, item in zip(ids, encoded):
             tokens += len(item.ids)
-            digest.update(",".join(map(str, item.ids)).encode())
-            digest.update(b"\n")
-    return rows, tokens, digest.hexdigest()
+            material = row_id + ":" + ",".join(map(str, item.ids))
+            row_digests.append(hashlib.sha256(material.encode()).hexdigest())
+    return rows, tokens, stable_values_sha(row_digests)
 
 
-def jsonl_text_batches(path: Path, split: str, source: str | None, batch_size: int) -> Iterator[list[str]]:
+def jsonl_text_batches(path: Path, split: str, source: str | None, batch_size: int) -> Iterator[list[tuple[str, str]]]:
     batch = []
     for row in jsonl_filter_rows(path, split, source):
-        batch.append(str(row.get("normalized_twi") or row.get("original_text") or ""))
+        batch.append((
+            str(row.get("id") or ""),
+            str(row.get("normalized_twi") or row.get("original_text") or ""),
+        ))
         if len(batch) >= batch_size:
             yield batch
             batch = []
@@ -353,16 +362,18 @@ def jsonl_text_batches(path: Path, split: str, source: str | None, batch_size: i
         yield batch
 
 
-def parquet_text_batches(dataset_dir: Path, split: str, source: str | None, batch_size: int) -> Iterator[list[str]]:
+def parquet_text_batches(dataset_dir: Path, split: str, source: str | None, batch_size: int) -> Iterator[list[tuple[str, str]]]:
     import pyarrow.dataset as ds
 
     dataset = ds.dataset(dataset_dir, format="parquet", partitioning="hive", exclude_invalid_files=True)
     filt = ds.field("split") == split
     if source:
         filt = filt & (ds.field("source") == source)
-    scanner = dataset.scanner(columns=["normalized_twi"], filter=filt, batch_size=batch_size)
+    scanner = dataset.scanner(columns=["id", "normalized_twi"], filter=filt, batch_size=batch_size)
     for batch in scanner.to_batches():
-        yield [str(value or "") for value in batch.column(0).to_pylist()]
+        ids = batch.column(0).to_pylist()
+        texts = batch.column(1).to_pylist()
+        yield [(str(row_id or ""), str(text or "")) for row_id, text in zip(ids, texts)]
 
 
 def benchmark_tokenization(
