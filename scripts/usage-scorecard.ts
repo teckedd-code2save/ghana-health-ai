@@ -21,7 +21,7 @@ async function main() {
   const days = argDays();
   const since = new Date(Date.now() - days * 86400000);
 
-  const [conversations, messages, feedback, reviews, recordings] = await Promise.all([
+  const [conversations, messages, feedback, reviews] = await Promise.all([
     prisma.conversation.findMany({
       where: { createdAt: { gte: since } },
       select: { userId: true, channel: true, language: true },
@@ -37,10 +37,6 @@ async function main() {
     prisma.researchUnderstandingReview.findMany({
       where: { updatedAt: { gte: since } },
       select: { decision: true, reviewer: true },
-    }),
-    prisma.researchCorpusRecording.findMany({
-      where: { createdAt: { gte: since } },
-      select: { speakerId: true, durationMs: true },
     }),
   ]);
 
@@ -80,15 +76,12 @@ async function main() {
     researchData: {
       reviewsUpdated: reviews.length,
       byDecision: reviewCounts,
-      corpusRecordings: recordings.length,
-      uniqueResearchSpeakers: new Set(recordings.map((recording) => recording.speakerId)).size,
-      recordedDurationMs: recordings.reduce((sum, recording) => sum + (recording.durationMs || 0), 0),
     },
     definitions: {
       twiUserTurn: "USER message explicitly stored with language=tw",
       correction: "ASR feedback row containing a non-empty corrected transcript",
       consentedAudioFeedback: "ASR feedback row with audioConsent=true",
-      researchReview: "ResearchUnderstandingReview updated inside the window",
+      researchReview: "ResearchUnderstandingReview updated inside the window; corpus-recording metrics live on the active response-research branch and are intentionally not mixed into the production-main scorecard",
     },
   };
 
