@@ -108,7 +108,10 @@
     "postinstall": "prisma generate",
     "corpus:gen": "node --import tsx scripts/gen-corpus-pack.ts",
     "corpus:synthesize-twi": "node --import tsx scripts/synthesize-twi-voice-notes.ts",
-    "corpus:medical:twi": "node --import tsx scripts/build-medical-twi-response-corpus.ts"
+    "corpus:medical:twi": "node --import tsx scripts/build-medical-twi-response-corpus.ts",
+    "ml:data-plane:build": "python scripts/corpus_dataplane.py build --input data/understanding-corpus/silver-medical-paired-v2/all.jsonl --out tmp/ml-systems/data-plane/silver-medical-paired-v2",
+    "ml:data-plane:test": "PYTHONPATH=scripts python scripts/test_corpus_dataplane.py",
+    "ml:data-plane:benchmark": "python scripts/corpus_dataplane.py benchmark --input data/understanding-corpus/silver-medical-paired-v2/all.jsonl --dataset tmp/ml-systems/data-plane/silver-medical-paired-v2 --output tmp/ml-systems/data-plane/benchmark-silver-medical-paired-v2.json --split train"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
