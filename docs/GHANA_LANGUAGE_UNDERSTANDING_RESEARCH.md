@@ -60,11 +60,22 @@ trained research checkpoint(s), and empirical evidence about which foundation,
 data mixture and adaptation sequence actually work. Negative results and
 capability regressions are part of that evidence.
 
-The immediate experiment is to benchmark candidate foundations on a frozen Twi
-suite, select the foundation from measured behaviour, and then run bounded
-bilingual alignment adaptation on the verified September 15 corpus with English
-replay. Native multi-turn Twi response collection/review proceeds in parallel
-for the subsequent conversational SFT stage.
+The immediate experiment is **not** a fresh benchmark sweep. Reuse the programme's
+existing locked evaluations and recorded Qwen, AfriqueQwen, MiniCPM/Twi,
+translation and prior-adapter results. Complete only unresolved evidence gaps,
+with the unfinished MORENA African-first foundation evaluation as the principal
+outstanding comparison, then select the Stage 1 foundation from the combined
+evidence.
+
+No paid inference or training run may repeat the same candidate + corpus + recipe
+simply to reconfirm an existing result. A rerun requires a documented changed
+variable, hypothesis, locked evaluation, decision threshold and budget. Failed
+experiments are retained as evidence rather than silently recycled.
+
+After foundation selection, run bounded bilingual alignment adaptation on the
+verified September 15 corpus with English replay. Native multi-turn Twi response
+collection/review proceeds in parallel for the subsequent conversational SFT
+stage.
 
 Speech recognition and TTS remain separately evaluated components. The final
 language-model target is nevertheless an independently serving model that can
