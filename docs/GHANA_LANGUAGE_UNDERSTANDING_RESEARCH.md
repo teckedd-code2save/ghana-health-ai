@@ -9,41 +9,67 @@ Research Preview cleanup.
 
 ## 1. Research thesis
 
-Ghana Health AI currently has separate speech-recognition and response models,
-but no dedicated layer whose sole responsibility is to recover what a speaker
-meant. Asking one general model to interpret a noisy Twi transcript, assess
-health risk, and write an answer in one operation hides misunderstanding behind
-fluent language.
+The overarching programme is broader than a standalone semantic-recovery layer.
+The goal is to determine how a multilingual foundation model can acquire robust
+Twi understanding **and conversational generation** while retaining useful
+general capabilities.
 
-This programme will build an uncertainty-aware Ghanaian-language understanding
-layer that converts speech evidence into a faithful, machine-actionable meaning
-representation before any health, commerce, or general response is produced.
+The primary research question is:
 
-The central research question is:
+> **What data and adaptation strategy enables a multilingual foundation model to
+> acquire robust Twi understanding and conversational generation while retaining
+> its existing general capabilities?**
 
-> Can a context-aware semantic recovery model convert imperfect,
-> code-switched Ghanaian-language ASR transcripts into faithful English meaning
-> and structured intent while knowing when it has not understood enough to act?
+A central experimental question is:
 
-The intended architecture is:
+> **Does bilingual Twi-English alignment followed by native conversational
+> instruction tuning outperform translation-mediated inference, alignment alone,
+> or direct conversational instruction tuning for low-resource Twi?**
+
+Semantic recovery remains an important diagnostic capability, especially for
+noisy speech and safety-sensitive health interactions, but it is no longer the
+whole research target. It lets us distinguish fluent-but-wrong responses from
+actual understanding.
+
+The research therefore evaluates an adaptation ladder:
 
 ```text
-speech
-  -> language-specific ASR
-  -> Ghana language understanding
-       - corrected/normalised source transcript
-       - faithful English meaning
-       - semantic frame
-       - uncertainty and evidence
-  -> health, commerce, or general reasoning
-  -> answer in the user's preferred language
-  -> language-specific TTS
+untouched multilingual foundation
+        │
+        ├── translation-mediated baseline
+        │
+        ├── bilingual Twi-English alignment
+        │
+        ├── native Twi conversational SFT
+        │
+        └── alignment -> native conversational SFT
 ```
 
-The English meaning is an interlingua for downstream models; it is not a claim
-that English is intrinsically better. The original language, corrected source,
-code-switching, uncertainty, and conversational references remain first-class
-evidence so translation cannot silently erase meaning.
+All variants should be compared on locked evaluation groups covering faithful
+meaning, natural Twi generation, instruction following, multi-turn context,
+code-switching, uncertainty/safety and retention of general/English capability.
+
+Ghana Health AI is the initial real-world laboratory. Health interactions,
+imperfect ASR transcripts and commerce/tool episodes provide difficult evaluation
+conditions and later specialization data; they must not narrow the general
+research claim to medical classification or translation.
+
+The intended final research contribution is a reproducible adaptation recipe,
+curated and provenance-preserving Twi data, a conversational evaluation suite,
+trained research checkpoint(s), and empirical evidence about which foundation,
+data mixture and adaptation sequence actually work. Negative results and
+capability regressions are part of that evidence.
+
+The immediate experiment is to benchmark candidate foundations on a frozen Twi
+suite, select the foundation from measured behaviour, and then run bounded
+bilingual alignment adaptation on the verified September 15 corpus with English
+replay. Native multi-turn Twi response collection/review proceeds in parallel
+for the subsequent conversational SFT stage.
+
+Speech recognition and TTS remain separately evaluated components. The final
+language-model target is nevertheless an independently serving model that can
+understand and respond in Twi without relying on a hidden proprietary response
+model.
 
 ## 2. Two-front data strategy
 
