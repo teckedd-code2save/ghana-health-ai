@@ -2,19 +2,79 @@
 
 Updated 2026-09-09 following the user's scope clarification.
 
+## Research positioning
+
+### Overarching research question
+
+> **What data and adaptation strategy enables a multilingual foundation model to acquire robust Twi understanding and conversational generation while retaining its existing general capabilities?**
+
+The project is not primarily asking whether an LLM can translate Twi or whether
+fine-tuning can improve a Twi benchmark. Those are established baselines and
+subproblems. The research target is the adaptation recipe required for a model
+to operate conversationally in a low-resource language: understand meaning,
+follow instructions, preserve context, handle code-switching, generate natural
+Twi, and retain useful capabilities inherited from its foundation.
+
+A central experimental question is whether **bilingual alignment followed by
+native conversational instruction tuning** provides better Twi understanding
+and response behaviour than either translation-mediated inference or direct
+instruction tuning alone.
+
+### Core methodology
+
+Use a controlled adaptation ladder with the same locked evaluation groups:
+
+1. untouched multilingual foundation;
+2. translation-mediated baseline;
+3. bilingual Twi-English alignment adaptation;
+4. native Twi conversational instruction tuning;
+5. bilingual alignment followed by native conversational instruction tuning.
+
+Compare candidate foundations before adaptation rather than selecting one from
+parameter count, tokenizer coverage, or reputation. Evaluate Twi understanding,
+Twi generation, multi-turn context, code-switching, instruction following,
+general/English capability retention, safety, and real conversational usefulness
+separately. Ghana Health AI is the real-world research laboratory and supplies
+health, noisy-ASR and product interaction stress tests; health is a specialization,
+not the definition of general Twi capability.
+
+### Intended research outputs
+
+The intended contribution is larger than a single checkpoint:
+
+- a reproducible low-resource adaptation recipe and ablation evidence;
+- a source-backed Twi-English alignment corpus and reviewed native conversational
+  corpus with clear provenance and split policy;
+- a Twi conversational evaluation suite spanning meaning, generation, context,
+  code-switching and capability retention;
+- one or more research checkpoints that independently understand and respond in
+  Twi without a hidden proprietary response model;
+- empirical findings about which foundation, data mixture and adaptation sequence
+  work, including negative results and regressions;
+- an end-to-end Ghana Health AI demonstration using the resulting capability.
+
+A useful negative result is still a research result. If translation-mediated
+inference beats adaptation, alignment improves comprehension but not generation,
+or response tuning damages reasoning, report that rather than redefining success.
+
+### Immediate experiment
+
+The next action is a **foundation-model bake-off**, followed by the first bounded
+alignment adaptation. Freeze a representative Twi evaluation set before training
+and compare serious foundation candidates on comprehension, generation,
+code-switching, conversational context and general-capability retention. Select
+the foundation from those measurements.
+
+Then train Stage 1 on the verified September 15 source-backed alignment release,
+with explicit mixture weights, English replay, the selected foundation's native
+chat template and verified assistant-only loss masking. Keep the untouched
+foundation as the control. In parallel, build and review the missing native
+multi-turn Twi response corpus for Stage 2.
+
+Stage 1 is not the final assistant. Stage 2 conversational SFT should start only
+when response supervision is sufficiently native, diverse and reviewed.
+
 ## Product target
-
-One independently serving Twi-English LLM that understands and answers general
-questions, follows instructions, preserves conversational context and corrections,
-handles code-switching, and asks for missing information. Health education and
-ecommerce are specializations. Web search and commerce APIs are tools the model
-can request; they are not knowledge the model should pretend it already has.
-The final response comes from our model, not a hidden proprietary response model.
-
-Speech recognition and TTS remain separate components. Better transcription is
-necessary but cannot repair a text model that misunderstands an accurate transcript.
-The private text playground deliberately isolates the latter problem.
-
 ## What the pilot actually established
 
 305 annotated records were available, but only 120 had model consensus; 185
