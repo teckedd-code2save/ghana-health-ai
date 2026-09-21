@@ -57,19 +57,32 @@ A useful negative result is still a research result. If translation-mediated
 inference beats adaptation, alignment improves comprehension but not generation,
 or response tuning damages reasoning, report that rather than redefining success.
 
-### Immediate experiment
+### Immediate experiment and no-repeat rule
 
-The next action is a **foundation-model bake-off**, followed by the first bounded
-alignment adaptation. Freeze a representative Twi evaluation set before training
-and compare serious foundation candidates on comprehension, generation,
-code-switching, conversational context and general-capability retention. Select
-the foundation from those measurements.
+Do **not** restart a generic foundation bake-off. Reuse the locked evaluation
+artifacts, product fixtures, model outputs, training receipts and negative results
+already produced by this programme. A failed experiment remains evidence. Do not
+spend GPU/API credits rerunning the same candidate, dataset and training recipe
+unless a specific changed variable and hypothesis are written down first.
 
-Then train Stage 1 on the verified September 15 source-backed alignment release,
-with explicit mixture weights, English replay, the selected foundation's native
-chat template and verified assistant-only loss masking. Keep the untouched
-foundation as the control. In parallel, build and review the missing native
-multi-turn Twi response corpus for Stage 2.
+The immediate foundation task is to **complete the existing comparison**, not
+recreate it. In particular, finish the outstanding MORENA evaluation/adaptation
+gate and compare its recorded result with the already-measured Qwen, AfriqueQwen,
+MiniCPM/Twi and translation baselines wherever equivalent evidence exists. Run
+new inference only for a missing capability or an apples-to-apples gap that cannot
+be answered from saved artifacts.
+
+Before any new paid run, write a small experiment receipt containing: prior result
+being reused, unresolved question, candidate, exact changed variable, locked
+evaluation set, success/failure criterion and maximum compute/API budget. If the
+question was already answered, stop.
+
+Once the remaining foundation uncertainty is resolved, train Stage 1 on the
+verified September 15 source-backed alignment release with explicit mixture
+weights, English replay, the selected foundation's native chat template and
+verified assistant-only loss masking. Keep the untouched foundation as the
+control. In parallel, build and review the missing native multi-turn Twi response
+corpus for Stage 2.
 
 Stage 1 is not the final assistant. Stage 2 conversational SFT should start only
 when response supervision is sufficiently native, diverse and reviewed.
@@ -96,9 +109,12 @@ the same 95-source mix are justified by these results.
 
 ## Better foundation choices
 
-Recommendation: compare a capable instruction model with a genuinely Twi-adapted
-foundation, then train the winner on a balanced task mix. Do not repeat expensive
-Twi pretraining from scratch before checking existing foundations.
+Recommendation: resolve only the remaining foundation uncertainty, then train the
+selected foundation on a balanced task mix. Existing Qwen, AfriqueQwen, MiniCPM/Twi,
+translation and Ghana Health AI adapter measurements are evidence and must be reused,
+not regenerated. MORENA is the principal outstanding African-first foundation
+evaluation. Do not repeat expensive inference or training merely to make candidates
+look symmetrical; fill only material evidence gaps.
 
 | Candidate | Role | Evidence and remaining uncertainty |
 | --- | --- | --- |
