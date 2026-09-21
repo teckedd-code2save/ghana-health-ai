@@ -1,5 +1,16 @@
 # Twi-English General Understanding Model Program
 
+> **Research scope note (2026-09-21):** This document describes the
+> conversational-response stage and its corpus/safety requirements. It is one
+> stage of the broader Twi adaptation programme, not the overarching research
+> question. The authoritative programme framing is
+> [general-understanding-roadmap.md](./general-understanding-roadmap.md): compare
+> the untouched foundation, translation-mediated baseline, bilingual alignment,
+> native conversational SFT, and alignment followed by conversational SFT.
+> The target contribution is an independently serving model that understands
+> and responds naturally in Twi while retaining useful foundation capabilities.
+
+
 ## Scope correction: 2026-09-09
 
 The user clarified that the overarching goal is a general-purpose understanding
