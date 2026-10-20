@@ -40,6 +40,12 @@ jobs:
       - name: Type-check
         run: pnpm exec tsc --noEmit
 
+      - name: Private review projection tests
+        run: python3 -m unittest discover -s scripts -p test_instruction_review_projection.py
+
+      - name: Build isolated review service (no corpus or secrets)
+        run: node scripts/corpus-review/build.mjs tmp/review-host-ci twi-stage-v1-20260911
+
       - name: Build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
