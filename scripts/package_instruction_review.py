@@ -100,6 +100,7 @@ def progress_html(summary):
     replaced = counts.get("replace", 0)
     retained = sum(counts.get(k, 0) for k in ("retain_current", "retain"))
     outcomes = e["outcomes"]
+    focused = outcomes.get("focused_twi_check", 0)
     nodes = [
         ("A", "Working copy", "Complete", "52,002 records accounted for. Originals and protected records preserved."),
         ("B", "Consolidate findings", "Complete", "674 initial work items. Source identities and related records retained."),
@@ -107,7 +108,7 @@ def progress_html(summary):
         ("D", "Complete-example corrections", "In progress", f"{replaced} replaced, {retained} retained, {d['pending_work_items']} pending. {d['cumulative_source_adjudicated_derivatives']} corrected English derivatives; original references unchanged."),
         ("E", "Meaning checks", "Current handoff checked", f"{e['agent_assessments']} assessed; {e['pending_assessments']} unassessed. {outcomes.get('agent_pass_to_F', 0)} scoped same-agent passes, {outcomes.get('source_hold', 0)} source holds, {outcomes.get('focused_twi_check', 0)} focused Twi check. Not independent native or clinical review."),
         ("F", "Admission decision", "Pending", "Decide which exact targets have adequate evidence. Correction is not admission. Resolve style and naturalness concerns."),
-        ("H", "Focused review / quarantine", "Open", "Resolve specific uncertain phrases. Keep unresolved or unsupported examples outside training."),
+        ("H", "Focused review / quarantine", "Focused check open" if focused else "No focused E check pending", f"{focused} focused wording checks remain. Phrase confirmations do not approve whole examples. Keep {d['pending_work_items']} unresolved D examples outside training."),
         ("G", "Record admissions", "Pending", "Record the evidence, scope and exact target hash for every admission; keep human and automated statuses distinct."),
         ("I", "Final export validation", "Pending", "Check schemas, source hashes, duplicate families, cross-collection leakage, holdouts and coverage."),
         ("J", "Training dataset", "Pending", "Versioned exports, dataset cards and checksums. No training-ready seal yet."),

@@ -117,6 +117,8 @@ class InstructionReviewTests(unittest.TestCase):
         self.assertIn("0 training admissions", html)
         self.assertIn('id="node-D"', html)
         self.assertIn("1 replaced", html)
+        self.assertIn("No focused E check pending", html)
+        self.assertIn("Phrase confirmations do not approve whole examples", html)
 
 
 if __name__ == "__main__":
