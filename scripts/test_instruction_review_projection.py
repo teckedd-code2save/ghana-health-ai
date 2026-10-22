@@ -1,10 +1,57 @@
 import copy
+from html import escape
+from html.parser import HTMLParser
+from itertools import product
 import json
 from pathlib import Path
 import tempfile
 import unittest
 
 from package_instruction_review import checked, digest, progress_html, project, sha
+
+
+def progress_summary(release=None):
+    summary = {"as_of": "2026-10-20", "checkpoints": "D/E fixture",
+        "D": {"pending_work_items": 1, "cumulative_source_adjudicated_derivatives": 0},
+        "E": {"agent_assessments": 2, "pending_assessments": 0,
+              "outcomes": {"agent_pass_to_F": 2, "source_hold": 1}},
+        "decisions": {"replace": 1, "retain": 1},
+        "D_manifest_sha256": "a" * 64, "E_manifest_sha256": "b" * 64}
+    if release is not None:
+        summary["training_release"] = release
+    return summary
+
+
+def training_release(**updates):
+    return {"fg_complete": True, "fg_admitted": 650, "fg_excluded": 47,
+        "checks_complete": False, "comparison_records": 150123,
+        "export_ready": False, "export_sources": 0, "export_excluded": 0,
+        "admission_manifest_sha256": "c" * 64, "export_manifest_sha256": None, **updates}
+
+
+class ProgressNodes(HTMLParser):
+    def __init__(self, html):
+        super().__init__()
+        self.states = {}
+        self.node = None
+        self.in_state = False
+        self.feed(html)
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "li":
+            self.node = dict(attrs)["id"]
+        elif tag == "em":
+            self.in_state = True
+
+    def handle_endtag(self, tag):
+        if tag == "li":
+            self.node = None
+        elif tag == "em":
+            self.in_state = False
+
+    def handle_data(self, data):
+        if self.in_state:
+            self.states[self.node] = data
 
 
 class InstructionReviewTests(unittest.TestCase):
@@ -119,6 +166,88 @@ class InstructionReviewTests(unittest.TestCase):
         self.assertIn("1 replaced", html)
         self.assertIn("No focused E check pending", html)
         self.assertIn("Phrase confirmations do not approve whole examples", html)
+
+    def test_map_without_training_release_preserves_exact_legacy_output(self):
+        html = progress_html(progress_summary())
+        # Captured from the original renderer before adding release support.
+        self.assertEqual(digest(html), "501abf9ae92a9d2ce69bdcbcde36392409bcb6ed175888841dd25c1742400661")
+        self.assertEqual(ProgressNodes(html).states["node-D"], "In progress")
+        self.assertNotIn("Admission manifest:", html)
+        self.assertNotIn("Export manifest:", html)
+
+    def test_map_fg_only_keeps_validation_in_progress_and_final_counts_unsealed(self):
+        summary = progress_summary(training_release(export_sources=620, export_excluded=30))
+        original = copy.deepcopy(summary)
+        html = progress_html(summary)
+        states = ProgressNodes(html).states
+        self.assertEqual(states["node-D"], "Repairable queue processed with source holds")
+        self.assertEqual(states["node-F"], "Complete")
+        self.assertEqual(states["node-G"], "Complete")
+        self.assertEqual(states["node-I"], "In progress")
+        self.assertEqual(states["node-J"], "Pending")
+        self.assertEqual(states["node-K"], "Not started")
+        for text in ("650 provisional research admissions", "47 admission exclusions",
+                     "150123 comparison records", "Final eligible research count pending",
+                     "620 unsealed export sources", "30 export exclusions", "0 human approvals",
+                     "Noncommercial research only", "No training.", "No all-four readiness claim",
+                     "Phrase confirmations do not approve whole examples", "confirmation remains narrow"):
+            self.assertIn(text, html)
+        self.assertNotIn("620 final eligible research sources", html)
+        self.assertNotIn("0 training admissions", html)
+        self.assertIn(f'Admission manifest: <code>{"c" * 64}</code>', html)
+        self.assertIn("Export manifest: <code>Not provided</code>", html)
+        self.assertEqual(summary, original)
+
+    def test_map_sealed_j_distinguishes_provisional_admissions_and_final_eligibility(self):
+        summary = progress_summary(training_release(checks_complete=True, export_ready=True,
+            export_sources=610, export_excluded=40, export_manifest_sha256="d" * 64))
+        html = progress_html(summary)
+        states = ProgressNodes(html).states
+        self.assertEqual(states["node-I"], "Complete")
+        self.assertEqual(states["node-J"], "Sealed research partition")
+        self.assertEqual(states["node-K"], "Not started")
+        for text in ("650 provisional research admissions", "47 admission exclusions",
+                     "610 final eligible research sources", "40 export exclusions",
+                     "0 human approvals", "Noncommercial research only", "No training.",
+                     "No all-four readiness claim", "not certification of the entire corpus"):
+            self.assertIn(text, html)
+        for label, checksum in (("D", "a" * 64), ("E", "b" * 64),
+                                ("Admission", "c" * 64), ("Export", "d" * 64)):
+            self.assertIn(f"{label} manifest: <code>{checksum}</code>", html)
+        self.assertNotIn("Final eligible research count pending", html)
+        self.assertEqual(html.count("<details>"), 11)
+        self.assertEqual(html.count("Open complete examples"), 3)
+
+    def test_map_completion_uses_flags_not_counts_or_manifest_presence(self):
+        for fg, checks, export in product((False, True), repeat=3):
+            with self.subTest(fg=fg, checks=checks, export=export):
+                release = training_release(fg_complete=fg, checks_complete=checks, export_ready=export,
+                    export_sources=610, export_excluded=40, export_manifest_sha256="d" * 64)
+                states = ProgressNodes(progress_html(progress_summary(release))).states
+                self.assertEqual(states["node-F"], "Complete" if fg else "Pending")
+                self.assertEqual(states["node-G"], "Complete" if fg else "Pending")
+                self.assertEqual(states["node-I"], "Complete" if checks else "In progress")
+                self.assertEqual(states["node-J"], "Sealed research partition" if export else "Pending")
+        html = progress_html(progress_summary(training_release(export_ready=True)))
+        self.assertEqual(ProgressNodes(html).states["node-J"], "Sealed research partition")
+        self.assertIn("Export manifest: <code>Not provided</code>", html)
+
+    def test_map_release_hashes_and_counts_are_html_escaped(self):
+        payload = '<script>alert("x")</script>&\''
+        for ready in (False, True):
+            with self.subTest(ready=ready):
+                release = training_release(export_ready=ready, fg_admitted=payload, fg_excluded=payload,
+                    comparison_records=payload, export_sources=payload, export_excluded=payload,
+                    admission_manifest_sha256=payload, export_manifest_sha256=payload)
+                html = progress_html(progress_summary(release))
+                self.assertNotIn(payload, html)
+                self.assertNotIn("<script>", html)
+                self.assertIn(f"Admission manifest: <code>{escape(payload)}</code>", html)
+                self.assertIn(f"Export manifest: <code>{escape(payload)}</code>", html)
+                self.assertIn(f"{escape(payload)} provisional research admissions", html)
+                self.assertIn(f"{escape(payload)} admission exclusions", html)
+                self.assertIn(f"{escape(payload)} comparison records", html)
+                self.assertIn(f"{escape(payload)} export exclusions", html)
 
 
 if __name__ == "__main__":

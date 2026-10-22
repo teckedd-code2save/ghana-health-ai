@@ -95,6 +95,7 @@ def project(handoffs, pending, assessments, originals):
 
 
 def progress_html(summary):
+    """Render D/E progress, optionally including scoped research release status."""
     d, e = summary["D"], summary["E"]
     counts = summary["decisions"]
     replaced = counts.get("replace", 0)
@@ -113,15 +114,52 @@ def progress_html(summary):
         ("I", "Final export validation", "Pending", "Check schemas, source hashes, duplicate families, cross-collection leakage, holdouts and coverage."),
         ("J", "Training dataset", "Pending", "Versioned exports, dataset cards and checksums. No training-ready seal yet."),
         ("K", "Training and evaluation", "Not started", "Evaluate meaning, naturalness, repetition, English retention and held-out tasks after admission.")]
+    summary_line = f"{replaced} replaced · {retained} retained · {d['pending_work_items']} pending · 0 training admissions"
+    release_footer = ""
+    release = summary.get("training_release")
+    if release is not None:
+        admission_state = "Complete" if release["fg_complete"] else "Pending"
+        admission_counts = (f"{release['fg_admitted']} provisional research admissions · "
+                            f"{release['fg_excluded']} admission exclusions")
+        export_counts = (f"{release['export_sources']} final eligible research sources"
+                         if release["export_ready"] else
+                         f"Final eligible research count pending ({release['export_sources']} unsealed export sources)")
+        summary_line = (f"{replaced} replaced · {retained} retained · {d['pending_work_items']} pending · "
+                        f"{admission_counts} · {export_counts} · {release['export_excluded']} export exclusions · 0 human approvals")
+        updates = {
+            "D": ("Repairable queue processed with source holds",
+                  f"{replaced} replaced, {retained} retained, {d['pending_work_items']} pending. "
+                  f"{d['cumulative_source_adjudicated_derivatives']} corrected English derivatives; original references unchanged. "
+                  "Unresolved sources remain on hold, outside the research partition."),
+            "F": (admission_state, f"{admission_counts}. Admission is provisional for noncommercial research, "
+                  "not final export eligibility. Automated evidence is not human approval."),
+            "H": ("Focused check open" if focused else "No focused E check pending",
+                  f"{focused} focused wording checks remain. Phrase confirmations do not approve whole examples; "
+                  f"confirmation remains narrow. Keep {d['pending_work_items']} unresolved D examples outside training."),
+            "G": (admission_state, f"{admission_counts}. Record evidence, scope and exact target hashes in the admission manifest. "
+                  "Keep human and automated statuses distinct; 0 human approvals."),
+            "I": ("Complete" if release["checks_complete"] else "In progress",
+                  f"{release['comparison_records']} comparison records. Validation covers schemas, source hashes, "
+                  "duplicate families, cross-collection leakage, holdouts and coverage."),
+            "J": ("Sealed research partition" if release["export_ready"] else "Pending",
+                  f"{export_counts}; {release['export_excluded']} export exclusions. "
+                  "Noncommercial research only. No training or all-four readiness claim."),
+        }
+        nodes = [(key, title, *updates.get(key, (state, detail))) for key, title, state, detail in nodes]
+        export_hash = release["export_manifest_sha256"]
+        release_footer = (
+            '<p>0 human approvals. Noncommercial research only. No training. No all-four readiness claim.</p>'
+            f'<p>Admission manifest: <code>{escape(release["admission_manifest_sha256"])}</code><br>'
+            f'Export manifest: <code>{escape(export_hash) if export_hash is not None else "Not provided"}</code></p>')
     items = "".join(f'<li id="node-{key}"><details><summary><b>{key}</b><span>{escape(title)}</span><em>{escape(state)}</em></summary><p>{escape(detail)}</p>' +
                     ('<a href="/research/corpus/?collection=responses">Open complete examples</a>' if key in ("D", "E", "H") else "") +
                     '</details></li>' for key, title, state, detail in nodes)
     return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Corpus execution map</title><link rel="stylesheet" href="/research/corpus/progress.css"></head><body><main>
 <header><a href="/research/corpus/?collection=responses">Back to corpus review</a><p>{escape(summary['as_of'])}</p><h1>Corpus execution map</h1><p>Instruction collection · {escape(summary['checkpoints'])}</p></header>
-<p class="summary">{replaced} replaced · {retained} retained · {d['pending_work_items']} pending · 0 training admissions</p>
+<p class="summary">{escape(summary_line)}</p>
 <ol>{items}</ol><p>E can return a target to D. F can request focused review at H or send an evidenced admission to G. Unresolved examples remain quarantined.</p>
 <footer><p>This is the instruction-correction queue, not certification of the entire corpus. Language learning, semantic alignment, conversations and specialised actions retain separate readiness requirements.</p>
-<p>D manifest: <code>{escape(summary['D_manifest_sha256'])}</code><br>E manifest: <code>{escape(summary['E_manifest_sha256'])}</code></p></footer></main></body></html>'''
+<p>D manifest: <code>{escape(summary['D_manifest_sha256'])}</code><br>E manifest: <code>{escape(summary['E_manifest_sha256'])}</code></p>{release_footer}</footer></main></body></html>'''
 
 
 def build(args):

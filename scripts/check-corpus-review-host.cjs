@@ -95,10 +95,10 @@ async function main() {
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
         await page.screenshot({ path: `tmp/corpus-ui-checks/https-responses-${width}.png`, fullPage: true });
         await page.goto(base + '/research/corpus/?collection=responses&offset=' + pendingOffset);
-        await page.getByRole('status').filter({ hasText: 'Correction pending' }).waitFor();
+        await page.getByRole('status').filter({ hasText: expected[pendingOffset].annotation_status }).waitFor();
         assert.equal(await page.getByRole('radio').count(), 1);
         await page.reload();
-        await page.getByRole('status').filter({ hasText: 'Correction pending' }).waitFor();
+        await page.getByRole('status').filter({ hasText: expected[pendingOffset].annotation_status }).waitFor();
         assert.equal(await page.getByLabel('Collection').inputValue(), 'responses');
         assert.ok(page.url().includes('offset=' + pendingOffset));
         const corrected = expected.findIndex(row => row.response.corrected_english);
@@ -109,6 +109,12 @@ async function main() {
         await page.screenshot({ path: `tmp/corpus-ui-checks/https-source-correction-${width}.png`, fullPage: true });
         await page.getByRole('link', { name: 'Execution map', exact: true }).click();
         await page.getByRole('heading', { name: 'Corpus execution map', exact: true }).waitFor();
+        if (process.env.CORPUS_PROGRESS_REVIEW) {
+          const progress = JSON.parse(readFileSync(process.env.CORPUS_PROGRESS_REVIEW, 'utf8')).training_release;
+          assert.ok((await page.locator('#node-F').textContent()).includes(progress.fg_admitted + ' provisional research admissions'));
+          assert.ok((await page.locator('#node-I summary').innerText()).includes(progress.checks_complete ? 'Complete' : 'In progress'));
+          assert.ok((await page.locator('#node-J summary').innerText()).includes(progress.export_ready ? 'Sealed research partition' : 'Pending'));
+        }
         await page.locator('#node-D summary').click();
         await page.locator('#node-E summary').click();
         assert.equal(await page.locator('#node-D details').getAttribute('open'), '');
