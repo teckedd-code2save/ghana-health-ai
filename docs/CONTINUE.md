@@ -1,5 +1,18 @@
 # Continue here — Ghana Health AI
 
+## 2026-10-24: Selected Instruction Queue Sealed
+
+See [the final research checkpoint](corpus-checkpoint-20261024.md).
+F/G/I/J is complete for the 699-source correction queue: 333 eligible research
+sources and 366 exclusions. All 1,520,077 comparisons completed; a cold independent
+reconstruction matched all 18 artifacts before sealing. Private backup hashes
+are verified. The authenticated execution map reflects this release.
+
+This is not four-collection readiness, 333 natural conversations or a new model
+result. No training or public-chat deployment occurred. Next is an explicitly
+weighted training mixture with separate English retention and independent
+evaluation, not blind concatenation of the five task partitions.
+
 ## 2026-08-28 understanding research checkpoint
 
 Current checkpoint:
