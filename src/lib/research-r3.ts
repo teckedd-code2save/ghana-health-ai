@@ -59,7 +59,7 @@ export async function verifiedR3Config(): Promise<R3Config | null> {
   const config = r3Config();
   if (!config) return null;
   try {
-    const response = await fetch(endpoint(config, "/health"), { cache: "no-store", redirect: "error", signal: AbortSignal.timeout(4000),
+    const response = await fetch(endpoint(config, "/health"), { cache: "no-store", redirect: "error", signal: AbortSignal.timeout(20000),
       headers: { Authorization: `Bearer ${config.token}` } });
     if (!response.ok) return null;
     const health = await response.json();

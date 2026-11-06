@@ -46,22 +46,34 @@ test("R3 explicit mode preserves Stable default and R1 modes", () => {
   assert.equal(isResearchModelMode("shadow"), false);
   assert.match(readFileSync("src/lib/understanding-model-store.ts", "utf8"), /return "shadow"/);
 });
-test("config fails closed without approval, final pins, token and matching CPU health", async t => {
+test("config allows 20s for cold health and fails closed without approval, identity or authentication", async t => {
   const keys = ["ENABLED", "URL", "TOKEN", "MANIFEST_SHA256", "ADAPTER_SHA256"].map(k => `RESEARCH_R3_${k}`);
   const before = keys.map(k => process.env[k]);
   t.after(() => keys.forEach((k, i) => before[i] === undefined ? delete process.env[k] : process.env[k] = before[i]));
   for (const k of keys) delete process.env[k];
-  let calls = 0, status = 200;
+  let calls = 0, status = 200, timedOut = false;
+  const deadlineSignal = new AbortController().signal;
+  t.mock.method(AbortSignal, "timeout", (milliseconds: number) => {
+    assert.equal(milliseconds, 20000);
+    return deadlineSignal;
+  });
   t.mock.method(globalThis, "fetch", async (url: RequestInfo | URL, init?: RequestInit) => {
     calls++; assert.equal(String(url), "https://fixture.modal.run/health");
     assert.equal((init?.headers as Record<string, string>).Authorization, `Bearer ${config.token}`);
     assert.equal(init?.redirect, "error");
+    assert.equal(init?.signal, deadlineSignal);
+    if (timedOut) throw new DOMException("Synthetic health timeout", "TimeoutError");
     return Response.json(health, { status });
   });
   assert.equal(await verifiedR3Config(), null); assert.equal(calls, 0);
   Object.assign(process.env, { RESEARCH_R3_ENABLED: "true", RESEARCH_R3_URL: config.url.href, RESEARCH_R3_TOKEN: config.token,
     RESEARCH_R3_MANIFEST_SHA256: identity.manifest_sha256, RESEARCH_R3_ADAPTER_SHA256: identity.adapter_weights_sha256 });
   assert.deepEqual((await verifiedR3Config())?.identity, identity);
+  timedOut = true;
+  const beforeTimeout = calls;
+  assert.equal(await verifiedR3Config(), null);
+  assert.equal(calls, beforeTimeout + 1, "No automatic retry on health timeout");
+  timedOut = false;
   status = 401; assert.equal(await verifiedR3Config(), null); status = 200;
   process.env.RESEARCH_R3_ADAPTER_SHA256 = "f".repeat(64);
   assert.equal(await verifiedR3Config(), null);
