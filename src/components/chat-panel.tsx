@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Mic, Send } from "lucide-react";
+import { Mic, Send, Volume2, VolumeX } from "lucide-react";
 import { UnderstandingDetails, type UnderstandingDetailsData } from "@/components/understanding-details";
 import { ResearchReplyFeedback } from "@/components/research-reply-feedback";
 import { useLang } from "@/components/lang-provider";
@@ -140,6 +140,8 @@ export function ChatPanel() {
   const [voicePending, setVoicePending] = useState(false);
   const [recording, setRecording] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [voiceOutput, setVoiceOutput] = useState(false);
+  const voiceOutputRef = useRef(false);
   const [threadScrolled, setThreadScrolled] = useState(false);
   const [level, setLevel] = useState(0);
   const [vadState, setVadState] = useState<string | null>(null);
@@ -234,6 +236,7 @@ export function ChatPanel() {
   }
 
   function playTts(b64: string) {
+    if (!voiceOutputRef.current) return;
     audioRef.current?.pause();
     if (audioSafetyTimerRef.current) window.clearTimeout(audioSafetyTimerRef.current);
     const audio = new Audio(`data:audio/wav;base64,${b64}`);
@@ -280,7 +283,7 @@ export function ChatPanel() {
       const res = await fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...payload, speak: true }),
+        body: JSON.stringify({ ...payload, speak: voiceOutputRef.current }),
       });
       if (!res.ok) {
         const error = await res.json().catch(() => null);
@@ -401,7 +404,7 @@ export function ChatPanel() {
       form.append("understandingModelMode", understandingModelMode);
 
       if (conversationId) form.append("conversationId", conversationId);
-      form.append("speak", "true");
+      form.append("speak", String(voiceOutputRef.current));
 
       const res = await fetch("/api/voice/converse/stream", { method: "POST", body: form });
       if (!res.ok) {
@@ -604,6 +607,17 @@ export function ChatPanel() {
               </label>
             </div>
             <div className="flex shrink-0 items-center gap-1">
+              <button type="button" className="icon-action" aria-pressed={voiceOutput}
+                aria-label={voiceOutput ? "Turn off spoken responses" : "Turn on spoken responses"}
+                title={voiceOutput ? "Spoken responses on" : "Spoken responses off"}
+                onClick={() => {
+                  const next = !voiceOutputRef.current;
+                  voiceOutputRef.current = next;
+                  setVoiceOutput(next);
+                  if (!next) { audioRef.current?.pause(); setSpeaking(false); setVoicePending(false); }
+                }}>
+                {voiceOutput ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              </button>
               <button
                 type="button"
                 disabled={loading || voicePending || speaking || researchUnavailable}

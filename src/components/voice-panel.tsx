@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Mic, Pencil, Send, ShoppingCart, Volume2, X } from "lucide-react";
+import { Check, Mic, Pencil, Send, ShoppingCart, Volume2, VolumeX, X } from "lucide-react";
 import { UnderstandingDetails, type UnderstandingDetailsData } from "@/components/understanding-details";
 import { ResearchReplyFeedback } from "@/components/research-reply-feedback";
 import { useLang } from "@/components/lang-provider";
@@ -225,6 +225,8 @@ export function VoicePanel() {
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [voiceOutput, setVoiceOutput] = useState(false);
+  const voiceOutputRef = useRef(false);
   const [level, setLevel] = useState(0);
   const [, setVadState] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | undefined>();
@@ -489,7 +491,7 @@ export function VoicePanel() {
       const form = new FormData();
       form.append("audio", blob, "utterance.webm");
       form.append("language", lang);
-      form.append("speak", "true");
+      form.append("speak", String(voiceOutputRef.current));
       form.append("focus", focus);
       form.append("instruction", focusInstruction(focus));
       form.append("understandingModelMode", understandingModelMode);
@@ -566,7 +568,7 @@ export function VoicePanel() {
       setCommerceExecution(data.understanding?.commerceExecution ?? null);
       if (data.tts?.audioBase64) {
         setTtsB64(data.tts.audioBase64);
-        playWav(data.tts.audioBase64);
+        if (voiceOutputRef.current) playWav(data.tts.audioBase64);
       }
     } catch (e) {
       if (researchSelected && assistantDraftId) {
@@ -608,7 +610,7 @@ export function VoicePanel() {
           message: text,
           conversationId,
           language: lang,
-          speak: true,
+          speak: voiceOutputRef.current,
           understandingModelMode,
         }),
       });
@@ -648,7 +650,7 @@ export function VoicePanel() {
       }, localAssistantId));
       if (data.tts?.audioBase64) {
         setTtsB64(data.tts.audioBase64);
-        playWav(data.tts.audioBase64);
+        if (voiceOutputRef.current) playWav(data.tts.audioBase64);
       }
     } catch (error) {
       if (researchSelected) {
@@ -789,6 +791,17 @@ export function VoicePanel() {
           placeholder={lang === "en" ? "Type or speak…" : "Twerɛ anaa kasa…"}
           disabled={busy || recording}
         />
+        <button type="button" className="icon-action" aria-pressed={voiceOutput}
+          aria-label={voiceOutput ? "Turn off spoken responses" : "Turn on spoken responses"}
+          title={voiceOutput ? "Spoken responses on" : "Spoken responses off"}
+          onClick={() => {
+            const next = !voiceOutputRef.current;
+            voiceOutputRef.current = next;
+            setVoiceOutput(next);
+            if (!next) stopPlayback();
+          }}>
+          {voiceOutput ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+        </button>
         <button type="submit" className="icon-action" disabled={!input.trim() || busy || recording || researchUnavailable} aria-label="Send message">
           <Send className="h-4 w-4" />
         </button>

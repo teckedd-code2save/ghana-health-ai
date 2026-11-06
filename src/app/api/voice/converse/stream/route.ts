@@ -140,7 +140,7 @@ export async function POST(req: Request) {
               ? (lang as LanguageCode)
               : user?.preferredLang ?? "tw";
           const conversationId = typeof cid === "string" && cid ? cid : undefined;
-          const speak = !(sp === "false" || sp === "0");
+          const speak = sp === "true" || sp === "1";
           const focus =
             focusValue === "commerce" || focusValue === "health" ? focusValue : undefined;
           const instruction =
