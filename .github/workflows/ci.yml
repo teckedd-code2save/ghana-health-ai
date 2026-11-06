@@ -40,6 +40,9 @@ jobs:
       - name: Type-check
         run: pnpm exec tsc --noEmit
 
+      - name: Research application contracts
+        run: pnpm run test:research
+
       - name: Build
         env:
           NEXT_TELEMETRY_DISABLED: "1"

@@ -36,7 +36,8 @@ function cleanUrl(value: string | undefined) {
   return value?.replace(/\/$/, "") || "";
 }
 
-export type UnderstandingModelMode = "shadow" | "assist" | "assist_v1";
+import type { UnderstandingModelMode } from "@/lib/model-modes";
+export type { UnderstandingModelMode } from "@/lib/model-modes";
 
 function urlForMode(mode: UnderstandingModelMode) {
   if (mode === "assist_v1") {

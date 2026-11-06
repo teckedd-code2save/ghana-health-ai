@@ -20,8 +20,10 @@ import {
 } from "@/lib/understanding-model";
 import type { LanguageCode } from "@prisma/client";
 import { z } from "zod";
+import type { ResearchMetadata } from "@/lib/model-modes";
 
 export type UnderstandResult = {
+  research?: ResearchMetadata;
   reply: string;
   intent: "HEALTH" | "ECOMMERCE" | "GENERAL" | "UNKNOWN";
   severity: "LOW" | "MEDIUM" | "HIGH" | "EMERGENCY";

@@ -7,6 +7,9 @@ import { writeAudit } from "@/lib/audit";
 import { getAgentMemory, memoryPrompt, rememberFromTurn } from "@/lib/agent-memory";
 import { executeCommercePlan, type CommerceExecutionResult } from "@/lib/commerce-execute";
 import type { UnderstandingModelMode } from "@/lib/understanding-model";
+import { isResearchR1Mode } from "@/lib/model-modes";
+import { runResearchR1Turn } from "@/lib/research-r1-turn";
+import { runResearchR3Turn } from "@/lib/research-r3-turn";
 
 type SessionUser = {
   id: string;
@@ -36,6 +39,7 @@ export type ConversationTurnInput = {
   channel: ConversationChannel;
   speak?: boolean;
   understandingModelMode?: UnderstandingModelMode;
+  signal?: AbortSignal;
   transcript?: TurnTranscriptMeta;
   onStage?: (stage: {
     name:
@@ -82,6 +86,8 @@ export type ConversationTurnResult = {
 export async function runConversationTurn(
   input: ConversationTurnInput,
 ): Promise<ConversationTurnResult> {
+  if (isResearchR1Mode(input.understandingModelMode)) return runResearchR1Turn(input, input.understandingModelMode);
+  if (input.understandingModelMode === "r3_response") return runResearchR3Turn(input);
   const startedAt = Date.now();
   const language = input.language ?? input.user?.preferredLang ?? "tw";
   const text = input.text.trim();

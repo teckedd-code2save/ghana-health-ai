@@ -5,6 +5,7 @@ import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { runConversationTurn } from "@/lib/conversation-turn";
 import type { LanguageCode } from "@prisma/client";
 import { publicFailure, unclearRecording } from "@/lib/public-errors";
+import { isModelMode } from "@/lib/model-modes";
 
 function languageFromAsr(
   asr: Awaited<ReturnType<typeof modalTranscribe>>,
@@ -53,6 +54,7 @@ function publicVoicePayload(input: {
       route: asr.route?.name,
     },
     understanding: {
+      research: turn.understanding.research ?? null,
       reply: turn.reply,
       intent: turn.understanding.intent,
       severity: turn.understanding.severity,
@@ -147,12 +149,7 @@ export async function POST(req: Request) {
             typeof asrModelValue === "string" && asrModelValue
               ? asrModelValue
               : undefined;
-          const understandingModelMode =
-            understandingModelValue === "shadow" ||
-            understandingModelValue === "assist" ||
-            understandingModelValue === "assist_v1"
-              ? understandingModelValue
-              : undefined;
+          const understandingModelMode = isModelMode(understandingModelValue) ? understandingModelValue : undefined;
 
           if (!(file instanceof Blob)) {
             send("error", { error: "Audio required for real conversation", status: 400 });
@@ -197,6 +194,7 @@ export async function POST(req: Request) {
           const replyLanguage = languageFromAsr(asr, language);
 
           const turn = await runConversationTurn({
+            signal: req.signal,
             user,
             ip,
             text: asr.text,

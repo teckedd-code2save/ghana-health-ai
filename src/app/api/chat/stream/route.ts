@@ -3,13 +3,14 @@ import { getSessionUser } from "@/lib/auth";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { runConversationTurn } from "@/lib/conversation-turn";
 import { publicFailure } from "@/lib/public-errors";
+import { MODEL_MODES } from "@/lib/model-modes";
 
 const schema = z.object({
   message: z.string().min(1).max(4000),
   conversationId: z.string().uuid().optional(),
   language: z.enum(["tw", "en", "ga"]).optional(),
   speak: z.boolean().optional(),
-  understandingModelMode: z.enum(["shadow", "assist", "assist_v1"]).optional(),
+  understandingModelMode: z.enum(MODEL_MODES).optional(),
 });
 
 function streamHeaders() {
@@ -34,6 +35,7 @@ function publicTurnPayload(turn: Awaited<ReturnType<typeof runConversationTurn>>
       intent: turn.understanding.intent,
       latencyMs: turn.stage.totalLatencyMs,
       metadata: {
+        research: turn.understanding.research ?? null,
         intent: turn.understanding.intent,
         severity: turn.understanding.severity,
         escalate: turn.understanding.escalate,
@@ -49,6 +51,7 @@ function publicTurnPayload(turn: Awaited<ReturnType<typeof runConversationTurn>>
       },
     },
     understanding: {
+      research: turn.understanding.research ?? null,
       intent: turn.understanding.intent,
       severity: turn.understanding.severity,
       escalate: turn.understanding.escalate,
@@ -88,6 +91,7 @@ export async function POST(req: Request) {
 
           send("stage", { name: "accepted", at: Date.now() });
           const turn = await runConversationTurn({
+            signal: req.signal,
             user,
             ip,
             text: body.message,

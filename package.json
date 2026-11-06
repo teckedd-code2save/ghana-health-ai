@@ -7,6 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start -p 3000",
     "lint": "eslint . --max-warnings 50",
+    "test:research": "node --import tsx --test scripts/test-research-config.ts scripts/test-research-r1.ts scripts/test-research-r1-turn.ts scripts/test-research-r3.ts scripts/test-research-r3-turn.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",

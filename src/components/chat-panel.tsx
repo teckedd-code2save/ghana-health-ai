@@ -3,20 +3,26 @@
 import { useEffect, useRef, useState } from "react";
 import { Mic, Send } from "lucide-react";
 import { UnderstandingDetails, type UnderstandingDetailsData } from "@/components/understanding-details";
+import { ResearchReplyFeedback } from "@/components/research-reply-feedback";
 import { useLang } from "@/components/lang-provider";
 import { useAsrModel } from "@/lib/asr-model-store";
 import { useUnderstandingModelMode } from "@/lib/understanding-model-store";
+import { isResearchModelMode } from "@/lib/model-modes";
+import { useR3Available } from "@/lib/research-availability";
 import { enqueueOffline } from "@/lib/offline-queue";
 import { recordUntilSilence } from "@/lib/browser-audio";
 import { VoiceOrb, modeLabel, type OrbMode } from "@/components/voice-orb";
 import {
   CONVERSATION_EVENT,
   registerConversation,
+  startNewConversation,
   type ConversationChange,
 } from "@/lib/conversation-store";
 
 type ChatMessage = {
   understanding?: UnderstandingDetailsData;
+  persistedId?: string;
+  streamState?: "pending" | "failed";
   id: string;
   role: "USER" | "ASSISTANT" | "SYSTEM" | "local-user" | "local-assistant";
   content: string;
@@ -55,6 +61,7 @@ type ChatTurnData = {
   message?: {
     id?: string;
     content?: string;
+    metadata?: UnderstandingDetailsData;
   };
   understanding?: UnderstandingDetailsData & {
     reply?: string;
@@ -142,6 +149,11 @@ export function ChatPanel() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioSafetyTimerRef = useRef<number | null>(null);
   const recordAbortRef = useRef<AbortController | null>(null);
+  const historyVersionRef = useRef(0);
+  const researchSelected = isResearchModelMode(understandingModelMode);
+  const r3Available = useR3Available();
+  const researchUnavailable = understandingModelMode === "r3_response" && !r3Available;
+  const modelSwitchDisabled = loading || voicePending || recording || speaking;
 
   const orbMode: OrbMode = recording
     ? "listening"
@@ -160,6 +172,7 @@ export function ChatPanel() {
 
   useEffect(() => {
     let cancelled = false;
+    const historyVersion = historyVersionRef.current;
     const storedConversationId = window.localStorage.getItem("gha:active-conversation");
     if (!storedConversationId) return;
 
@@ -170,7 +183,7 @@ export function ChatPanel() {
         return data.messages as StoredMessage[];
       })
       .then((storedMessages) => {
-        if (cancelled) return;
+        if (cancelled || historyVersion !== historyVersionRef.current) return;
         setConversationId(storedConversationId);
         registerConversation(storedConversationId);
         setMessages(
@@ -178,6 +191,7 @@ export function ChatPanel() {
             .filter((message) => message.role === "USER" || message.role === "ASSISTANT")
             .map((message) => ({
               id: message.id,
+              persistedId: message.id,
               role: message.role,
               content: message.content,
               understanding: message.metadata,
@@ -185,7 +199,7 @@ export function ChatPanel() {
         );
       })
       .catch(() => {
-        if (!cancelled) window.localStorage.removeItem("gha:active-conversation");
+        if (!cancelled && historyVersion === historyVersionRef.current) window.localStorage.removeItem("gha:active-conversation");
       });
 
     return () => {
@@ -197,12 +211,14 @@ export function ChatPanel() {
     const onConversationChange = (event: Event) => {
       const detail = (event as CustomEvent<ConversationChange>).detail;
       if (detail?.type === "new") {
+        historyVersionRef.current += 1;
         setConversationId(undefined);
         setMessages([]);
         setInput("");
       }
       if (detail?.type === "select") window.location.reload();
       if (detail?.type === "delete" && detail.conversationId === conversationId) {
+        historyVersionRef.current += 1;
         setConversationId(undefined);
         setMessages([]);
       }
@@ -210,6 +226,12 @@ export function ChatPanel() {
     window.addEventListener(CONVERSATION_EVENT, onConversationChange);
     return () => window.removeEventListener(CONVERSATION_EVENT, onConversationChange);
   }, [conversationId]);
+
+  function selectUnderstandingModel(next: typeof understandingModelMode) {
+    if (next === understandingModelMode || modelSwitchDisabled) return;
+    startNewConversation();
+    changeUnderstandingModelMode(next);
+  }
 
   function playTts(b64: string) {
     audioRef.current?.pause();
@@ -230,7 +252,7 @@ export function ChatPanel() {
 
   async function send(text: string) {
     const trimmed = text.trim();
-    if (!trimmed || loading || recording) return;
+    if (!trimmed || loading || voicePending || recording || researchUnavailable) return;
     setInput("");
     setMessages((m) => [
       ...m.filter((x) => x.phase !== "status"),
@@ -239,8 +261,10 @@ export function ChatPanel() {
     setLoading(true);
     setVoicePending(false);
     const payload = { message: trimmed, conversationId, language: lang, understandingModelMode };
+    let assistantDraftId: string | undefined;
     try {
       if (!navigator.onLine) {
+        if (researchSelected) throw new Error("Research preview needs an internet connection. Please try again when connected.");
         enqueueOffline("chat", payload);
         setMessages((m) => [
           ...m,
@@ -258,8 +282,12 @@ export function ChatPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...payload, speak: true }),
       });
-      if (!res.ok) throw new Error("Couldn’t start live turn");
-      const assistantDraftId = crypto.randomUUID();
+      if (!res.ok) {
+        const error = await res.json().catch(() => null);
+        throw new Error(researchSelected && typeof error?.error === "string" ? error.error : "Couldn’t start live turn");
+      }
+      assistantDraftId = crypto.randomUUID();
+      const draftId = assistantDraftId;
       const data = await readChatStream(res, (stage) => {
           if (stage.name === "tts" && stage.detail === "started") {
             setLoading(false);
@@ -267,10 +295,10 @@ export function ChatPanel() {
           }
       }, (chunk) => {
         setMessages((m) => {
-          const existing = m.find((msg) => msg.id === assistantDraftId);
+          const existing = m.find((msg) => msg.id === draftId);
           if (existing) {
             return m.map((msg) =>
-              msg.id === assistantDraftId
+              msg.id === draftId
                 ? { ...msg, content: `${msg.content}${chunk}` }
                 : msg,
             );
@@ -278,9 +306,10 @@ export function ChatPanel() {
           return [
             ...m,
             {
-              id: assistantDraftId,
+              id: draftId,
               role: "ASSISTANT",
               content: chunk,
+              streamState: researchSelected ? "pending" : undefined,
             },
           ];
         });
@@ -293,9 +322,10 @@ export function ChatPanel() {
       setMessages((m) => {
         const finalMessage: ChatMessage = {
           id: messageId,
+          persistedId: data.message?.id,
           role: "ASSISTANT",
           content: messageContent,
-          understanding: data.understanding,
+          understanding: { ...data.message?.metadata, ...data.understanding, research: data.understanding?.research ?? data.message?.metadata?.research },
           meta: {
             intent: data.understanding?.intent,
             engine: data.understanding?.engine,
@@ -314,9 +344,10 @@ export function ChatPanel() {
       if (data.tts?.audioBase64) playTts(data.tts.audioBase64);
       setVoicePending(false);
     } catch (e) {
-      enqueueOffline("chat", payload);
+      if (!researchSelected) enqueueOffline("chat", payload);
       setMessages((m) => [
-        ...m,
+        ...m.map((message): ChatMessage => researchSelected && message.id === assistantDraftId
+          ? { ...message, phase: "error", streamState: "failed" } : message),
         {
           id: crypto.randomUUID(),
           role: "local-assistant",
@@ -331,12 +362,13 @@ export function ChatPanel() {
   }
 
   async function startMic() {
-    if (loading || voicePending || speaking) return;
+    if (loading || voicePending || speaking || researchUnavailable) return;
     setRecording(true);
     setVoicePending(false);
     setVadState("listening");
     const aborter = new AbortController();
     recordAbortRef.current = aborter;
+    let assistantDraftId: string | undefined;
     try {
       const { blob, durationMs, peakLevel, speechDetected } = await recordUntilSilence({
         silenceMs: 1100,
@@ -372,10 +404,14 @@ export function ChatPanel() {
       form.append("speak", "true");
 
       const res = await fetch("/api/voice/converse/stream", { method: "POST", body: form });
-      if (!res.ok) throw new Error("Couldn’t start voice turn");
+      if (!res.ok) {
+        const error = await res.json().catch(() => null);
+        throw new Error(researchSelected && typeof error?.error === "string" ? error.error : "Couldn’t start voice turn");
+      }
 
       const localUserId = crypto.randomUUID();
       const localAssistantId = crypto.randomUUID();
+      assistantDraftId = localAssistantId;
       let streamedTranscript = "";
       let streamedReply = "";
       const data = await readChatStream(
@@ -385,10 +421,11 @@ export function ChatPanel() {
           streamedReply += chunk;
           setMessages((current) => {
             const existing = current.some((message) => message.id === localAssistantId);
-            const assistant = {
+            const assistant: ChatMessage = {
               id: localAssistantId,
               role: "ASSISTANT" as const,
               content: streamedReply,
+              streamState: researchSelected ? "pending" : undefined,
             };
             return existing
               ? current.map((message) => message.id === localAssistantId ? assistant : message)
@@ -417,9 +454,10 @@ export function ChatPanel() {
         };
         const finalAssistant: ChatMessage = {
           id: data.message?.id ?? localAssistantId,
+          persistedId: data.message?.id,
           role: "ASSISTANT",
           content: data.message?.content ?? data.understanding?.reply ?? streamedReply,
-          understanding: data.understanding,
+          understanding: { ...data.message?.metadata, ...data.understanding, research: data.understanding?.research ?? data.message?.metadata?.research },
           meta: {
             intent: data.understanding?.intent,
             engine: data.understanding?.engine,
@@ -439,7 +477,8 @@ export function ChatPanel() {
       if (data.tts?.audioBase64) playTts(data.tts.audioBase64);
     } catch (e) {
       setMessages((m) => [
-        ...m,
+        ...m.map((message): ChatMessage => researchSelected && message.id === assistantDraftId
+          ? { ...message, phase: "error", streamState: "failed" } : message),
         {
           id: crypto.randomUUID(),
           role: "local-assistant",
@@ -501,7 +540,12 @@ export function ChatPanel() {
                 >
                   {m.content}
                 </div>
+                {m.streamState === "pending" && <p className="mt-1 text-xs opacity-70">Receiving research reply...</p>}
+                {m.streamState === "failed" && <p className="mt-1 text-xs font-semibold" role="alert">Incomplete, unverified reply</p>}
                 {!isUser && <UnderstandingDetails data={m.understanding} />}
+                {m.role === "ASSISTANT" && m.understanding?.research && m.persistedId && conversationId && (
+                  <ResearchReplyFeedback key={`${conversationId}:${m.persistedId}`} conversationId={conversationId} messageId={m.persistedId} />
+                )}
                 </div>
               </div>
             );
@@ -530,52 +574,62 @@ export function ChatPanel() {
             className="chat-composer__input"
             disabled={recording}
           />
-          <div className="chat-composer__actions">
-            <label className="voice-model-picker voice-model-picker--compact" aria-label="Speech model">
-              <span>Voice</span>
-              <select value={asrModel} onChange={(event) => changeAsrModel(event.target.value as typeof asrModel)}>
-                <option value="dondo">DONDO</option>
-                <option value="v6">v6</option>
-              </select>
-            </label>
-            <label className="voice-model-picker voice-model-picker--compact" aria-label="Understanding model mode">
-              <span>Mind</span>
-              <select
-                value={understandingModelMode}
-                onChange={(event) =>
-                  changeUnderstandingModelMode(event.target.value as typeof understandingModelMode)
-                }
+          <div className="chat-composer__actions" style={{ alignItems: "flex-end" }}>
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+              <label className="voice-model-picker voice-model-picker--compact" aria-label="Speech model">
+                <span>Voice</span>
+                <select value={asrModel} onChange={(event) => changeAsrModel(event.target.value as typeof asrModel)}>
+                  <option value="dondo">DONDO</option>
+                  <option value="v6">v6</option>
+                </select>
+              </label>
+              <label className="voice-model-picker voice-model-picker--compact" style={{ maxWidth: "100%", minWidth: 0 }} aria-label="Understanding model mode">
+                <span>Mind</span>
+                <select
+                  value={understandingModelMode}
+                  disabled={modelSwitchDisabled}
+                  style={{ minWidth: 0, maxWidth: "100%" }}
+                  onChange={(event) =>
+                    selectUnderstandingModel(event.target.value as typeof understandingModelMode)
+                  }
+                >
+                  <option value="shadow">Stable</option>
+                  {(r3Available || understandingModelMode === "r3_response") && <option value="r3_response" disabled={!r3Available}>{r3Available ? "R3 Response (research)" : "R3 unavailable"}</option>}
+                  <option value="r1_meaning">R1 Meaning (research)</option>
+                  <option value="r1_response">R1 Response (research)</option>
+                  <option value="r1_base">R1 Base (control)</option>
+                  <option value="assist">Legacy v0 (hint)</option>
+                  <option value="assist_v1">Legacy v1 (hint)</option>
+                </select>
+              </label>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                disabled={loading || voicePending || speaking || researchUnavailable}
+                className={recording ? "icon-action chat-mic-action chat-mic-action--live" : "icon-action chat-mic-action"}
+                aria-label="Record voice"
+                onClick={() => {
+                  if (recording) {
+                    recordAbortRef.current?.abort();
+                    return;
+                  }
+                  void startMic();
+                }}
               >
-                <option value="shadow">Stable</option>
-                <option value="assist">Research v0</option>
-                <option value="assist_v1">Research v1</option>
-              </select>
-            </label>
-            <span className="chat-composer__spacer" />
-            <button
-              type="button"
-              disabled={loading || voicePending || speaking}
-              className={recording ? "icon-action chat-mic-action chat-mic-action--live" : "icon-action chat-mic-action"}
-              aria-label="Record voice"
-              onClick={() => {
-                if (recording) {
-                  recordAbortRef.current?.abort();
-                  return;
-                }
-                void startMic();
-              }}
-            >
-              <Mic className="h-4 w-4" />
-            </button>
-            <button
-              type="submit"
-              disabled={loading || recording || !input.trim()}
-              className="icon-action chat-send-action"
-              aria-label="Send"
-            >
-              <Send className="h-4 w-4" />
-            </button>
+                <Mic className="h-4 w-4" />
+              </button>
+              <button
+                type="submit"
+                disabled={loading || voicePending || recording || !input.trim() || researchUnavailable}
+                className="icon-action chat-send-action"
+                aria-label="Send"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
           </div>
+          {understandingModelMode !== "shadow" && <p className="px-1 pt-1 text-xs opacity-70">{researchUnavailable ? "R3 unavailable. No other model will be used. " : "Research preview. Not medical advice. "}<a className="underline" href="/research/corpus/evaluations" target="_blank" rel="noreferrer">Evaluation evidence (private lab)</a></p>}
         </div>
       </form>
     </div>

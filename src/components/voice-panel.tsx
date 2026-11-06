@@ -3,14 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Mic, Pencil, Send, ShoppingCart, Volume2, X } from "lucide-react";
 import { UnderstandingDetails, type UnderstandingDetailsData } from "@/components/understanding-details";
+import { ResearchReplyFeedback } from "@/components/research-reply-feedback";
 import { useLang } from "@/components/lang-provider";
 import { useAsrModel } from "@/lib/asr-model-store";
 import { useUnderstandingModelMode } from "@/lib/understanding-model-store";
+import { isResearchModelMode } from "@/lib/model-modes";
+import { useR3Available } from "@/lib/research-availability";
 import { recordUntilSilence } from "@/lib/browser-audio";
 import { VoiceOrb, type OrbMode } from "@/components/voice-orb";
 import {
   CONVERSATION_EVENT,
   registerConversation,
+  startNewConversation,
   type ConversationChange,
 } from "@/lib/conversation-store";
 
@@ -25,7 +29,7 @@ type VoiceTurnData = {
     synthesis?: { mode?: "live_model" | "degraded_fallback"; model?: string };
   };
   userMessage?: { id?: string; content?: string };
-  message?: { id?: string; content?: string };
+  message?: { id?: string; content?: string; metadata?: UnderstandingDetailsData };
   tts?: { audioBase64?: string } | null;
   error?: string;
 };
@@ -66,6 +70,8 @@ type StoredMessage = {
 
 type VoiceMessage = {
   understanding?: UnderstandingDetailsData;
+  persistedId?: string;
+  streamState?: "pending" | "failed";
   id: string;
   role: "USER" | "ASSISTANT";
   content: string;
@@ -250,7 +256,12 @@ export function VoicePanel() {
   const recordingRef = useRef(false);
   const speakingRef = useRef(false);
   const listenRef = useRef<() => void>(() => undefined);
+  const historyVersionRef = useRef(0);
   const homeSessionKey = `gha:home-voice:${focus}:${lang}`;
+  const researchSelected = isResearchModelMode(understandingModelMode);
+  const r3Available = useR3Available();
+  const researchUnavailable = understandingModelMode === "r3_response" && !r3Available;
+  const modelSwitchDisabled = busy || recording || speaking || confirmingCommerce;
 
   const orbMode: OrbMode = recording
     ? "listening"
@@ -274,10 +285,11 @@ export function VoicePanel() {
 
   useEffect(() => {
     let cancelled = false;
+    const historyVersion = historyVersionRef.current;
     const hydrate = async () => {
       const storedConversationId = window.localStorage.getItem(homeSessionKey);
       await Promise.resolve();
-      if (cancelled) return;
+      if (cancelled || historyVersion !== historyVersionRef.current) return;
       setConversationId(storedConversationId ?? undefined);
       setHeard(null);
       setReply(null);
@@ -299,14 +311,14 @@ export function VoicePanel() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Could not load session");
         const messages = data.messages as StoredMessage[];
-        if (cancelled) return;
+        if (cancelled || historyVersion !== historyVersionRef.current) return;
         registerConversation(storedConversationId);
         const lastUser = [...messages].reverse().find((message) => message.role === "USER");
         const lastAssistant = [...messages].reverse().find((message) => message.role === "ASSISTANT");
         setMessages(
           messages.flatMap((message) =>
             message.role === "USER" || message.role === "ASSISTANT"
-              ? [{ id: message.id, role: message.role, content: message.content, understanding: message.metadata }]
+              ? [{ id: message.id, persistedId: message.id, role: message.role, content: message.content, understanding: message.metadata }]
               : [],
           ),
         );
@@ -315,7 +327,7 @@ export function VoicePanel() {
         setUserMessageId(lastUser?.id);
         setReply(lastAssistant?.content ?? null);
       } catch {
-        if (cancelled) return;
+        if (cancelled || historyVersion !== historyVersionRef.current) return;
         window.localStorage.removeItem(homeSessionKey);
         setConversationId(undefined);
         setMessages([]);
@@ -333,16 +345,34 @@ export function VoicePanel() {
     const onConversationChange = (event: Event) => {
       const detail = (event as CustomEvent<ConversationChange>).detail;
       if (detail?.type === "new" || (detail?.type === "delete" && detail.conversationId === conversationId)) {
+        historyVersionRef.current += 1;
         setConversationId(undefined);
         setMessages([]);
         setHeard(null);
         setReply(null);
         setStatus(null);
+        setInput("");
+        setTtsB64(null);
+        setUserMessageId(undefined);
+        setCorrectionOpen(false);
+        setCorrectionText("");
+        setShareAudioConsent(false);
+        setFeedbackStatus(null);
+        setFeedbackSent(false);
+        setCommerceExecution(null);
+        setCommerceStatus(null);
+        lastAudioBlobRef.current = null;
       }
     };
     window.addEventListener(CONVERSATION_EVENT, onConversationChange);
     return () => window.removeEventListener(CONVERSATION_EVENT, onConversationChange);
   }, [conversationId]);
+
+  function selectUnderstandingModel(next: typeof understandingModelMode) {
+    if (next === understandingModelMode || modelSwitchDisabled) return;
+    startNewConversation();
+    changeUnderstandingModelMode(next);
+  }
 
   function stopPlaybackMeter() {
     if (playbackFrameRef.current != null) {
@@ -414,7 +444,7 @@ export function VoicePanel() {
   }
 
   async function listenAndRespond() {
-    if (busyRef.current || speakingRef.current || recordingRef.current) return;
+    if (busyRef.current || speakingRef.current || recordingRef.current || researchUnavailable) return;
     setStatus(null);
     setHeard(null);
     setReply(null);
@@ -432,6 +462,7 @@ export function VoicePanel() {
 
     const aborter = new AbortController();
     recordAbortRef.current = aborter;
+    let assistantDraftId: string | undefined;
 
     try {
       const { blob, durationMs, peakLevel, speechDetected } = await recordUntilSilence({
@@ -466,11 +497,15 @@ export function VoicePanel() {
       if (conversationId) form.append("conversationId", conversationId);
 
       const res = await fetch("/api/voice/converse/stream", { method: "POST", body: form });
-      if (!res.ok) throw new Error("Couldn’t start voice turn");
+      if (!res.ok) {
+        const error = await res.json().catch(() => null);
+        throw new Error(researchSelected && typeof error?.error === "string" ? error.error : "Couldn’t start voice turn");
+      }
 
       let streamedReply = "";
       const localUserId = crypto.randomUUID();
       const localAssistantId = crypto.randomUUID();
+      assistantDraftId = localAssistantId;
       const data = await readVoiceStream(
         res,
         (text) => {
@@ -487,6 +522,7 @@ export function VoicePanel() {
               id: localAssistantId,
               role: "ASSISTANT",
               content: streamedReply,
+              streamState: researchSelected ? "pending" : undefined,
             }),
           );
         },
@@ -515,7 +551,13 @@ export function VoicePanel() {
         if (finalReply.trim()) {
           next = upsertVoiceMessage(
             next,
-            { id: data.message?.id ?? localAssistantId, role: "ASSISTANT", content: finalReply, understanding: data.understanding },
+            {
+              id: data.message?.id ?? localAssistantId,
+              persistedId: data.message?.id,
+              role: "ASSISTANT",
+              content: finalReply,
+              understanding: { ...data.message?.metadata, ...data.understanding, research: data.understanding?.research ?? data.message?.metadata?.research },
+            },
             localAssistantId,
           );
         }
@@ -527,6 +569,10 @@ export function VoicePanel() {
         playWav(data.tts.audioBase64);
       }
     } catch (e) {
+      if (researchSelected && assistantDraftId) {
+        setMessages((current) => current.map((message) => message.id === assistantDraftId
+          ? { ...message, streamState: "failed" } : message));
+      }
       setStatus(friendlyVoiceError(e));
     } finally {
       recordAbortRef.current = null;
@@ -545,7 +591,7 @@ export function VoicePanel() {
 
   async function sendText() {
     const text = input.trim();
-    if (!text || busy || recording || speaking) return;
+    if (!text || busy || recording || speaking || researchUnavailable) return;
     const localUserId = crypto.randomUUID();
     const localAssistantId = crypto.randomUUID();
     setInput("");
@@ -566,7 +612,10 @@ export function VoicePanel() {
           understandingModelMode,
         }),
       });
-      if (!res.ok) throw new Error("Couldn’t start chat turn");
+      if (!res.ok) {
+        const error = await res.json().catch(() => null);
+        throw new Error(researchSelected && typeof error?.error === "string" ? error.error : "Couldn’t start chat turn");
+      }
       let streamedReply = "";
       const data = await readVoiceStream(
         res,
@@ -578,6 +627,7 @@ export function VoicePanel() {
             id: localAssistantId,
             role: "ASSISTANT",
             content: streamedReply,
+            streamState: researchSelected ? "pending" : undefined,
           }));
         },
         () => {},
@@ -591,15 +641,20 @@ export function VoicePanel() {
       setReply(finalReply);
       setMessages((current) => upsertVoiceMessage(current, {
         id: data.message?.id ?? localAssistantId,
+        persistedId: data.message?.id,
         role: "ASSISTANT",
         content: finalReply,
-        understanding: data.understanding,
+        understanding: { ...data.message?.metadata, ...data.understanding, research: data.understanding?.research ?? data.message?.metadata?.research },
       }, localAssistantId));
       if (data.tts?.audioBase64) {
         setTtsB64(data.tts.audioBase64);
         playWav(data.tts.audioBase64);
       }
     } catch (error) {
+      if (researchSelected) {
+        setMessages((current) => current.map((message) => message.id === localAssistantId
+          ? { ...message, streamState: "failed" } : message));
+      }
       setStatus(friendlyVoiceError(error));
     } finally {
       setBusy(false);
@@ -734,7 +789,7 @@ export function VoicePanel() {
           placeholder={lang === "en" ? "Type or speak…" : "Twerɛ anaa kasa…"}
           disabled={busy || recording}
         />
-        <button type="submit" className="icon-action" disabled={!input.trim() || busy || recording} aria-label="Send message">
+        <button type="submit" className="icon-action" disabled={!input.trim() || busy || recording || researchUnavailable} aria-label="Send message">
           <Send className="h-4 w-4" />
         </button>
       </form>
@@ -818,7 +873,12 @@ export function VoicePanel() {
                 <div key={message.id} className="live-reply-wrap">
                   <div className="min-w-0">
                   <p className="live-reply">{message.content}</p>
+                  {message.streamState === "pending" && <p className="mt-1 text-xs opacity-70">Receiving research reply...</p>}
+                  {message.streamState === "failed" && <p className="mt-1 text-xs font-semibold" role="alert">Incomplete, unverified reply</p>}
                   <UnderstandingDetails data={message.understanding} />
+                  {message.understanding?.research && message.persistedId && conversationId && (
+                    <ResearchReplyFeedback key={`${conversationId}:${message.persistedId}`} conversationId={conversationId} messageId={message.persistedId} />
+                  )}
                   </div>
                   {ttsB64 && message.id === latestAssistantId && (
                     <button
@@ -868,46 +928,53 @@ export function VoicePanel() {
               />
             )}
           </div>
-          {status && !reply && <p className="live-error">{status}</p>}
-          <div className="live-action-row">
-            <label className="voice-model-picker" aria-label="Speech model">
-              <span>ASR</span>
-              <select value={asrModel} onChange={(event) => changeAsrModel(event.target.value as typeof asrModel)}>
-                <option value="dondo">DONDO</option>
-                <option value="v6">v6</option>
-              </select>
-            </label>
-            <label className="voice-model-picker" aria-label="Understanding model mode">
-              <span>Mind</span>
-              <select
-                value={understandingModelMode}
-                onChange={(event) =>
-                  changeUnderstandingModelMode(event.target.value as typeof understandingModelMode)
-                }
-              >
-                <option value="shadow">Stable</option>
-                <option value="assist">Research v0</option>
-                <option value="assist_v1">Research v1</option>
-              </select>
-            </label>
-            <button
-              type="button"
-              className={recording ? "icon-action chat-mic-action chat-mic-action--live" : "icon-action chat-mic-action"}
-              disabled={busy || speaking}
-              aria-label={recording ? "Stop recording" : "Record voice"}
-              onClick={() => {
-                if (recording) {
-                  stopRecording();
-                  return;
-                }
-                void listenAndRespond();
-              }}
-            >
-              <Mic className="h-4 w-4" />
-            </button>
-          </div>
+          {status && <p className="live-error" role="alert">{status}</p>}
         </div>
       )}
+      <div className="live-action-row" style={{ flexWrap: "wrap", maxWidth: "100%" }}>
+        <label className="voice-model-picker" aria-label="Speech model">
+          <span>ASR</span>
+          <select value={asrModel} onChange={(event) => changeAsrModel(event.target.value as typeof asrModel)}>
+            <option value="dondo">DONDO</option>
+            <option value="v6">v6</option>
+          </select>
+        </label>
+        <label className="voice-model-picker" style={{ maxWidth: "100%", minWidth: 0 }} aria-label="Understanding model mode">
+          <span>Mind</span>
+          <select
+            value={understandingModelMode}
+            disabled={modelSwitchDisabled}
+            style={{ minWidth: 0, maxWidth: "100%" }}
+            onChange={(event) =>
+              selectUnderstandingModel(event.target.value as typeof understandingModelMode)
+            }
+          >
+            <option value="shadow">Stable</option>
+            {(r3Available || understandingModelMode === "r3_response") && <option value="r3_response" disabled={!r3Available}>{r3Available ? "R3 Response (research)" : "R3 unavailable"}</option>}
+            <option value="r1_meaning">R1 Meaning (research)</option>
+            <option value="r1_response">R1 Response (research)</option>
+            <option value="r1_base">R1 Base (control)</option>
+            <option value="assist">Legacy v0 (hint)</option>
+            <option value="assist_v1">Legacy v1 (hint)</option>
+          </select>
+        </label>
+        <button
+          type="button"
+          className={recording ? "icon-action chat-mic-action chat-mic-action--live" : "icon-action chat-mic-action"}
+          disabled={busy || speaking}
+          aria-label={recording ? "Stop recording" : "Record voice"}
+          onClick={() => {
+            if (recording) {
+              stopRecording();
+              return;
+            }
+            void listenAndRespond();
+          }}
+        >
+          <Mic className="h-4 w-4" />
+        </button>
+      </div>
+      {understandingModelMode !== "shadow" && <p className="text-xs opacity-70">{researchUnavailable ? "R3 unavailable. No other model will be used. " : "Research preview. Not medical advice. "}<a className="underline" href="/research/corpus/evaluations" target="_blank" rel="noreferrer">Evaluation evidence (private lab)</a></p>}
     </section>
   );
 }
