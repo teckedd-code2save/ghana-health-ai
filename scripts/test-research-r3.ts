@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import { repeatedPassage, LOOP_POLICY } from "../src/lib/response-loop-guard";
 import { MODEL_MODES, ResearchR3Error, isResearchModelMode } from "../src/lib/model-modes";
 import { R3_MODEL, R3_REVISION, R3_BASE_SHA, R3_EOS, R3_DECODING, r3Config, verifiedR3Config, r3Digest,
   researchR3Reply, validateR3History, verifyR3Result, verifyR3StoredReply, type R3Identity, type R3Message } from "../src/lib/research-r3";
@@ -45,6 +46,40 @@ test("R3 explicit mode preserves Stable default and R1 modes", () => {
   assert.equal(isResearchModelMode("r3_response"), true);
   assert.equal(isResearchModelMode("shadow"), false);
   assert.match(readFileSync("src/lib/understanding-model-store.ts", "utf8"), /return "shadow"/);
+});
+test("repetition detector allows varied lists and short emphasis but detects Twi loops", () => {
+  assert.equal(repeatedPassage("thank you ".repeat(5)), null);
+  assert.equal(repeatedPassage("Please do not take another person's medicine. ".repeat(2)), null);
+  assert.equal(repeatedPassage(["food", "water", "comfort", "sleep", "attention", "clothes", "help"].map(x => "It could be that the child wants " + x).join(" ")), null);
+  assert.deepEqual(repeatedPassage("Ebia ɛyɛ aduru bi a ɛhaw no. ".repeat(8)), { block_words: 7, repetitions: 3, end_word: 32 });
+  const long = Array.from({ length: 27 }, (_, i) => `word${i}`).join(" ") + " ";
+  assert.deepEqual(repeatedPassage(long.repeat(2)), { block_words: 27, repetitions: 2, end_word: 54 });
+});
+test("paused reply needs reproducible guard evidence and remains usable as exact follow-up context", () => {
+  const output = "Ebia ɛyɛ aduru bi a ɛhaw no. ".repeat(8);
+  const raw = { ...result(output, "cancelled", false), loop_guard: { version: LOOP_POLICY, trigger: repeatedPassage(output) } };
+  const verified = verifyR3Result(raw, identity, messages, output, true);
+  assert.equal(verified.research.finishReason, "loop_guard");
+  assert.equal(verified.research.complete, false);
+  const meta = { research: verified.research, evidence: raw, outputSha256: verified.outputSha256, evidenceSha256: verified.evidenceSha256 };
+  verifyR3StoredReply(meta, output, identity, messages);
+  assert.throws(() => verifyR3Result(raw, identity, messages, output), ResearchR3Error);
+  assert.throws(() => verifyR3Result({ ...raw, loop_guard: { version: LOOP_POLICY, trigger: { block_words: 8, repetitions: 3, end_word: 32 } } }, identity, messages, output, true), ResearchR3Error);
+  assert.throws(() => verifyR3Result({ ...raw, complete: true }, identity, messages, output, true), ResearchR3Error);
+  assert.throws(() => verifyR3Result(result(), identity, messages, "Exact\n  answer.", true), ResearchR3Error);
+});
+test("guarded transport opts in explicitly while raw transport contract stays unchanged", async t => {
+  const output = "Ebia ɛyɛ aduru bi a ɛhaw no. ".repeat(8);
+  const raw = { ...result(output, "cancelled", false), loop_guard: { version: LOOP_POLICY, trigger: repeatedPassage(output) } };
+  const sequence = events(raw);
+  sequence[0].loop_guard = LOOP_POLICY;
+  t.mock.method(globalThis, "fetch", async (_url: unknown, init?: RequestInit) => {
+    assert.deepEqual(JSON.parse(String(init?.body)), { messages, variant: "r3_response", loop_guard: true });
+    return response(sequence);
+  });
+  const actual = await researchR3Reply(messages, { ...config, loopGuard: true });
+  assert.equal(actual.result.output, output);
+  assert.equal(actual.research.finishReason, "loop_guard");
 });
 test("config allows 20s for cold health and fails closed without approval, identity or authentication", async t => {
   const keys = ["ENABLED", "URL", "TOKEN", "MANIFEST_SHA256", "ADAPTER_SHA256"].map(k => `RESEARCH_R3_${k}`);

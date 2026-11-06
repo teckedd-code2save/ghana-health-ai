@@ -16,7 +16,7 @@ export function UnderstandingDetails({ data }: { data?: UnderstandingDetailsData
       : research.variant === "base" ? "R1 Base (control)" : research.variant;
     return (
       <div className="mt-2 max-w-xl text-xs leading-relaxed">
-        <p>{variant} · Direct model{!research.complete && <strong> · Incomplete reply</strong>}</p>
+        <p>{variant} · Direct model{!research.complete && <strong> · {research.finishReason === "loop_guard" ? "Response paused" : "Incomplete reply"}</strong>}</p>
         <details className="mt-1">
           <summary className="cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-offset-4">Model identity</summary>
           <dl className="mt-2 space-y-2 break-words">
