@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     let audio: ArrayBuffer | null = null;
     let language: LanguageCode = user?.preferredLang ?? "tw";
     let conversationId: string | undefined;
-    let speak = true;
+    let speak = false;
     let focus: "health" | "commerce" | undefined;
     let instruction: string | undefined;
     let asrModel: string | undefined;
@@ -64,7 +64,7 @@ export async function POST(req: Request) {
       const cid = form.get("conversationId");
       if (typeof cid === "string" && cid) conversationId = cid;
       const sp = form.get("speak");
-      if (sp === "false" || sp === "0") speak = false;
+      speak = sp === "true" || sp === "1";
       const model = form.get("asrModel");
       if (typeof model === "string" && model) asrModel = model;
       const focusValue = form.get("focus");
