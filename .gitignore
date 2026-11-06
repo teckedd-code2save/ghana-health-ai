@@ -45,3 +45,24 @@ next-env.d.ts
 modal/**/__pycache__/
 *.pyc
 data/asr-feedback-audio/
+
+# Private research inputs, owner fixtures, and internal run notes
+/data/research/
+/scripts/test_repair_r3_conversations.py
+/docs/TWI_R2_LIVE_FINDINGS_20261106.md
+/docs/TWI_UNDERSTANDING_R2_20261105.md
+/docs/TWI_UNDERSTANDING_R3_20261106.md
+
+# Local stores, mail exports, and model/checkpoint artifacts
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.sqlite3-*
+*.db
+*.db-*
+*.eml
+*.mbox
+*.safetensors
+*.pt
+*.pth
+*.ckpt
