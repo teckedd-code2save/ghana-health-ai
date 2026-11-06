@@ -1,5 +1,6 @@
 import { prisma } from "@/db/prisma";
 import { getSessionUser } from "@/lib/auth";
+import { researchGuest, researchGuestIp } from "@/lib/research-guest";
 import { isModalAsrConfigured, modalTranscribe } from "@/lib/modal-asr";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { runConversationTurn } from "@/lib/conversation-turn";
@@ -82,6 +83,7 @@ function publicVoicePayload(input: {
 }
 
 export async function POST(req: Request) {
+  const guestOwner = await researchGuest(req, true);
   const encoder = new TextEncoder();
   const started = Date.now();
 
@@ -197,6 +199,8 @@ export async function POST(req: Request) {
             signal: req.signal,
             user,
             ip,
+            researchGuestOwner: guestOwner,
+            researchGuestIp: researchGuestIp(req),
             text: asr.text,
             language: replyLanguage,
             focus,

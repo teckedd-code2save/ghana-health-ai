@@ -6,14 +6,20 @@ import { ResearchR3Error } from "@/lib/model-modes";
 import { verifiedR3Config, researchR3Reply, validateR3History, verifyR3StoredReply, type R3Message } from "@/lib/research-r3";
 import { rateLimit } from "@/lib/rate-limit";
 import { isModalTtsConfigured, modalSpeak } from "@/lib/modal-tts";
+import { canAccessChat } from "@/lib/research-guest-core";
 
 const running = new Set<string>();
 
 export async function runResearchR3Turn(input: ConversationTurnInput): Promise<ConversationTurnResult> {
-  if (!input.user) throw new ResearchR3Error("Sign in to test the research model.", 401);
-  const key = input.user.id;
+  const guest = !input.user && process.env.RESEARCH_R3_GUEST_ENABLED === "true" && /^[a-f0-9]{64}$/.test(input.researchGuestOwner ?? "");
+  if (!input.user && !guest) throw new ResearchR3Error("Guest testing is unavailable. Please try again later.", 401);
+  const key = input.user?.id ?? `guest:${input.researchGuestOwner}`;
   if (running.has(key)) throw new ResearchR3Error("A research reply is still running.", 409);
-  if (!rateLimit(`r3-user:${key}`, 30, 3600).allowed) throw new ResearchR3Error("Research testing limit reached. Please try again later.", 429);
+  if (!rateLimit(`r3-user:${key}`, guest ? 20 : 30, 3600).allowed || (guest && (
+    !rateLimit(`r3-guest-ip:${input.researchGuestIp ?? "unknown"}`, 40, 3600).allowed ||
+    !rateLimit("r3-guest-global", 100, 3600).allowed))) {
+    throw new ResearchR3Error("Research testing limit reached. Please try again later.", 429);
+  }
   running.add(key);
   try { return await run(input); } finally { running.delete(key); }
 }
@@ -23,10 +29,13 @@ async function run(input: ConversationTurnInput): Promise<ConversationTurnResult
   const text = input.text.trim();
   if (!text) throw new ResearchR3Error("Enter a message.", 400);
   validateR3History([{ role: "user", content: input.text }]);
-  const userId = input.user!.id;
-  const language = input.language ?? input.user!.preferredLang ?? "tw";
+  const userId = input.user?.id;
+  const language = input.language ?? input.user?.preferredLang ?? "tw";
   let conversation = input.conversationId ? await prisma.conversation.findUnique({ where: { id: input.conversationId } }) : null;
-  if (input.conversationId && (!conversation || conversation.userId !== userId)) throw new ResearchR3Error("Conversation not found.", 404);
+  if (input.conversationId && (!conversation || !canAccessChat(conversation, userId, input.researchGuestOwner) ||
+      (!input.user && !(conversation.metadata as { researchGuestOwner?: string } | null)?.researchGuestOwner))) {
+    throw new ResearchR3Error("Conversation not found.", 404);
+  }
   const config = await verifiedR3Config();
   if (!config) throw new ResearchR3Error("R3 is not available. No other model was used.");
   const prior = conversation ? await prisma.message.findMany({ where: { conversationId: conversation.id }, orderBy: { createdAt: "asc" }, take: 131 }) : [];
@@ -49,7 +58,8 @@ async function run(input: ConversationTurnInput): Promise<ConversationTurnResult
   }, input.signal, async () => {
     input.signal?.throwIfAborted();
     if (!conversation) conversation = await prisma.conversation.create({ data: { userId, language,
-      channel: input.channel, title: text.slice(0, 60), intent: "UNKNOWN" } });
+      channel: input.channel, title: text.slice(0, 60), intent: "UNKNOWN",
+      ...(!input.user ? { metadata: { researchGuestOwner: input.researchGuestOwner!, researchOnly: true, trainingConsent: false } } : {}) } });
     conversationId = conversation.id;
     await input.onStage?.({ name: "conversation", detail: conversationId, at: Date.now() });
     const message = await prisma.message.create({ data: { conversationId, role: "USER", content: text, language,

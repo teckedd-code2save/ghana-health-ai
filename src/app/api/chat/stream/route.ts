@@ -4,6 +4,7 @@ import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { runConversationTurn } from "@/lib/conversation-turn";
 import { publicFailure } from "@/lib/public-errors";
 import { MODEL_MODES } from "@/lib/model-modes";
+import { researchGuest, researchGuestIp } from "@/lib/research-guest";
 
 const schema = z.object({
   message: z.string().min(1).max(4000),
@@ -69,6 +70,7 @@ function publicTurnPayload(turn: Awaited<ReturnType<typeof runConversationTurn>>
 
 export async function POST(req: Request) {
   const encoder = new TextEncoder();
+  const guestOwner = await researchGuest(req, true);
 
   return new Response(
     new ReadableStream({
@@ -94,6 +96,8 @@ export async function POST(req: Request) {
             signal: req.signal,
             user,
             ip,
+            researchGuestOwner: guestOwner,
+            researchGuestIp: researchGuestIp(req),
             text: body.message,
             conversationId: body.conversationId,
             language,

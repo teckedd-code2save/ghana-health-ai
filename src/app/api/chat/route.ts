@@ -6,6 +6,8 @@ import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { runConversationTurn } from "@/lib/conversation-turn";
 import { publicFailure } from "@/lib/public-errors";
 import { MODEL_MODES } from "@/lib/model-modes";
+import { researchGuest, researchGuestIp } from "@/lib/research-guest";
+import { canAccessChat } from "@/lib/research-guest-core";
 
 const schema = z.object({
   message: z.string().min(1).max(4000),
@@ -27,12 +29,15 @@ export async function POST(req: Request) {
 
     const body = schema.parse(await req.json());
     const user = await getSessionUser();
+    const guestOwner = await researchGuest(req, true);
     const language = body.language ?? user?.preferredLang ?? "tw";
 
     const turn = await runConversationTurn({
       signal: req.signal,
       user,
       ip,
+      researchGuestOwner: guestOwner,
+      researchGuestIp: researchGuestIp(req),
       text: body.message,
       conversationId: body.conversationId,
       language,
@@ -96,6 +101,7 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const conversationId = searchParams.get("conversationId");
   const user = await getSessionUser();
+  const guestOwner = await researchGuest(req);
   if (!conversationId) {
     const ids = searchParams
       .get("ids")
@@ -108,6 +114,8 @@ export async function GET(req: Request) {
       take: 50,
       select: {
         id: true,
+        userId: true,
+        metadata: true,
         title: true,
         language: true,
         intent: true,
@@ -116,14 +124,16 @@ export async function GET(req: Request) {
         _count: { select: { messages: true } },
       },
     });
-    return jsonOk({ conversations });
+    return jsonOk({ conversations: conversations.filter(c => canAccessChat(c, user?.id, guestOwner))
+      .map(c => ({ id: c.id, title: c.title, language: c.language, intent: c.intent,
+        createdAt: c.createdAt, updatedAt: c.updatedAt, _count: c._count })) });
   }
   const conversation = await prisma.conversation.findUnique({
     where: { id: conversationId },
-    select: { id: true, userId: true },
+    select: { id: true, userId: true, metadata: true },
   });
   if (!conversation) return jsonError("Conversation not found", 404);
-  if (conversation.userId && conversation.userId !== user?.id) {
+  if (!canAccessChat(conversation, user?.id, guestOwner)) {
     return jsonError("Conversation not found", 404);
   }
   const messages = await prisma.message.findMany({
@@ -140,11 +150,12 @@ export async function DELETE(req: Request) {
     return jsonError("Valid conversationId required");
   }
   const user = await getSessionUser();
+  const guestOwner = await researchGuest(req);
   const conversation = await prisma.conversation.findUnique({
     where: { id: conversationId },
-    select: { id: true, userId: true },
+    select: { id: true, userId: true, metadata: true },
   });
-  if (!conversation || (conversation.userId && conversation.userId !== user?.id)) {
+  if (!conversation || !canAccessChat(conversation, user?.id, guestOwner)) {
     return jsonError("Conversation not found", 404);
   }
   await prisma.conversation.delete({ where: { id: conversationId } });

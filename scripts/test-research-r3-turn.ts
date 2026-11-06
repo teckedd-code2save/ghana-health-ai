@@ -5,6 +5,7 @@ import { test } from "node:test";
 import ts from "typescript";
 import * as modes from "../src/lib/model-modes";
 import * as r3 from "../src/lib/research-r3";
+import * as guestCore from "../src/lib/research-guest-core";
 import type { ConversationTurnInput, ConversationTurnResult } from "../src/lib/conversation-turn";
 
 const identity: r3.R3Identity = { manifest_sha256: "a".repeat(64), adapter_weights_sha256: "b".repeat(64),
@@ -25,10 +26,11 @@ function generation(messages: r3.R3Message[], reason = "eos") {
 }
 function fixture() {
   const rows: Row[] = [], calls: string[] = [], sent: r3.R3Message[][] = [];
-  const state = { configured: true, owner: "owner", allowed: true, reason: "eos", failure: false, rejected: false, tts: false };
+  const state = { configured: true, owner: "owner" as string | null, metadata: null as Record<string, unknown> | null, allowed: true, reason: "eos", failure: false, rejected: false, tts: false };
+  const quotas: { key: string; max: number; seconds: number }[] = [];
   const prisma = { conversation: {
-    findUnique: async () => { calls.push("lookup"); return { id: "conversation", userId: state.owner }; },
-    create: async () => { calls.push("create"); return { id: "conversation", userId: "owner" }; },
+    findUnique: async () => { calls.push("lookup"); return { id: "conversation", userId: state.owner, metadata: state.metadata }; },
+    create: async ({ data }: { data: { userId?: string; metadata?: Record<string, unknown> } }) => { calls.push("create"); state.owner = data.userId ?? null; state.metadata = data.metadata ?? null; return { id: "conversation", userId: state.owner, metadata: state.metadata }; },
     update: async () => { calls.push("update"); },
   }, message: {
     findMany: async (args: { take: number }) => { calls.push("history"); return rows.slice(0, args.take); },
@@ -36,8 +38,9 @@ function fixture() {
   } };
   const dependencies: Record<string, unknown> = {
     "@/db/prisma": { prisma }, "@/lib/model-modes": modes,
+    "@/lib/research-guest-core": guestCore,
     "@/lib/rate-limit": { rateLimit: (key: string, max: number, seconds: number) => {
-      calls.push("quota"); assert.equal(key, "r3-user:owner"); assert.equal(max, 30); assert.equal(seconds, 3600); return { allowed: state.allowed };
+      calls.push("quota"); quotas.push({ key, max, seconds }); return { allowed: state.allowed };
     } },
     "@/lib/modal-tts": { isModalTtsConfigured: () => state.tts, modalSpeak: async () => { calls.push("tts"); return { audio_base64: "fixture" }; } },
     "@/lib/research-r3": { ...r3, verifiedR3Config: async () => { calls.push("config"); return state.configured ? { identity } : null; },
@@ -64,16 +67,46 @@ function fixture() {
     rows.push({ role: "USER", content: messages[0].content, metadata: { research: { variant: "r3_response", bundleSha: identity.manifest_sha256 } } },
       { role: "ASSISTANT", content: value.result.output, metadata: { research: value.research, evidence: value.result, outputSha256: value.outputSha256, evidenceSha256: value.evidenceSha256 } });
   }
-  return { turn, input, history, rows, calls, sent, state };
+  return { turn, input, history, rows, calls, sent, state, quotas };
 }
 test("R3 sign-in, owner and account quota checks precede inference or writes", async () => {
   const f = fixture();
   await assert.rejects(f.turn(f.input({ user: null })), { status: 401 }); assert.equal(f.calls.length, 0);
   f.state.allowed = false;
   await assert.rejects(f.turn(f.input()), { status: 429 }); assert.deepEqual(f.calls, ["quota"]);
+  assert.deepEqual(f.quotas, [{ key: "r3-user:owner", max: 30, seconds: 3600 }]);
   f.state.allowed = true; f.state.owner = "someone else";
   await assert.rejects(f.turn(f.input({ conversationId: "conversation" })), { status: 404 });
   assert.equal(f.calls.includes("config"), false); assert.equal(f.rows.length, 0);
+});
+test("R3 guest flag, ownership, follow-up and three quotas remain isolated from accounts", async () => {
+  const prior = process.env.RESEARCH_R3_GUEST_ENABLED;
+  try {
+    const f = fixture();
+    const extra = { user: null, researchGuestOwner: "a".repeat(64), researchGuestIp: "127.0.0.2" };
+    process.env.RESEARCH_R3_GUEST_ENABLED = "false";
+    await assert.rejects(f.turn(f.input(extra)), { status: 401 });
+    process.env.RESEARCH_R3_GUEST_ENABLED = "true";
+    await f.turn(f.input(extra));
+    assert.equal(f.state.owner, null);
+    assert.deepEqual(f.state.metadata, { researchGuestOwner: extra.researchGuestOwner, researchOnly: true, trainingConsent: false });
+    assert.deepEqual(f.quotas, [
+      { key: `r3-user:guest:${extra.researchGuestOwner}`, max: 20, seconds: 3600 },
+      { key: "r3-guest-ip:127.0.0.2", max: 40, seconds: 3600 },
+      { key: "r3-guest-global", max: 100, seconds: 3600 },
+    ]);
+    await f.turn(f.input({ ...extra, conversationId: "conversation", text: "Follow-up" }));
+    assert.equal(f.sent[1].length, 3);
+    const saved = structuredClone(f.rows);
+    await assert.rejects(f.turn(f.input({ ...extra, researchGuestOwner: "b".repeat(64), conversationId: "conversation" })), { status: 404 });
+    await assert.rejects(f.turn(f.input({ conversationId: "conversation" })), { status: 404 });
+    assert.deepEqual(f.rows, saved);
+    f.state.allowed = false;
+    await assert.rejects(f.turn(f.input(extra)), { status: 429 });
+  } finally {
+    if (prior === undefined) delete process.env.RESEARCH_R3_GUEST_ENABLED;
+    else process.env.RESEARCH_R3_GUEST_ENABLED = prior;
+  }
 });
 test("unconfigured R3 fails without a database write or fallback", async () => {
   const f = fixture(); f.state.configured = false;
