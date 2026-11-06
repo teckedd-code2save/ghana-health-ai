@@ -88,6 +88,13 @@ jobs:
           set -euo pipefail
           cd /opt/ghana-health-ai
 
+          # Leave space for the pulled/unpacked image and Postgres WAL.
+          FREE_KB=\$(df -Pk /var/lib/docker | awk 'NR==2 {print \$4}')
+          if [ "\${FREE_KB}" -lt 6291456 ]; then
+            echo "Deployment blocked: at least 6 GiB free is required before pulling. No data was removed."
+            exit 1
+          fi
+
           # Login to GHCR (idempotent)
           echo "${GH_TOKEN}" | docker login ghcr.io -u "${GH_ACTOR}" --password-stdin
 
