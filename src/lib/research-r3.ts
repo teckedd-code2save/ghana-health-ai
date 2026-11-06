@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { ResearchR3Error, type ResearchR3Metadata } from "@/lib/model-modes";
+import { LOOP_POLICY, repeatedPassage } from "@/lib/response-loop-guard";
 
 export const R3_MODEL = "McGill-NLP/AfriqueQwen3.5-9B-50Langs-Instruct-v1";
 export const R3_REVISION = "693f12e444a30971ca53889128d7bade9491ecb3";
@@ -24,7 +25,7 @@ const identitySchema = z.object({ manifest_sha256: sha, variant: z.literal("r3_r
   base_weights_sha256: z.literal(R3_BASE_SHA), adapter_weights_sha256: sha }).strict();
 export type R3Identity = z.infer<typeof identitySchema>;
 export type R3Message = { role: "user" | "assistant"; content: string };
-type R3Config = { url: URL; token: string; identity: R3Identity };
+type R3Config = { url: URL; token: string; identity: R3Identity; loopGuard?: boolean };
 const fail = (status = 503): never => { throw new ResearchR3Error("R3 evidence could not be verified. No other model was used.", status); };
 
 // Matches Python's sorted, UTF-8 JSON digest used by the sealed actor bundle.
@@ -45,7 +46,7 @@ export function r3Config(): R3Config | null {
     const identity = identitySchema.parse({ manifest_sha256: process.env.RESEARCH_R3_MANIFEST_SHA256,
       variant: "r3_response", model: R3_MODEL, revision: R3_REVISION, base_weights_sha256: R3_BASE_SHA,
       adapter_weights_sha256: process.env.RESEARCH_R3_ADAPTER_SHA256 });
-    return { url, token: process.env.RESEARCH_R3_TOKEN!, identity };
+    return { url, token: process.env.RESEARCH_R3_TOKEN!, identity, loopGuard: process.env.RESEARCH_R3_LOOP_GUARD === "true" };
   } catch { return null; }
 }
 
@@ -68,6 +69,7 @@ export async function verifiedR3Config(): Promise<R3Config | null> {
         health.actor?.class_name !== "UnderstandingR3Demo" || typeof health.actor?.app_name !== "string" ||
         !equal(health.variants, ["r3_response"]) || !equal(health.decoding, R3_DECODING) ||
         health.limits?.context_tokens !== 4096 || health.limits?.body_bytes !== 65536) return null;
+    if (config.loopGuard && health.loop_guard !== LOOP_POLICY) return null;
     return config;
   } catch { return null; }
 }
@@ -94,12 +96,17 @@ const resultSchema = z.object({ identity: identitySchema, messages_sha256: sha, 
   output_ids: tokenIds.min(1), seconds: z.number().nonnegative().max(300),
   finish_reason: z.enum(["eos", "max_new_tokens", "time_limit", "unexpected_stop", "cancelled"]),
   complete: z.boolean(), diagnostics: diagnosticsSchema,
+  loop_guard: z.object({ version: z.literal(LOOP_POLICY), trigger: z.object({ block_words: z.number().int().min(6).max(80),
+    repetitions: z.number().int().min(2).max(3), end_word: z.number().int().min(32) }).strict().nullable() }).strict().optional(),
 }).strict();
 
-export function verifyR3Result(value: unknown, identity: R3Identity, messages: R3Message[], streamed: string) {
+export function verifyR3Result(value: unknown, identity: R3Identity, messages: R3Message[], streamed: string, loopGuard = false) {
   const parsed = resultSchema.safeParse(value);
   if (!parsed.success) return fail();
   const result = parsed.data;
+  if (loopGuard !== (result.loop_guard !== undefined)) return fail();
+  const paused = Boolean(result.loop_guard?.trigger);
+  if (paused && (!equal(result.loop_guard!.trigger, repeatedPassage(result.output)) || result.finish_reason !== "cancelled" || result.complete)) return fail();
   if (!equal(result.identity, identity) || result.messages_sha256 !== r3Digest(messages) || !equal(result.decoding, R3_DECODING) ||
       result.output !== streamed || (result.complete && (result.finish_reason !== "eos" || !result.output.trim())) ||
       (result.finish_reason === "max_new_tokens" && result.output_ids.length !== 256)) return fail();
@@ -113,16 +120,17 @@ export function verifyR3Result(value: unknown, identity: R3Identity, messages: R
       result.complete !== (d.complete === true && result.finish_reason !== "cancelled")) return fail();
   const research: ResearchR3Metadata = { variant: "r3_response", model: identity.model, revision: identity.revision,
     executionSha: identity.manifest_sha256, bundleSha: identity.manifest_sha256, adapterSha: identity.adapter_weights_sha256,
-    finishReason: result.finish_reason, complete: result.complete };
+    finishReason: paused ? "loop_guard" : result.finish_reason, complete: result.complete };
   return { result, research, outputSha256: r3OutputHash(result.output), evidenceSha256: r3Digest(result) };
 }
 
 export function verifyR3StoredReply(metadata: unknown, content: string, identity: R3Identity, messages: R3Message[]) {
   if (!metadata || typeof metadata !== "object" || !content.trim()) return fail(409);
   const meta = metadata as Record<string, unknown>;
-  const verified = verifyR3Result(meta.evidence, identity, messages, content);
+  const storedPolicy = !!(meta.evidence && typeof meta.evidence === "object" && "loop_guard" in meta.evidence);
+  const verified = verifyR3Result(meta.evidence, identity, messages, content, storedPolicy);
   if (!equal(meta.research, verified.research) || meta.outputSha256 !== verified.outputSha256 || meta.evidenceSha256 !== verified.evidenceSha256 ||
-      !(verified.research.complete || ["max_new_tokens", "time_limit"].includes(verified.research.finishReason))) return fail(409);
+      !(verified.research.complete || ["max_new_tokens", "time_limit", "loop_guard"].includes(verified.research.finishReason))) return fail(409);
 }
 
 export async function researchR3Reply(messages: R3Message[], config: R3Config,
@@ -138,7 +146,7 @@ export async function researchR3Reply(messages: R3Message[], config: R3Config,
   let final: ReturnType<typeof verifyR3Result> | undefined;
   try {
     const response = await fetch(endpoint(config, "/stream"), { method: "POST", signal: controller.signal, cache: "no-store", redirect: "error",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.token}` }, body: JSON.stringify({ messages, variant: "r3_response" }) });
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.token}` }, body: JSON.stringify({ messages, variant: "r3_response", ...(config.loopGuard ? { loop_guard: true } : {}) }) });
     if ([400, 413].includes(response.status)) throw new ResearchR3Error("R3 rejected this message or its full conversation context. No history was truncated. Shorten the message or start a new conversation.", 400);
     if (!response.ok || !response.body || !response.headers.get("content-type")?.startsWith("text/event-stream")) return fail(response.status === 429 ? 429 : 503);
     // A successful SSE response follows native tokenizer/context admission at the gateway.
@@ -163,13 +171,14 @@ export async function researchR3Reply(messages: R3Message[], config: R3Config,
           if (requestId || event.protocol !== "r2-demo-stream-v1" || !/^[a-f0-9]{32}$/.test(event.request_id) ||
               typeof event.call_id !== "string" || !/^fc-[A-Za-z0-9]+$/.test(event.call_id) || !equal(event.identity, config.identity) || event.messages_sha256 !== r3Digest(messages)) return fail();
           requestId = event.request_id;
+          if (event.loop_guard !== (config.loopGuard ? LOOP_POLICY : undefined)) return fail();
         } else {
           if (!requestId || event.request_id !== requestId) return fail();
           if (event.type === "delta") {
             if (event.index !== index++ || index > 1024 || typeof event.text !== "string" || !event.text || codepoints(streamed + event.text) > MAX_OUTPUT_CHARS) return fail();
             streamed += event.text;
             await onDelta?.(event.text);
-          } else if (event.type === "final") final = verifyR3Result(event.result, config.identity, messages, streamed);
+          } else if (event.type === "final") final = verifyR3Result(event.result, config.identity, messages, streamed, config.loopGuard);
           else return fail();
         }
       }
