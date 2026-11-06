@@ -1,3 +1,5 @@
+import { ResearchR1Error, ResearchR3Error } from "@/lib/model-modes";
+
 export type FailurePhase = "chat" | "voice" | "transcription";
 
 const STARTING_PATTERN =
@@ -5,6 +7,7 @@ const STARTING_PATTERN =
 const TIMEOUT_PATTERN = /timeout|timed out|ETIMEDOUT|AbortError/i;
 
 export function publicFailure(error: unknown, phase: FailurePhase) {
+  if (error instanceof ResearchR1Error || error instanceof ResearchR3Error) return { message: error.message, status: error.status };
   const detail = error instanceof Error ? error.message : String(error ?? "");
 
   if (STARTING_PATTERN.test(detail)) {

@@ -1,17 +1,41 @@
 import type { UnderstandResult } from "@/lib/understand";
 
 export type UnderstandingDetailsData = {
+  research?: UnderstandResult["research"];
   intent?: string;
   comprehension?: UnderstandResult["comprehension"];
   synthesis?: Partial<NonNullable<UnderstandResult["synthesis"]>>;
 };
 
 export function UnderstandingDetails({ data }: { data?: UnderstandingDetailsData | null }) {
+  if (data?.research) {
+    const research = data.research;
+    const variant = research.variant === "r3_response" ? "R3 Response (research)"
+      : research.variant === "meaning-adapter" ? "R1 Meaning (research)"
+      : research.variant === "response-adapter" ? "R1 Response (research)"
+      : research.variant === "base" ? "R1 Base (control)" : research.variant;
+    return (
+      <div className="mt-2 max-w-xl text-xs leading-relaxed">
+        <p>{variant} · Direct model{!research.complete && <strong> · Incomplete reply</strong>}</p>
+        <details className="mt-1">
+          <summary className="cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-offset-4">Model identity</summary>
+          <dl className="mt-2 space-y-2 break-words">
+            <div><dt className="font-medium">Variant</dt><dd>{research.variant}</dd></div>
+            <div><dt className="font-medium">Model</dt><dd>{research.model}</dd></div>
+            <div><dt className="font-medium">Revision</dt><dd>{research.revision}</dd></div>
+            <div><dt className="font-medium">{research.variant === "r3_response" ? "Bundle SHA" : "Execution SHA"}</dt><dd>{research.executionSha}</dd></div>
+            <div><dt className="font-medium">Adapter SHA</dt><dd>{research.adapterSha ?? "None (unadapted base)"}</dd></div>
+            <div><dt className="font-medium">Completion</dt><dd>{research.complete ? "Complete" : "Incomplete"} · {research.finishReason}</dd></div>
+          </dl>
+        </details>
+      </div>
+    );
+  }
   if (!data?.comprehension && !data?.synthesis) return null;
   const comprehension = data.comprehension;
   const prediction = comprehension?.model;
   const adapter = data.synthesis?.understandingModel;
-  const mode = adapter?.mode === "assist_v1" ? "Research v1" : adapter?.mode === "assist" ? "Research v0" : adapter?.mode === "shadow" ? "Stable" : "Mode not recorded";
+  const mode = adapter?.mode === "assist_v1" ? "Legacy v1 (hint)" : adapter?.mode === "assist" ? "Legacy v0 (hint)" : adapter?.mode === "shadow" ? "Stable" : "Mode not recorded";
   const row = (label: string, value?: string | null) => value ? (
     <div><dt className="font-medium">{label}</dt><dd className="mt-1 whitespace-pre-wrap break-words">{value}</dd></div>
   ) : null;

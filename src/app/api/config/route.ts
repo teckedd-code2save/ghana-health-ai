@@ -4,9 +4,15 @@ import { isLlmConfigured } from "@/lib/llm";
 import { isModalAsrConfigured, resolveModalAsrRoute } from "@/lib/modal-asr";
 import { isModalTtsConfigured, resolveTtsRoute } from "@/lib/modal-tts";
 import { isAbenaConfigured, isEmbedConfigured } from "@/lib/embed";
+import { verifiedR3Config } from "@/lib/research-r3";
 
 /** Public runtime flags (no secrets). */
 export async function GET(request: Request) {
+  if (new URL(request.url).searchParams.get("research") === "r3") {
+    return jsonOk({ researchR3: { available: Boolean(await verifiedR3Config()) } }, {
+      headers: { "Cache-Control": "private, no-store" },
+    });
+  }
   const englishRoute = resolveModalAsrRoute("en");
   const twiTtsRoute = resolveTtsRoute("tw");
   const englishTtsRoute = resolveTtsRoute("en");

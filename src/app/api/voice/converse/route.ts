@@ -7,6 +7,7 @@ import type { LanguageCode } from "@prisma/client";
 import { runConversationTurn } from "@/lib/conversation-turn";
 import { publicFailure, unclearRecording } from "@/lib/public-errors";
 import type { UnderstandingModelMode } from "@/lib/understanding-model";
+import { isModelMode } from "@/lib/model-modes";
 
 function languageFromAsr(
   asr: Awaited<ReturnType<typeof modalTranscribe>>,
@@ -71,11 +72,7 @@ export async function POST(req: Request) {
         instruction = instructionValue.slice(0, 240);
       }
       const understandingValue = form.get("understandingModelMode");
-      if (
-        understandingValue === "shadow" ||
-        understandingValue === "assist" ||
-        understandingValue === "assist_v1"
-      ) {
+      if (isModelMode(understandingValue)) {
         understandingModelMode = understandingValue;
       }
     } else {
@@ -103,6 +100,7 @@ export async function POST(req: Request) {
     const replyLanguage = languageFromAsr(asr, language);
 
     const turn = await runConversationTurn({
+      signal: req.signal,
       user,
       ip,
       text: asr.text,
@@ -152,6 +150,7 @@ export async function POST(req: Request) {
         rms: asr.rms,
       },
       understanding: {
+        research: turn.understanding.research ?? null,
         reply: turn.reply,
         intent: turn.understanding.intent,
         severity: turn.understanding.severity,
