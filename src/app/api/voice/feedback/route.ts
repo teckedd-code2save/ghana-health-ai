@@ -4,6 +4,8 @@ import { getSessionUser } from "@/lib/auth";
 import { jsonError, jsonOk } from "@/lib/api";
 import { writeAudit } from "@/lib/audit";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { researchGuest } from "@/lib/research-guest";
+import { canAccessChat } from "@/lib/research-guest-core";
 
 const schema = z.object({
   conversationId: z.string().uuid(),
@@ -49,13 +51,14 @@ export async function POST(req: Request) {
     }
 
     const user = await getSessionUser();
+    const guestOwner = await researchGuest(req);
 
     const conversation = await prisma.conversation.findUnique({
       where: { id: body.conversationId },
-      select: { id: true, userId: true },
+      select: { id: true, userId: true, metadata: true },
     });
     if (!conversation) return jsonError("Conversation not found", 404);
-    if (conversation.userId && user?.id !== conversation.userId) {
+    if (!canAccessChat(conversation, user?.id, guestOwner)) {
       return jsonError("Conversation not found", 404);
     }
 

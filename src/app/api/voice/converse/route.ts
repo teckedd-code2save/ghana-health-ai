@@ -1,5 +1,6 @@
 import { prisma } from "@/db/prisma";
 import { getSessionUser } from "@/lib/auth";
+import { researchGuest, researchGuestIp } from "@/lib/research-guest";
 import { isModalAsrConfigured, modalTranscribe } from "@/lib/modal-asr";
 import { jsonError, jsonOk } from "@/lib/api";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
@@ -41,6 +42,7 @@ export async function POST(req: Request) {
     }
 
     const user = await getSessionUser();
+    const guestOwner = await researchGuest(req, true);
     const contentType = req.headers.get("content-type") ?? "";
     let audio: ArrayBuffer | null = null;
     let language: LanguageCode = user?.preferredLang ?? "tw";
@@ -103,6 +105,8 @@ export async function POST(req: Request) {
       signal: req.signal,
       user,
       ip,
+      researchGuestOwner: guestOwner,
+      researchGuestIp: researchGuestIp(req),
       text: asr.text,
       language: replyLanguage,
       focus,

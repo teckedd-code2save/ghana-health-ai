@@ -10,6 +10,8 @@ import type { UnderstandingModelMode } from "@/lib/understanding-model";
 import { isResearchR1Mode } from "@/lib/model-modes";
 import { runResearchR1Turn } from "@/lib/research-r1-turn";
 import { runResearchR3Turn } from "@/lib/research-r3-turn";
+import { canAccessChat } from "@/lib/research-guest-core";
+import { ResearchR3Error } from "@/lib/model-modes";
 
 type SessionUser = {
   id: string;
@@ -31,6 +33,8 @@ export type TurnTranscriptMeta = {
 export type ConversationTurnInput = {
   user: SessionUser;
   ip?: string;
+  researchGuestOwner?: string;
+  researchGuestIp?: string;
   text: string;
   language?: LanguageCode;
   focus?: "health" | "commerce";
@@ -96,6 +100,10 @@ export async function runConversationTurn(
   let conversation = input.conversationId
     ? await prisma.conversation.findUnique({ where: { id: input.conversationId } })
     : null;
+
+  if (conversation && !canAccessChat(conversation, input.user?.id, input.researchGuestOwner)) {
+    throw new ResearchR3Error("Conversation not found.", 404);
+  }
 
   if (!conversation) {
     conversation = await prisma.conversation.create({
