@@ -37,6 +37,8 @@ class FakeTransport:
     async def __call__(self, messages, variant, expected_sha, request_id):
         self.calls.append((variant, copy.deepcopy(messages)))
         change = self.changes.get(variant, {})
+        if change == "invalid_unicode_pre_start":
+            raise ValueError("Invalid Unicode in message")
         output = change.get("output", variant + " answer") if isinstance(change, dict) else variant + " answer"
         result = {"identity": self.demo.identity(MANIFEST, expected_sha, variant),
                   "messages_sha256": ui.digest(messages), "prompt_ids_sha256": ui.digest({"prompt": messages}),
@@ -185,7 +187,7 @@ class ComparisonTests(unittest.IsolatedAsyncioTestCase):
             if mutation != {"complete": False}:
                 self.assertFalse(state["rounds"][-1]["verified"], mutation)
             count = len(self.transport.calls)
-            with self.assertRaisesRegex(ValueError, "Unfinished"):
+            with self.assertRaisesRegex(ValueError, "Unfinished|Native prompt hashes differ"):
                 await self.collect(state=state, question="Cannot continue")
             self.assertEqual(len(self.transport.calls), count)
 
@@ -334,6 +336,270 @@ class ComparisonTests(unittest.IsolatedAsyncioTestCase):
         state = (await self.collect(state=state, question="Follow up", audition_fn=broken_audition))[-1]
         self.assertEqual(len(self.transport.calls), before)
         self.assertEqual(state["rounds"][-1]["status"], "error")
+
+    async def test_unicode_preflight_preserves_input_and_never_submits_or_cancels(self):
+        state = self.workbench.fresh()
+        for char in ("\ufffd", "\ud800", "\udfff", "\x00", "\x7f", "\ue000"):
+            with self.subTest(char=ascii(char)):
+                with self.assertRaisesRegex(ValueError, "Invalid Unicode"):
+                    await self.collect(state=state, question="Hello " + char)
+                self.assertEqual(self.store.load(state["id"]), state)
+        self.assertFalse(self.transport.calls)
+        self.assertFalse(self.transport.cancelled)
+        state = (await self.collect(state=state, question="\u025b\u0254\n\tHello\r"))[-1]
+        self.assertTrue(self.workbench.ready(state))
+
+    async def test_invalid_output_requires_explicit_branch_only_recovery(self):
+        self.transport.changes = {"r3_response": {"output": "America \u025by\ufffd",
+            "complete": False, "finish_reason": "max_new_tokens"}}
+        state = (await self.collect())[-1]
+        original = copy.deepcopy(state)
+        self.assertTrue(state["rounds"][0]["verified"])
+        self.assertFalse(self.workbench.ready(state))
+        self.assertEqual(self.workbench.recovery_plan(state)[0]["variant"], "r3_response")
+        self.assertEqual(state, original)
+        with self.assertRaisesRegex(ValueError, "exclude unusable"):
+            await self.collect(state=state)
+        recovered = self.workbench.recover(state)
+        self.assertEqual(recovered["rounds"], original["rounds"])
+        self.assertTrue(self.workbench.ready(recovered))
+        self.assertEqual(len(self.transport.calls), 3)
+        self.transport.changes = {}
+        next_state = (await self.collect(state=recovered, question="Next topic"))[-1]
+        self.assertEqual([len(m) for _, m in self.transport.calls[-3:]], [3, 1, 3])
+        self.assertTrue(next_state["rounds"][-1]["verified"])
+        self.assertEqual(next_state["rounds"][-1]["context_exclusions"], recovered["context_exclusions"])
+        self.assertEqual(ui.transcript(next_state, "r3_response")[1]["content"], "America \u025by\ufffd")
+        self.assertIn("Excluded from future context: turn 1", ui.context_status(next_state, "r3_response", []))
+
+    async def test_legacy_sixth_round_unicode_failure_recovers_without_rewriting_evidence(self):
+        self.transport = FakeTransport(self.demo, guarded=False)
+        state = self.workbench.fresh(loop_guard=False)
+        for question in ("weather no ho as3m te s3n", "ka weather no ho as3m kyer3 me",
+                         "ka aware3n ho as3m wo africa", "ka nea wonim fa us ho"):
+            state = (await self.collect(state=state, question=question))[-1]
+        self.transport.changes = {"r3_response": {"output": "America \u025by\ufffd",
+            "complete": False, "finish_reason": "max_new_tokens"}}
+        state = (await self.collect(state=state, question="de3n na wonim fa america ho"))[-1]
+        # Reproduce the old transport-only validation path, never relax production validation.
+        histories = {v: self.workbench.context_messages(state["rounds"], v, []) for v in ui.VARIANTS}
+        self.transport.changes = {"r3_response": "invalid_unicode_pre_start"}
+        with patch.object(self.workbench, "histories", return_value=histories), \
+                patch.object(self.workbench, "validate_messages", side_effect=foundation.validate_messages):
+            state = (await self.collect(state=state, question="america states y3 s3n, whan ne won man panin"))[-1]
+        for item in state["rounds"]:
+            item.pop("context_exclusions")
+        self.store.save(state)
+        self.store.review(state["id"], state["rounds"][4]["id"], "neither", "Keep this evidence")
+        reviews = self.store.reviews(state["id"])
+        with self.store.connection() as db:
+            saved_turns = db.execute("SELECT * FROM turns ORDER BY rowid").fetchall()
+        original = copy.deepcopy(state)
+        failed = state["rounds"][5]["sides"]["r3_response"]["turn"]
+        self.assertNotIn("call_id", failed)
+        self.assertEqual(failed["cancellation"], "unconfirmed: no call identity received")
+        plan = self.workbench.recovery_plan(state)
+        self.assertEqual([(e["round_id"], e["variant"]) for e in plan],
+                         [(state["rounds"][i]["id"], "r3_response") for i in (4, 5)])
+        restored_view = self.callbacks()["restore"](state["id"])
+        self.assert_controls_available(restored_view)
+        self.assertTrue(restored_view[-1]["interactive"])
+        self.assertIn("Remote cancellation not confirmed", restored_view[6])
+        recovered = self.workbench.recover(self.workbench.restore(state["id"]))
+        self.assertEqual(recovered["rounds"], original["rounds"])
+        self.assertEqual(recovered["model_sessions"], original["model_sessions"])
+        self.assertEqual(self.store.reviews(state["id"]), reviews)
+        with self.store.connection() as db:
+            self.assertEqual(db.execute("SELECT * FROM turns ORDER BY rowid").fetchall(), saved_turns)
+        self.assertEqual(len(self.transport.calls), 18)
+        self.assertFalse(self.transport.cancelled)
+        self.transport.changes = {}
+        for question in ("New question", "Another follow-up"):
+            previous = copy.deepcopy(recovered)
+            recovered = (await self.collect(state=recovered, question=question))[-1]
+            self.assertTrue(self.workbench.ready(recovered))
+            self.assertEqual(recovered["rounds"][:6], original["rounds"])
+            for variant, messages in self.transport.calls[-3:]:
+                expected = self.workbench.context_messages(previous["rounds"], variant, plan)
+                self.assertEqual(messages, expected + [{"role": "user", "content": question}])
+        proof = ui.evidence(self.workbench, recovered)
+        self.assertEqual(proof["context_exclusions"], plan)
+        self.assertEqual(proof["round_context_exclusions"], plan)
+        self.assertFalse(recovered["loop_guard"])
+        with self.store.connection() as db:
+            self.assertEqual(db.execute("SELECT * FROM turns ORDER BY rowid LIMIT ?", (len(saved_turns),)).fetchall(), saved_turns)
+
+    async def test_exclusions_are_append_only_scoped_and_audited(self):
+        self.transport.changes = {"r3_response": "disconnect"}
+        state = (await self.collect())[-1]
+        recovered = self.workbench.recover(state)
+        with self.assertRaisesRegex(ValueError, "Stale"):
+            self.workbench.recover(state)
+        with self.assertRaisesRegex(ValueError, "No unusable"):
+            self.workbench.recover(recovered)
+        reverted = copy.deepcopy(recovered)
+        reverted["context_exclusions"] = []
+        with self.assertRaisesRegex(ValueError, "append-only"):
+            self.store.save(reverted)
+        for field, value in (("variant", "base"), ("round_id", "foreign-round"), ("reason", "changed")):
+            tampered = copy.deepcopy(recovered)
+            tampered["context_exclusions"][0][field] = value
+            self.assertFalse(self.workbench.ready(tampered))
+        self.transport.changes = {"base": "disconnect"}
+        state = (await self.collect(state=recovered, question="Second"))[-1]
+        updated = self.workbench.recover(state)
+        self.assertEqual(updated["context_exclusions"][:1], recovered["context_exclusions"])
+        self.assertEqual(updated["context_exclusions"][1]["variant"], "base")
+        self.assertTrue(self.workbench.ready(updated))
+        self.transport.changes = {}
+        state = (await self.collect(state=updated, question="Third"))[-1]
+        state["rounds"][-1]["context_exclusions"] = []
+        self.assertFalse(self.workbench.ready(state))
+
+    async def test_recovery_cannot_bypass_conflicting_prompt_evidence(self):
+        self.transport.changes = {"r3_response": {"prompt_ids_sha256": "f" * 64}}
+        state = (await self.collect())[-1]
+        with self.assertRaisesRegex(ValueError, "Native prompt hashes"):
+            self.workbench.recover(state)
+        self.assertEqual(self.store.load(state["id"]), state)
+
+    async def test_concurrent_compare_and_recovery_never_duplicate_requests(self):
+        prior = self.workbench.fresh()
+        first = self.stream(state=prior)
+        pending = await anext(first)
+        with self.assertRaisesRegex(ValueError, "Unfinished"):
+            self.workbench.recover(pending)
+        with self.assertRaisesRegex(ValueError, "Stale"):
+            await anext(self.stream(state=prior))
+        await first.aclose()
+        terminal = self.store.load(prior["id"])
+        self.assertEqual(terminal["rounds"][-1]["status"], "cancelled")
+        recovered = self.workbench.recover(terminal)
+        self.assertEqual(len(recovered["context_exclusions"]), 3)
+        self.assertTrue(self.workbench.ready(recovered))
+        self.assertFalse(self.transport.calls)
+
+    async def test_iterator_cleanup_failure_is_terminal_and_recoverable(self):
+        class BrokenIterator:
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                raise StopAsyncIteration
+
+            async def aclose(self):
+                raise RuntimeError("cleanup failure")
+
+        state = (await self.collect(audition_fn=lambda *args, **kwargs: BrokenIterator()))[-1]
+        self.assertEqual(state["rounds"][-1]["status"], "error")
+        self.assertTrue(all("Stream cleanup failed" in side["error"] for side in state["rounds"][-1]["sides"].values()))
+        self.assertTrue(self.workbench.ready(self.workbench.recover(state)))
+        self.assertFalse(self.transport.calls)
+
+    def callbacks(self):
+        app = ui.build_app(self.workbench, remote=self.transport, cancel=self.transport.cancel)
+        return {f.fn.__name__: f.fn for f in app.fns.values()}
+
+    def assert_controls_available(self, view):
+        self.assertTrue(view[9]["interactive"], "Question must not stay disabled")
+        self.assertTrue(view[11]["interactive"], "New chat must not stay disabled")
+        self.assertTrue(view[12]["interactive"], "Saved conversations must remain accessible")
+
+    async def test_ui_preflight_and_terminal_errors_unlock_controls_and_recover(self):
+        callbacks = self.callbacks()
+        prior = self.workbench.fresh()
+        for question in ("invalid \ufffd", "invalid \ud800"):
+            failed = [v async for v in callbacks["respond"](question, prior, "guarded")][-1]
+            self.assert_controls_available(failed)
+            self.assertNotIn("value", failed[9])  # Leave the original client-side input untouched.
+            self.assertEqual(failed[0], prior)
+            self.assertIn("Invalid Unicode", failed[8])
+            self.assertIn("This message was not submitted", failed[8])
+            self.assertNotIn("Remote cancellation", str(failed))
+            json.dumps(failed, ensure_ascii=False).encode("utf-8")
+        self.assertFalse(self.transport.calls)
+        self.transport.changes = {"r3_response": "disconnect"}
+        failed = [v async for v in callbacks["respond"]("Hello", prior, "guarded")][-1]
+        self.assert_controls_available(failed)
+        self.assertTrue(failed[-1]["interactive"])
+        self.assertIn("Needs context exclusion", failed[6])
+        recovered = callbacks["recover"](failed[0])
+        self.assert_controls_available(recovered)
+        self.assertFalse(recovered[-1]["interactive"])
+        self.assertIn("Excluded from future context", recovered[6])
+        self.transport.changes = {}
+        final = [v async for v in callbacks["respond"]("Next", recovered[0], "guarded")][-1]
+        self.assert_controls_available(final)
+        self.assertTrue(final[0]["rounds"][-1]["verified"])
+        fresh = callbacks["new_chat"]("guarded")
+        self.assert_controls_available(fresh)
+        self.assertEqual(fresh[0]["rounds"], [])
+
+    async def test_ui_duplicate_send_does_not_release_the_active_request(self):
+        callbacks = self.callbacks()
+        prior = self.workbench.fresh()
+        first = callbacks["respond"]("First", prior, "guarded")
+        pending = await anext(first)
+        self.assertFalse(pending[9]["interactive"])
+        duplicate = [v async for v in callbacks["respond"]("Duplicate", prior, "guarded")][-1]
+        self.assertIn("already active", duplicate[8])
+        self.assertFalse(duplicate[9]["interactive"])
+        self.assertFalse(duplicate[11]["interactive"])
+        recovery = callbacks["recover"](pending[0])
+        self.assertIn("already active", recovery[8])
+        callbacks["stop"](pending[0])
+        final = [v async for v in first][-1]
+        self.assert_controls_available(final)
+        self.assertFalse(self.transport.calls)
+        self.assertEqual(len(final[0]["rounds"]), 1)
+        stale = [v async for v in callbacks["respond"]("Stale", prior, "guarded")][-1]
+        self.assert_controls_available(stale)
+        self.assertIn("Stale", stale[8])
+        mismatched = [v async for v in callbacks["respond"]("Wrong mode", final[0], "raw")][-1]
+        self.assert_controls_available(mismatched)
+        self.assertIn("Mode changed", mismatched[8])
+
+    async def test_ui_disconnect_and_render_exception_release_controls(self):
+        callbacks = self.callbacks()
+        prior = self.workbench.fresh()
+        stream = callbacks["respond"]("First", prior, "guarded")
+        await anext(stream)
+        await stream.aclose()
+        restored = callbacks["restore"](prior["id"])
+        self.assert_controls_available(restored)
+        self.assertEqual(restored[0]["rounds"][-1]["status"], "cancelled")
+        with patch.object(self.store, "conversations", side_effect=[RuntimeError("render failure"), []]):
+            result = [v async for v in callbacks["respond"]("Second", self.workbench.fresh(), "guarded")][-1]
+        self.assert_controls_available(result)
+        self.assertIn("render failure", result[8])
+        self.assertFalse(self.transport.calls)
+
+    async def test_ui_cleanup_exception_still_emits_unlocked_final_view(self):
+        callbacks = self.callbacks()
+        prior = self.workbench.fresh()
+
+        class BrokenCompare:
+            def __init__(self):
+                self.first = True
+
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                if self.first:
+                    self.first = False
+                    return prior
+                raise RuntimeError("terminal failure")
+
+            async def aclose(self):
+                raise RuntimeError("cleanup failure")
+
+        with patch.object(self.workbench, "compare", return_value=BrokenCompare()):
+            views = [v async for v in callbacks["respond"]("Question", prior, "guarded")]
+        self.assertFalse(views[0][9]["interactive"])
+        self.assert_controls_available(views[-1])
+        self.assertIn("cleanup failure", views[-1][8])
+        self.assertFalse(self.transport.calls)
 
     async def test_ui_config_and_callbacks_without_server_or_remote_startup(self):
         remote = Mock(side_effect=AssertionError("No startup inference"))
