@@ -8,7 +8,7 @@ Issue: #57. User approved the four-stage plan on 2026-11-07.
 | --- | --- | --- |
 | 1. Audit R3 supervision and execution | Complete | All 1,449 rows match native encoding; 867 chat rows have masked context and one supervised final EOS. No blanket finding that repeated training text caused the model loops. |
 | 2. Correct and broaden conversation data | Final pack v3 prepared | 35 source frames considered, 33 admitted, two held. Three additional kinship findings resolved in part-A v2; no native-human certification claimed. |
-| 3. Continue R3 into R4 | Submitted to Modal | `understanding_20261109T103659Z`, call `fc-01M6ZY42GWDKP5CYK7TCZ8B6VS`. Final-pack smoke passed in 193 seconds; actual training consumption still pending. |
+| 3. Continue R3 into R4 | First pass committed; second pass running | `understanding_20261109T103659Z`, call `fc-01M6ZY42GWDKP5CYK7TCZ8B6VS`. At 10:52 UTC: 63/125 updates, 1,008 presentations, 80,842 effective target tokens. Final-pack smoke passed in 193 seconds. |
 | 4. Compare base, R3 and R4 | Implementation tested; waiting for actual adapter | 139 tests passed. Separate model histories and equal guard. Saved development cases; no new final-test claims. |
 
 R3 is the reference, not an editable dataset or replaceable checkpoint. Its final
