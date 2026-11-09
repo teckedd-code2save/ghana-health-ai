@@ -48,6 +48,67 @@ turns, not completion scores alone.
    Context recovery must be explicit and recorded, with exact submitted input.
 6. No production promotion, public dataset upload, ASR or TTS changes in this pass.
 
+## Benchmark Contract for Every Training Run
+
+Every completed training run is followed by a checkpoint-matched comparison
+against its initialization checkpoint and the adapter-disabled base. Data and
+evaluation versions, decoding settings, exact inputs, outputs, failures and
+checkpoint identities are retained. A checkpoint is not described as improved
+merely because training finished, loss fell or more replies reached EOS.
+
+| Capability | Evidence required | How it guides the next data work |
+| --- | --- | --- |
+| Meaning | Negation, experiencer, uncertainty, time, quantities and entity corrections | Identify which semantic distinctions are lost |
+| Conversation | Independent multi-turn histories, follow-ups, topic changes, remembered facts and useful next steps | Repair conversational supervision, not isolated phrases only |
+| Language | Twi naturalness, requested language, code-switching and informal spelling; English retention separately | Detect language drift and regression |
+| Reasoning and actions | Verifiable arithmetic, constraints, catalogue/tool outcomes and honest capability limits | Distinguish executable success from plausible prose |
+| Factual uncertainty | Unsupported claims, time-sensitive questions and appropriate clarification | Target invented facts without rewarding blanket refusal |
+| Safety | Harmful or unsupported advice and unnecessary refusals, with domain-review status explicit | Separate language fidelity from safe health-education behavior |
+| Reliability | Repetition, truncation, errors, first-text latency and total latency | Separate serving problems from model-quality failures |
+
+The reused development suite measures regression on known cases. Fresh held-out
+cases measure transfer only after an audit against inherited as well as new
+training sources. Neither suite establishes independence from unknown base-model
+pretraining. Raw and guarded results are separate: stopping a loop does not turn
+its answer into a correct one.
+
+Each capability reports its own case and source-group denominators, correct,
+failed and unreviewed counts, and paired improvements/regressions with examples.
+Semantic judgments identify their reviewer type. Missing review remains missing,
+not a pass. Spelling and bilingual variants are related cases, not independent
+sample-size inflation. Perplexity is reported by language and token protocol;
+it measures prediction loss, not factual accuracy or clinical safety.
+
+The handoff must end with an evidence-based list of strengths, unresolved errors,
+regressions and the next data/training changes. No single aggregate fluency score
+or selected successful demo substitutes for this breakdown.
+
+### External Benchmark Anchors
+
+The benchmark program has three layers: established public tasks, Twi-specific
+meaning/conversation evaluation, and end-to-end product behavior. The current
+runner implements the latter research comparisons and language-loss cohorts;
+standard public task execution is not yet complete. Public benchmark scores must
+not be claimed before their official task/scorer has actually run.
+
+- EleutherAI's [evaluation methodology](https://arxiv.org/abs/2405.14782)
+  informs pinned task versions, prompts, model configuration and reproducible
+  scoring. Retain raw model outputs and enough configuration to rerun the score.
+- [HELM](https://crfm.stanford.edu/2022/11/17/helm.html) motivates separate
+  capability and reliability dimensions, not one overall fluency number. This
+  is methodological guidance, not a claim that this project has run HELM.
+- Google's [IFEval](https://github.com/google-research/google-research/tree/master/instruction_following_eval)
+  is the first proposed standard instruction-following anchor, using its own
+  pinned data and scorer. English results measure English instruction-following.
+  A Twi derivative needs language-aware checking and its own version/validation;
+  it is not the original benchmark or directly leaderboard-comparable.
+
+Frozen tests are kept separate from development diagnostics. Repeatedly inspected
+release cases become regression evidence; they are not indefinitely described as
+unseen. Confidence intervals and paired changes should respect source groups,
+not treat translated/spelling variants as independent observations. Native
+meaning/naturalness judgments and clinical judgments remain different reviews.
+
 ## Current Data Work
 
 The source work plan selects **240 existing English conversation histories from
@@ -121,5 +182,11 @@ Modal inference requests verified lab recovery. R5 training has not started.
 - Lab database: `understanding-r4-20261107/workbench/workbench.sqlite3`.
 - Existing private remote research volume: `ghana-health-understand-train`.
 
-Remote R5 backup and training have not yet run. Local preparation is not described
-as a completed or remotely backed-up run.
+The initial source plan, repair sources, held-out admission package and progress
+snapshot were backed up and read back from the private research volume at
+15:02 UTC on November 9. The manifest is
+`e4a2c7d682870adb7a941f0f66a84be338ddf2e660e172ce16e1e57d48b1092c`,
+under `/research-training-r5/` with that manifest hash as its directory. The
+local receipt is `backup-preparation-v1/storage.json`. User lab conversations
+were not included. Later reviews and the final pack still require their own
+verified backup. R5 training has not started.
