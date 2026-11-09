@@ -189,6 +189,7 @@ class RendererTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Partial exports"):
             self.render()
         document = self.render(allow_partial=True)
+        self.assertIn("PARTIAL comparison", document)
         for expected in ("8 / 9 total slots finalized", "1 / 3 chat slots pending", "Run state: paused_budget",
                          "state: pending", "No output recorded."):
             self.assertIn(expected, document)
@@ -201,11 +202,13 @@ class RendererTests(unittest.TestCase):
         self.assertIn("2 / 3", document)
         self.assertIn("Run completion does not mean every reply completed with EOS", document)
 
-    def test_completed_run_with_unverified_reply_is_partial(self):
+    def test_completed_run_with_unverified_reply_reports_coverage_gap(self):
         self.raw = fixture(self.root / "raw-error", "raw", failed=True)
         with self.assertRaisesRegex(ValueError, "2 / 3 chat replies verified"):
             self.render()
         document = self.render(allow_partial=True)
+        self.assertIn("Completed runs; coverage gaps", document)
+        self.assertNotIn("PARTIAL comparison", document)
         self.assertIn("Run state: completed; finalized slots: 9 / 9", document)
         self.assertIn("state: error; verified: False", document)
 

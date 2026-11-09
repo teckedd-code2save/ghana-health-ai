@@ -115,12 +115,46 @@ faithful meaning, useful advice or clinical safety. Guard-triggered pauses are
 not counted as EOS success. Exact raw outputs, input histories, stop reasons,
 checkpoint identities and runtime proofs remain available.
 
-Full metrics are pending completion and verified collection of the two evaluation
-runs. Early saved outputs retain the R3 delivery correction but also retain its
-incorrect Twi subtraction answer; repetition remains in an unguarded headache
-case. A separate live name-retention follow-up succeeds for R3 and fails for R4.
-These are agent observations, not native-human ratings or a general improvement
-claim.
+Both detached evaluation runs completed: 1,672 raw slots and 225 guarded slots.
+The raw count includes 300 chat requests and 1,372 language-loss measurements.
+Finalized slots include explicit errors and blocked follow-ups, not only successes.
+
+| Raw development diagnostic | Base | R3 | R4 final | R4 first pass |
+| --- | ---: | ---: | ---: | ---: |
+| EOS replies / 75 planned | 71 | 67 | 73 | 71 |
+| Generated, verified replies | 75 | 73 | 75 | 75 |
+| Replies containing repeated four-word sequences | 5/75 | 12/73 | 8/75 | 9/75 |
+| Exact consecutive rollout replies / compared pairs | 4/19 | 3/17 | 0/19 | 2/19 |
+| Strict JSON literal matches with EOS | 6/8 | 8/8 | 8/8 | 8/8 |
+| Held-out Twi perplexity | 15.4532 | 5.1590 | 5.1968 | 5.2031 |
+
+All four language-loss evaluations cover the same 343 rows and 9,315 predicted
+tokens. R4 final has approximately 0.73% higher perplexity than R3: a small
+worsening, not a retention improvement. Raw R3 has one follow-up input error
+after a Unicode-truncated reply and one downstream blocked turn. Both remain
+in the evidence; they are not assigned semantic scores. These results should
+not be pooled with earlier runs using the same development set.
+
+With identical repetition guards, EOS counts are 71/75 base, 69/75 R3 and 73/75
+R4; guard pauses are 1/75, 5/75 and 1/75 respectively. All 225 guarded requests
+produce verified outputs. Later own-history inputs can differ from raw mode
+because a guard changes the prior reply. A paused response is not EOS success;
+raw and guarded measurements are kept separate.
+
+Agent inspection finds improved distinction between a call date and an arrival
+date, concise corrected orange quantities, and a Twi summary preserving mother,
+left knee and onset. These are limited case-level findings. Incorrect Twi
+arithmetic, unsupported initial quantities, weak planning and a meaning-reversing
+shopping phrase remain. Matched English health summaries still invent mobility
+limitations. A separate live name-retention follow-up succeeds for R3 and fails
+for R4. The first-pass model gives a better final next action in one English
+planning case, so an extra pass is not uniformly beneficial.
+
+Final R4 is exposed as the completed continuation for local review, not selected
+as universally best or promoted to production. Both checkpoints are retained.
+No calibrated native-human semantic score, clinical rating or blind final-test
+improvement is claimed. The public execution record explains denominators and
+the private HTML report preserves exact questions, histories and outputs.
 
 ## Limitations and Use
 

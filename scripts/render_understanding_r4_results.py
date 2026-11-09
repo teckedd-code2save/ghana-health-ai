@@ -326,6 +326,10 @@ def render_report(raw, guarded, *, allow_partial=False):
     exports = (raw, guarded)
     issues = [f"{e.policy}: {issue}" for e in exports for issue in e.issues]
     require(allow_partial or not issues, "Partial exports; use --allow-partial to label them explicitly: " + "; ".join(issues))
+    finished = all(e.status.get("state") == "completed" and set(VARIANTS) <= set(e.metrics)
+                   and e.summary["finalized_slots"] == e.summary["expected_slots"] for e in exports)
+    coverage = ("Completed runs; coverage gaps" if finished else "PARTIAL comparison") if issues else \
+        "Completed runs; full reported slot coverage"
     script_hash = base64.b64encode(hashlib.sha256(SCRIPT.encode()).digest()).decode()
     parts = ['<!doctype html><html lang="en"><head><meta charset="utf-8">',
              '<meta name="viewport" content="width=device-width,initial-scale=1">',
@@ -334,7 +338,7 @@ def render_report(raw, guarded, *, allow_partial=False):
              '<title>R4 evaluation comparison</title><style>' + STYLE + '</style></head><body><main>',
              '<h1>R4 evaluation comparison</h1><p class="muted">Private development evaluation, not blind final. '
              'Mechanical diagnostics only; no semantic, native-human or clinical certification.</p>',
-             '<p><strong>' + ('PARTIAL comparison' if issues else 'Completed runs; full reported slot coverage') + '</strong>. '
+             '<p><strong>' + coverage + '</strong>. '
              'Run completion does not mean every reply completed with EOS.</p>']
     if issues:
         parts.append('<ul class="notice">' + ''.join('<li>' + escaped(i) + '</li>' for i in issues) + '</ul>')

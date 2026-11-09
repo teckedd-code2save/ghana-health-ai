@@ -45,6 +45,30 @@ Scope: 46 fixed histories plus 10 scripted rollouts comprising 29 turns per chec
 
 R3's modest language-loss improvement does not establish reliable overall conversational improvement over R2. Repeated four-word sequences are not all pathological loops. Native-human quality review and clinical certification remain pending. See the [overview](docs/research/overview.md) for protocol and data boundaries.
 
+### R4 Continuation
+
+**9 November 2026:** R4 continued the final R3 adapter on 1,544 versioned dataset
+records, expanded into 1,642 distinct training views and 1,997 presentations.
+The run consumed 161,773 effective target tokens. New and spelling-augmented
+material accounts for 7.4% of response-target tokens; this is a focused
+continuation, not a full-inventory run. Both checkpoints and consumed data are
+documented in the [R4 model card](docs/TWI_R4_MODEL_CARD.md).
+
+| Fresh matched development run | Base | R3 | R4 final |
+| --- | ---: | ---: | ---: |
+| Raw EOS replies / 75 planned | 71 | 67 | 73 |
+| Raw replies with repeated four-word sequences | 5/75 generated | 12/73 generated | 8/75 generated |
+| Guard pauses / 75 guarded requests | 1 | 5 | 1 |
+| Held-out Twi perplexity | 15.4532 | 5.1590 | 5.1968 |
+
+The same 343 held-out text rows and 75 development chat slots were evaluated
+again under a pinned runtime; these fresh outputs are separate from the table
+above. Raw R3 has one error and one blocked follow-up. Lower repetition and some
+better follow-ups coexist with slightly worse perplexity, arithmetic failures
+and a name-retention regression. See [exact denominators, observations and local
+comparison instructions](docs/TWI_UNDERSTANDING_R4_20261107.md). The public
+application remains R3; R4 is available in the private local comparison only.
+
 ## Application and Code
 
 Try the [Ghana Health AI application](https://ghanahealth.serendepify.com/chat). R3 is a research model option; live output can contain meaning errors and repetition.
