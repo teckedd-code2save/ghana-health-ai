@@ -2,6 +2,7 @@
 """Seal and run a receipt-bound R4 development evaluation. Preparation is offline."""
 import argparse
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import hashlib
 import html
@@ -608,6 +609,29 @@ def remote_status(receipt):
     return result
 
 
+def download_snapshot(volume, prefix, out, workers=8):
+    require(1 <= workers <= 8, "Bound result download concurrency")
+    selected = []
+    for entry in volume.iterdir(prefix, recursive=True):
+        if entry.type.name != "FILE":
+            continue
+        remote = "/" + entry.path.lstrip("/")
+        require(remote.startswith(prefix + "/"), "Unexpected remote prefix")
+        selected.append((remote, safe(out, remote[len(prefix) + 1:])))
+    require(len({str(path) for _, path in selected}) == len(selected), "Duplicate remote result path")
+
+    def transfer(item):
+        remote, path = item
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("xb") as stream:
+            for chunk in volume.read_file(remote):
+                stream.write(chunk)
+
+    # Results are immutable after the terminal-call check; each worker owns one path.
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        list(pool.map(transfer, selected))
+
+
 def collect(receipt, out):
     value, out = read(receipt), Path(out)
     require(not out.exists(), "Use a fresh collection directory")
@@ -618,16 +642,7 @@ def collect(receipt, out):
     prefix = value["remote_directory"]
     require(prefix == PREFIX + "/" + value["run_id"] and re.fullmatch(r"r4_eval_\d{8}T\d{6}Z", value["run_id"]), "Invalid collection prefix")
     out.mkdir(parents=True)
-    for entry in volume.iterdir(prefix, recursive=True):
-        if entry.type.name != "FILE":
-            continue
-        remote = "/" + entry.path.lstrip("/")
-        require(remote.startswith(prefix + "/"), "Unexpected remote prefix")
-        path = safe(out, remote[len(prefix) + 1:])
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("wb") as stream:
-            for chunk in volume.read_file(remote):
-                stream.write(chunk)
+    download_snapshot(volume, prefix, out)
     require(read(out / "journal/binding.json")["execution_sha256"] == value["execution_sha256"], "Collected execution differs")
     if (out / "results-manifest.json").exists():
         for name, checksum in read(out / "results-manifest.json")["files"].items():
