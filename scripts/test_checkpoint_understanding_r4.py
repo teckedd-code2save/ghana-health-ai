@@ -7,6 +7,18 @@ from checkpoint_understanding_r4 import freeze, verify
 
 
 class SnapshotTests(unittest.TestCase):
+    def test_explicit_r5_namespace_preserves_r4_default(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "record.json"
+            source.write_text('{"source_id":"one"}')
+            freeze(["research=" + str(source)], root / "r4")
+            freeze(["research=" + str(source)], root / "r5", "r5-private-snapshot-v1")
+            self.assertEqual(verify(root / "r4")["version"], "r4-private-snapshot-v1")
+            self.assertEqual(verify(root / "r5")["version"], "r5-private-snapshot-v1")
+            with self.assertRaisesRegex(ValueError, "Unknown"):
+                freeze(["research=" + str(source)], root / "bad", "unknown")
+
     def test_round_trip_and_tamper(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

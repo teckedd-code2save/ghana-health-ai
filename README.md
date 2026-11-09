@@ -11,6 +11,7 @@ Research and application code for Twi/Akan speech, language understanding, and c
 - [Research overview: results, provenance, and reproduction limits](docs/research/overview.md)
 - [R4 continuation: consumed data, comparisons and current limitations](docs/TWI_UNDERSTANDING_R4_20261107.md)
 - [R4 companion model card](docs/TWI_R4_MODEL_CARD.md)
+- [R5 in progress: lab recovery, source repair, fresh evaluation and training](docs/TWI_UNDERSTANDING_R5_20261109.md)
 - [Language understanding research programme](docs/GHANA_LANGUAGE_UNDERSTANDING_RESEARCH.md)
 - [ASR model decision record](docs/asr-model-decision.md)
 - [R3 application access](docs/R3_GUEST_CHAT.md)
