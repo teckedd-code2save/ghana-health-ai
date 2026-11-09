@@ -30,6 +30,21 @@ Dated documents retain historical plans and decisions; they are not live deploym
 | Speech synthesis | Language routing, text preservation, listening review | Routing checks are not naturalness certification |
 | Data accountability | Versioned admission, source lineage, consumed rows/tokens | Inventory is not training consumption or human approval |
 
+### Benchmark Every Training Run
+
+Each new checkpoint must be compared with the previous checkpoint and the
+adapter-disabled base. Reports separate meaning, conversation, language,
+reasoning, factual uncertainty, safety and reliability, retaining failures and
+actual outputs. Known regression cases, fresh held-out cases, raw generation
+and product guards remain distinct. English retention does not establish Twi
+competence; completion and perplexity do not establish response accuracy.
+
+The [R5 benchmark contract](docs/TWI_UNDERSTANDING_R5_20261109.md#benchmark-contract-for-every-training-run)
+defines this release requirement. Its current runner reports category-level
+mechanical diagnostics and preserves a separate quality-review queue. Official
+IFEval integration is in progress; no public-benchmark score or R5 improvement
+is claimed before execution and review.
+
 ## Recorded Development Results
 
 **6 November 2026:** completed comparison of a pinned multilingual foundation, R2 meaning adaptation, and R3 response adaptation. These aggregates come from locally held verified receipts. The underlying private artifacts are **not published by this README**.
