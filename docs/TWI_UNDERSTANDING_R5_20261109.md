@@ -111,6 +111,30 @@ meaning/naturalness judgments and clinical judgments remain different reviews.
 
 ## Current Data Work
 
+### Dataset Registration Before Training
+
+Every selected example must be a record in a versioned dataset, not an untracked
+prompt passed directly to the trainer. The R5 builder writes separate `language`,
+`meaning`, `responses`, and `english_retention` snapshots, each with records,
+a manifest and a dataset card. Every training view carries the dataset ID,
+version, record ID, source ID and record checksum. The runner rejects missing
+records, changed contents, unadmitted records and history-prefix mismatches.
+Spelling variants retain their parent admission and transformation reference.
+
+The consumed-data receipt will distinguish dataset records, derived training
+views, repeated presentations and supervised tokens. Until a completed worker
+receipt exists, counts describe preparation only. All selected research sources
+and review decisions are privately backed up; they are not public datasets.
+
+The current continuation passed 193 local preparation, training-contract,
+inference and workbench tests. These verify code behavior, not Twi quality.
+The remaining independent conversation reviews are being completed before the
+final pack is sealed. Repairable source errors are corrected in explicit new
+English/Twi derivatives, with original source bytes and earlier decisions kept.
+Examples include invented performance-review evidence, inconsistent recipe
+ingredients and invalid CSS instructions. Separate reviewers check those
+derivatives; a source correction does not admit itself.
+
 The source work plan selects **240 existing English conversation histories from
 240 source trees**, with **209 multi-turn histories and 449 assistant occurrences**.
 These are translation/review candidates, not newly admitted training records.
