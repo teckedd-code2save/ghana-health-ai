@@ -9,7 +9,7 @@ Issue: #57. User approved the four-stage plan on 2026-11-07.
 | 1. Audit R3 supervision and execution | Complete | All 1,449 rows match native encoding; 867 chat rows have masked context and one supervised final EOS. No blanket finding that repeated training text caused the model loops. |
 | 2. Correct and broaden conversation data | Final pack v3 prepared | 35 source frames considered, 33 admitted, two held. Three additional kinship findings resolved in part-A v2; no native-human certification claimed. |
 | 3. Continue R3 into R4 | Completed | `understanding_20261109T103659Z`, call `fc-01M6ZY42GWDKP5CYK7TCZ8B6VS`: 125/125 updates, 1,997 presentations and 161,773 effective target tokens committed. Final and update-63 adapters saved. |
-| 4. Compare base, R3 and R4 | Local UI verified; saved evaluations running | Both adapters passed full readback. Private actor deployed; UI at `127.0.0.1:7868`. Raw and guarded runs are separate. No new final-test claims. |
+| 4. Compare base, R3 and R4 | Guarded evaluation collected; raw language scoring running | 225/225 guarded slots collected and checked. Raw chat outputs complete; held-out text scoring continues. Local UI verified at `127.0.0.1:7868`. No new final-test claims. |
 
 R3 is the reference, not an editable dataset or replaceable checkpoint. Its final
 adapter SHA256 is `5cc0537b21674231b640ae9109a08ffa6fab426c80ac1969705dfac9c9e6b874`.
@@ -97,6 +97,50 @@ dialogue rollouts. Rollout histories belong to each model, so later-turn token
 inputs intentionally differ. These are reused development cases, not a new blind
 test. A durable result is not automatically a successful or semantically correct
 answer. Full results and denominators will be reported after collection.
+
+### Completed Guarded Chat Results
+
+| Diagnostic | Base | R3 | R4 final |
+| --- | ---: | ---: | ---: |
+| Verified generated replies / planned | 75/75 | 75/75 | 75/75 |
+| EOS-completed replies | 71/75 | 69/75 | 73/75 |
+| Repetition-guard pauses | 1/75 | 5/75 | 1/75 |
+| Token-limit truncations | 3/75 | 1/75 | 1/75 |
+| Replies with a repeated four-word sequence | 5/75 | 14/75 | 8/75 |
+| Exact consecutive rollout replies / compared pairs | 4/19 | 4/19 | 0/19 |
+| Strict JSON literal matches with EOS | 6/8 | 8/8 | 8/8 |
+
+These are all saved outputs, not a selected success subset. Repeated four-word
+sequences include legitimate reuse as well as loops; guard pauses remain
+unfinished responses. The guard does not turn the remaining text into a correct
+answer. Later rollout inputs differ because each model receives its own history.
+
+### Meaning Observations and Next Correction Targets
+
+The following are agent assessments tied to exact saved case IDs, not calibrated
+human scores. Full questions, outputs and histories remain in the private report.
+
+| Case | Observed change from R3 to R4 final | Remaining gap |
+| --- | --- | --- |
+| `r3-dev-uncertainty-tw` | Distinguishes a call tomorrow from an unknown arrival date instead of repeating one reply | One scripted case, not general uncertainty calibration |
+| `r3-dev-commerce-tw` | Gives concise 10 then 6 oranges after a people-count correction; R3 gets the amounts but loops | Both assume one orange per person before quantity is supplied |
+| `r3-dev-health-meaning` | Summary retains mother, left knee and onset this morning | Meaning-only check; matched English answers still invent mobility limitations |
+| `challenge-tw-location-correction` | Retains R3's correct address/quantity correction | Existing capability, not a new R4 gain |
+| `dev-count-tw`, `r3-dev-budget-tw` | Incorrect Twi arithmetic persists | Equivalent English budget case succeeds; language-matched failure remains |
+| `r3-dev-language-switch` | Switches to Twi | The shopping explanation retains a meaning-reversing purchase phrase; native wording check needed |
+| `r3-dev-plan-en` | Completes the initial answer | Still exceeds the revised time budget and assumes the list is already written; pass-one final next action is better |
+
+The separate live name-retention probe above is also a regression. These findings
+support keeping the final and first-pass checkpoints, rather than assuming an
+extra pass improves every ability. The next data repair should target supplied-
+fact-only summaries, grounded clarification, conversational memory, and paired
+Twi/English quantity reasoning. Retain these observed cases as development tests;
+new source-separated cases are needed to test generalization after repairs.
+
+Agent observations are stored privately in `analysis-v1/twi-selected-observations.json`
+and `analysis-v1/english-rollout-agent-review.json`. The English review covers
+36 turns from three trajectories across four variants. Neither file records
+human approval or changes the evaluation's original review status.
 
 Raw execution SHA256:
 `1bbd843e39dab784022401d53fa5e0a40315ddfb592a63496cbe8376b3d3a469`.
