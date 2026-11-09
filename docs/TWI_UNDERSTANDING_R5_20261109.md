@@ -157,10 +157,14 @@ tokens. This is not a count of natural conversations or the full raw archive.
 | Responses | 306 | 86 prose instructions and 220 language exercises |
 | English retention | 992 | Complete English source histories |
 
-The continuation inherits that learned state through R3 and R4. The R5 work
-addresses the limited conversation supervision on top, rather than pretending
-the language and meaning data were never used. The private data audit links every
-aggregate to the original manifest and consumption receipt.
+Those totals describe the whole R2 experiment, not all inherited R4 training.
+R3 initialized from R2's **meaning** checkpoint, before R2's separate response
+stage. The ancestral R2 language/meaning stages contain 31,115 distinct views
+and 1,084,400 effective target tokens; 364 additional distinct views occur only
+in the non-ancestral response stage. R3 and R4 then have their own recorded
+response training. The R5 work addresses that conversation supervision, while
+preserving the language/meaning adaptation. The private audit verifies the
+checkpoint links and separates actual ancestor consumption from sibling stages.
 
 The broad audit's 14 decoded-string mismatch flags (seven instruction rows in
 each of R3 and R4) are not evidence of 14 corrupt targets. Rechecking all 84

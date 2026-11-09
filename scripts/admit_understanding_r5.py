@@ -140,7 +140,7 @@ def admit(pairs, r4_pack, fresh, out):
             accepted.append(record)
     data.require(accepted, "No admissible data")
     recheck(pins)
-    out.mkdir(parents=True)
+    out.mkdir(parents=True, mode=0o700)
     for name, records in (("conversations.jsonl", accepted), ("excluded.jsonl", excluded), ("source-review-evidence.jsonl", evidence)):
         data.write_rows(out / name, records)
     data.save(out / "report.json", {"selected_sources": len(seen), "admitted_histories": len(accepted), "excluded": len(excluded),

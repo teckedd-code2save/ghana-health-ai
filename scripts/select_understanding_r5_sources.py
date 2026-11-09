@@ -146,7 +146,7 @@ def select(candidates, r2_pack, r4_pack, out, limit=240, shards=4):
                        "source_record_sha256": data.digest(source), "training_eligible": False,
                        "review_status": "source_review_and_translation_required"})
     recheck(pins)
-    out.mkdir(parents=True)
+    out.mkdir(parents=True, mode=0o700)
     data.write_rows(out / "sources.jsonl", chosen)
     data.write_rows(out / "selection-ledger.jsonl", excluded)
     for shard in range(shards):
