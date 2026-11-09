@@ -8,8 +8,8 @@ Issue: #57. User approved the four-stage plan on 2026-11-07.
 | --- | --- | --- |
 | 1. Audit R3 supervision and execution | Complete | All 1,449 rows match native encoding; 867 chat rows have masked context and one supervised final EOS. No blanket finding that repeated training text caused the model loops. |
 | 2. Correct and broaden conversation data | Final pack v3 prepared | 35 source frames considered, 33 admitted, two held. Three additional kinship findings resolved in part-A v2; no native-human certification claimed. |
-| 3. Continue R3 into R4 | First pass committed; second pass running | `understanding_20261109T103659Z`, call `fc-01M6ZY42GWDKP5CYK7TCZ8B6VS`. At 10:52 UTC: 63/125 updates, 1,008 presentations, 80,842 effective target tokens. Final-pack smoke passed in 193 seconds. |
-| 4. Compare base, R3 and R4 | Implementation tested; waiting for actual adapter | 139 tests passed. Separate model histories and equal guard. Saved development cases; no new final-test claims. |
+| 3. Continue R3 into R4 | Completed | `understanding_20261109T103659Z`, call `fc-01M6ZY42GWDKP5CYK7TCZ8B6VS`: 125/125 updates, 1,997 presentations and 161,773 effective target tokens committed. Final and update-63 adapters saved. |
+| 4. Compare base, R3 and R4 | Local UI verified; saved evaluations running | Both adapters passed full readback. Private actor deployed; UI at `127.0.0.1:7868`. Raw and guarded runs are separate. No new final-test claims. |
 
 R3 is the reference, not an editable dataset or replaceable checkpoint. Its final
 adapter SHA256 is `5cc0537b21674231b640ae9109a08ffa6fab426c80ac1969705dfac9c9e6b874`.
@@ -44,8 +44,64 @@ Continuation learning rate is `1e-5`, half the earlier R3 rate. This is a
 conservative experimental choice, not an established optimum. Rank-16 LoRA and
 the frozen base/tokenizer are unchanged. No new API requests were made in this pass.
 
-The counters above are preparation, not proof of training consumption. Actual
-consumption must come from the committed training checkpoint and receipt.
+The completed checkpoint and `train-v1/completed/consumption.json` now confirm
+the prepared schedule was consumed in full: 1,997 presentations, 315,357 input
+tokens and 161,773 effective target tokens. These are exposures, not new unique
+examples. The saved restore proof verifies equivalent model, optimizer, scheduler,
+RNG and position at update 63 before the second pass.
+
+Final R4 weights SHA256:
+`1c18338e732f7461901403f5a50c876d64712c21285cf24b2f78a86530d87aca`.
+First-pass weights SHA256:
+`f7ca7d04f0fe089100394c8f3b41f2b703ce3b39214bd4535d324b4de0cf3631`.
+Both adapters passed SHA-256 verification of their complete local readback bytes.
+The readback covers 24 files / 347,460,704 bytes and is recorded in
+`readback-v1/READBACK.json`. This proves identity, not response quality.
+
+## Testing R4 Locally
+
+Open <http://127.0.0.1:7868/?__theme=light>. The three panes run the unchanged
+base, R3 final response adapter, and R4 final response adapter. Each model keeps
+its own history. Guarded mode is the default for all three; switching to raw mode
+starts a new comparison. A stopped repetition is not counted as an EOS-complete
+answer. No external response model rewrites or substitutes the outputs.
+
+Browser verification completed on 9 November: streaming, second-turn history,
+refresh recovery and mode isolation work. At desktop width 1280 the three columns
+remain side by side; at mobile width 390 they stack without horizontal overflow.
+Per-pane clear buttons are hidden so only New chat resets a comparison. The first
+observed cold request took 82.76 seconds to first text; subsequent observed starts
+were 1.19-3.34 seconds. Execution is serial and this is not a fair latency benchmark.
+
+An initial two-turn, project-authored name-retention probe is mixed: R4 follows
+the Twi-language request, but fails the subsequent name question that R3 answers.
+The saved request proves R4 received the supplied name and its own prior answer.
+This is one agent-observed development failure, not a corpus-wide metric. Its
+local session is `f10cd0f8d3704b19a309337d19ce28b9` in the dedicated workbench store.
+No human assessment has been recorded on the user's behalf.
+
+Private inference bundle:
+`4e44fc697e44a3aaa43cfb89ef2e17ff97f240643e60b869d7975c66cce238c6`.
+Private Modal app: `ghana-understanding-r4-demo-private`.
+The public service remains on R3; R4 has not been promoted.
+
+## Saved Evaluation Runs
+
+| Policy | Models | Scope | Receipt |
+| --- | --- | --- | --- |
+| Raw | Base, R3, R4 final, R4 first pass | 75 chat slots and 343 language-loss rows per model; 1,672 slots total | `eval-raw-v1/launch.json`, `r4_eval_20261109T114144Z` |
+| Guarded | Base, R3, R4 final | 75 chat slots per model; 225 slots total | `eval-guarded-v1/launch.json`, `r4_eval_20261109T114213Z` |
+
+Each 75-chat set contains 46 fixed-context cases and 29 turns across 10 independent
+dialogue rollouts. Rollout histories belong to each model, so later-turn token
+inputs intentionally differ. These are reused development cases, not a new blind
+test. A durable result is not automatically a successful or semantically correct
+answer. Full results and denominators will be reported after collection.
+
+Raw execution SHA256:
+`1bbd843e39dab784022401d53fa5e0a40315ddfb592a63496cbe8376b3d3a469`.
+Guarded execution SHA256:
+`d34e3b18bb1fe1b850cfd60dc7c8f641ec07f8527194693b6e78d4a1f6f48d49`.
 
 The two held histories concern cupboard/storeroom and gate/outer-door meaning.
 Source amendments explicitly remove unsupported conclusions about other windows

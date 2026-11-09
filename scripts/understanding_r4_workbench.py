@@ -466,14 +466,16 @@ def evidence(workbench, state):
 
 
 CSS = """
-.gradio-container { max-width:1560px !important; margin:auto; padding:20px !important;
+.gradio-container { width:100% !important; max-width:1560px !important; box-sizing:border-box; margin:auto; padding:20px !important;
   background:#fafbfc !important; color:#24262a !important; }
+.gradio-container > .main { padding:0 !important; }
 body { background:#fafbfc !important; }
 h1 { font-size:24px !important; letter-spacing:0 !important; }
 h3 { font-size:18px !important; letter-spacing:0 !important; }
-#r4-panes { gap:20px !important; }
-.r4-panel { min-width:0; border:0 !important; box-shadow:none !important; }
+#r4-panes { display:grid !important; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px !important; }
+.r4-panel { min-width:0 !important; border:0 !important; box-shadow:none !important; }
 .r4-chat { border:0 !important; background:transparent !important; }
+.r4-chat button[aria-label="Clear"] { display:none !important; }
 .r4-chat .message { border-radius:6px !important; box-shadow:none !important; }
 .r4-chat p,.r4-status { overflow-wrap:anywhere; line-height:1.6; }
 .r4-status { min-height:86px; font-size:12px; }
@@ -483,7 +485,7 @@ h3 { font-size:18px !important; letter-spacing:0 !important; }
 #r4-panes > div:nth-child(1) { border-top:2px solid #66756c; }
 #r4-panes > div:nth-child(2) { border-top:2px solid #347a88; }
 #r4-panes > div:nth-child(3) { border-top:2px solid #a9556c; }
-@media(max-width:800px) { .gradio-container { padding:12px !important; } #r4-panes { gap:12px !important; } }
+@media(max-width:800px) { .gradio-container { padding:12px !important; } #r4-panes { grid-template-columns:minmax(0,1fr); gap:12px !important; } }
 """
 
 

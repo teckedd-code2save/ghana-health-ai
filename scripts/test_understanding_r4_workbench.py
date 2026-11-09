@@ -348,6 +348,9 @@ class ComparisonTests(unittest.IsolatedAsyncioTestCase):
             "R3 response stage\n\n`" + "b" * 12 + "`",
             "R4 continuation\n\n`" + "c" * 12 + "`"])
         self.assertFalse(app.is_running)
+        self.assertIn('.r4-chat button[aria-label="Clear"] { display:none !important; }', ui.CSS)
+        self.assertIn('grid-template-columns:repeat(3,minmax(0,1fr))', ui.CSS)
+        self.assertIn('width:100% !important; max-width:1560px', ui.CSS)
         restore = next(f.fn for f in app.fns.values() if f.fn.__name__ == "restore")
         first = restore(None)
         second = restore(first[0]["id"])
