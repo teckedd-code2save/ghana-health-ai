@@ -13,8 +13,8 @@ turns, not completion scores alone.
 | C | Audit and repair the broader training pool | Complete for this version, agent-reviewed | 240 source histories reviewed; 106 admitted with 191 assistant targets; 134 excluded with reasons. Separately, 24 project-authored histories provide 72 targets |
 | D | Freeze fresh held-out scenarios | Final source audit passed | 40 source groups, 84 cases, 116 scoring slots/model; complete prior/fresh protection with zero selected-pack matches; native/domain judgments remain pending |
 | E | Seal R5 training data and run | Complete, full readback verified | 228 updates; all 3,647 scheduled exposures and 303,594 target tokens consumed from registered data |
-| F | Evaluate and compare locally | All 1,146 chat outputs complete and review-covered; raw retention recovery running | Base/R4/R5 at localhost:7869; 573 raw agent judgments, 559 exact guarded transfers and 14 separately reviewed changed outputs |
-| G | Back up and publish research handoff | Pending F | Private data and weights backed up; public progress and dataset/model cards contain measured results only |
+| F | Evaluate and compare locally | Complete, with one preserved missing measurement | All 1,146 chat outputs review-covered; 1,160 retention measurements; matched comparison on 342 Twi and 44 English cases; base/R4/R5 at localhost:7869 |
+| G | Back up and publish research handoff | Complete for this research pass | Final 4,791-file evidence backup read back and verified; dataset/model cards and local comparison ready; stacked PR #60 stays draft until normal CI is available |
 
 ## Confirmed Starting Findings
 
@@ -353,6 +353,15 @@ Attempt 3 (`fc-01M732DBPVW13TVHZ4ZX55BTYP`) resumes the 54 unstarted slots.
 The updated R5 tests complete 357 checks: 352 pass and five optional-dependency
 tests skip. The timeout and all earlier records remain part of the final evidence.
 
+Attempt 3 completed the remaining 54 loss measurements in 207 seconds of inner
+worker time. Final collection `evaluation-development-raw-v1/results-v1` accounts
+for all 1,386 slots: 225 chat outputs, 1,160 measured losses and one indeterminate
+loss from the original interruption. There are no pending slots or newly lost
+measurements. All 901 protected files in the first snapshot and 2,688 in the second
+are byte-identical in the final collection. The 225-chat review checksum is also
+unchanged. `continuity-v1.json` records these comparisons; the smaller earlier
+899-file check omitted the two protected root files, now included.
+
 The collected interrupted snapshot contains all 225 development chat outputs,
 218 loss measurements and one started request without a durable result. A
 separate partial report supports review without changing original evidence.
@@ -411,6 +420,36 @@ trigger caused this difference, and one downstream history changed as well.
 Completion, meaning, language retention, repetition and guard behavior are
 reported separately.
 
+### Matched Language Retention
+
+The final retention comparison uses only the same measured cases and token masks
+for all three models. One R5 measurement was interrupted before a durable result;
+that source is excluded from every model's paired total, without rerunning it.
+All other planned measurements are present. Twi causal text and English
+final-assistant prediction are separate objectives and are never pooled.
+
+| Cohort | Matched cases | Predicted tokens/model | Base NLL / perplexity | R4 NLL / perplexity | R5 NLL / perplexity |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Twi causal text | 342 of 343 | 9,300 | 2.735093 / 15.411176 | 1.648157 / 5.197391 | 1.634894 / 5.128916 |
+| English final-assistant targets | 44 of 44 | 8,534 | 1.142718 / 3.135279 | 1.131478 / 3.100235 | 1.131966 / 3.101749 |
+
+NLL is summed token prediction loss divided by the matched token count;
+perplexity is its exponential. Lower is better on this prediction task, not a
+measure of meaning accuracy or safety. R5 slightly lowers Twi loss relative to
+R4 while English loss is essentially unchanged on this small cohort. The large
+base-to-adapter difference reflects the cumulative adaptation, not R5 alone.
+No statistical significance or broad conversational improvement is claimed.
+
+The private `paired-retention-v1/paired-retention.json` under the development
+raw run retains every included/excluded source proof and exact sums. Its
+derivation receipt checksum is
+`17c2f8dba2dd3ad1322c2666f6ac9af9866f8cc56a32f607077a6f4ec09021b8`.
+Reproduce with `PYTHONPATH=<worktree>/scripts python3 -B
+<R5-root>/evaluation-design/summarize_paired_retention.py --results
+<R5-root>/evaluation-development-raw-v1/results-v1 --out <new-directory>`.
+All seven derivation tests pass. Available-case totals in the raw report retain
+their original denominators; the table above uses the matched intersection.
+
 The private `evaluation-review-v1/capability-benchmark-v1` report preserves all
 authored capability/task labels and exact paired examples. Its 21 tests pass.
 Development source-group metadata is missing; case IDs are not substituted for
@@ -458,6 +497,11 @@ checks the source hash, exact quote, occurrence identity and limited review scop
 All 355 R5 tests completed: 350 passed, five optional-dependency tests skipped.
 The 20 viewer tests include correction binding, unchanged original ratings and
 safe rendering. Actual GPU training/resume checks are recorded separately above.
+The final `evaluation-view-v5/index.html` includes the completed retention journal
+and all four chat executions, agent ratings and the scoped user correction. It
+replaces no earlier snapshot. All final reports verify their source manifests,
+runtime identities and raw record hashes before export. Per-model available-case
+retention totals are labelled separately from the matched retention report.
 
 ### What the Evidence Supports Next
 
@@ -511,3 +555,21 @@ Receipt: `backup-chat-evaluations-v1/storage.json`. User chat stores, secrets an
 weights are excluded; weights and the earlier interrupted journal have their
 separate verified storage/readback records. Final retention and handoff receive
 an additional snapshot after completion.
+
+The final 4,791-file evaluation snapshot was uploaded and fully read back at
+16:10 UTC on November 10. It contains all four completed result journals,
+hash-bound agent reviews, the scoped user phrase check, matched retention
+derivation, interruption continuity proofs, recovery controls and reproducible
+viewer sources. Its private Modal location is
+`/research-training-r5/c03fa1827e363d212f93986298c0cdc7a2f03eb0bd5471c7c793f427e3c99313`;
+receipt: `backup-final-evaluation-v1/storage.json`. The archive checksum is
+`a1d46d23f0e726f2e4c643e878ab65be5be3f242142e3a8ba0f4f5119fbeee8a`.
+HTML is reproducible from backed-up inputs and generators; user conversation
+stores and credentials are excluded. Training weights and the full registered
+pack retain their separate verified backups. Final public documentation is
+versioned on the issue branch and PR #60, not silently pushed to main.
+
+The final evidence viewer checksum is
+`b59e5926274bfc0fa6666bcdf630daeed0afab58ac2a43cf392a50df16ccf079`.
+The live local UI remains at <http://127.0.0.1:7869/?__theme=light>. Public
+application behavior and its default model have not changed in this pass.

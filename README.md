@@ -99,8 +99,8 @@ of response-target tokens; targeted repairs contribute 1.63%.
 The final adapter passed checksum readback and is available in the private
 local base/R4/R5 comparison. Each model keeps its own history, with identical
 decoding and guard settings. All development and fresh chat-generation runs,
-raw and guarded, have finished. Retention recovery and final evidence sealing
-are in progress. Separate agent reviews of the raw outputs give:
+raw and guarded, have finished. Retention has 1,160 measurements and one explicitly
+missing measurement, with no pending slots. Separate agent reviews of the raw outputs give:
 
 | Agent meaning judgment: full passes | Base | R4 | R5 |
 | --- | ---: | ---: | ---: |
@@ -114,6 +114,10 @@ native-human accuracy or clinical certification. Against R4 on fresh raw outputs
 R5 has 11 meaning gains, eight regressions, 90 ties and seven uncertain pairs.
 On development it has four gains and four regressions. This is mixed progress;
 R5 is available for research comparison, not promoted as a proven replacement.
+On the same 342 Twi retention examples, perplexity is 15.41 for base, 5.20 for
+R4 and 5.13 for R5. On 44 English histories it is 3.14, 3.10 and 3.10. These
+separate prediction tasks show retained language adaptation, not conversational
+accuracy. The missing Twi measurement is excluded from every model's paired total.
 Every raw output, exact history and judgment remains inspectable. See the
 [model card](docs/TWI_R5_MODEL_CARD.md) and
 [execution record](docs/TWI_UNDERSTANDING_R5_20261109.md).

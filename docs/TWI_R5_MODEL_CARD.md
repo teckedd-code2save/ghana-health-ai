@@ -96,10 +96,10 @@ The four pack-local dataset snapshots have separate records, manifests and cards
 
 ## Evaluation Status
 
-Training and full adapter readback are complete. Raw development chat and both
-fresh raw/guarded generation runs are complete, as is development guarded.
-Language-retention recovery is still in progress; training loss is not a quality
-score. All 1,146 chat slots have rating coverage: 573 raw agent judgments,
+Training, full adapter readback and all four chat evaluation runs are complete.
+Retention completed with 1,160 measurements and one explicitly indeterminate
+measurement preserved after interruption; there are no pending slots. Training
+loss is not a quality score. All 1,146 chat slots have rating coverage: 573 raw agent judgments,
 559 exact raw-to-guarded transfers and 14 separately reviewed changed outputs.
 
 | Raw generation measurement | Base | R4 | R5 |
@@ -153,7 +153,7 @@ or production readiness is established.
 The protocol compares base, final R4 and final R5 with independent rollout
 histories and matched decoding. Raw and guarded generation remain separate.
 The reused development suite has 46 fixed cases and 29 rollout turns per model.
-Retention measurements cover 343 Twi rows and 44 English source histories.
+Retention planned 343 Twi rows and 44 English source histories per model.
 The fresh suite has 40 source groups, 84 cases and 116 scoring slots per model;
 related language/spelling variants are not independent samples.
 
@@ -161,6 +161,30 @@ Final source audits found no selected-pack exact, normalized, near or recorded
 source-group overlap with prior/fresh protection. Earlier ancestor overlap with
 reused development cases remains disclosed. No independence from unknown base
 pretraining is established. Native-human and domain judgments remain pending.
+
+### Paired Retention Results
+
+Only the identical measured case intersection is compared. One interrupted
+R5 Twi measurement is excluded for all models; it was not automatically retried.
+
+| Cohort | Cases / planned | Tokens/model | Base perplexity | R4 perplexity | R5 perplexity |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Twi native causal prediction | 342 / 343 | 9,300 | 15.411176 | 5.197391 | 5.128916 |
+| English final-assistant prediction | 44 / 44 | 8,534 | 3.135279 | 3.100235 | 3.101749 |
+
+These are exponentiated token-weighted NLL values with native EOS and identical
+token masks within each cohort. Twi and English use different objectives, so
+their values are not pooled or compared as language-quality rankings. R5's Twi
+loss is slightly lower than R4's; English loss is essentially unchanged on this
+cohort. This is language prediction evidence, not conversational accuracy,
+clinical safety or proof of a statistically significant improvement. The
+base-to-adapter gain includes adaptation inherited from earlier stages.
+
+One user-confirmed phrase correction is attached separately to an R5 arithmetic
+reply: `yɛnnya` should be `yɛnya`. It resolves the earlier agent's wording
+uncertainty, not approval of the complete answer or dataset. Saved outputs and
+aggregate agent ratings remain unchanged; the evaluation example is not training
+data. Full source-bound evidence is in the private evaluation viewer.
 
 Official IFEval support is separate: 541 original English-prompt tasks, 834
 instructions, the pinned official scorer and an 8,192-token output allowance.
