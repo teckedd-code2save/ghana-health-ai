@@ -362,7 +362,15 @@ Fresh raw run `r5_eval_20261110T115927Z` completed all 348 slots in 2,353 second
 its results were collected and checksummed under `evaluation-fresh-raw-v1/results-v1`.
 Raw EOS counts per 116 slots are base 109, R4 112 and R5 109. Repeated 4-gram
 diagnostics flag 29, 26 and 31 replies respectively. These are mechanical
-measurements, not meaning scores. Agent semantic review of all 348 slots is underway.
+measurements, not meaning scores. Separate agent semantic review covers all 348
+slots. Per 116 outputs, meaning pass/partial/fail/uncertain counts are base
+49/42/24/1, R4 66/36/10/4 and R5 72/27/12/5. R5 versus R4 has 11 gains,
+eight regressions, 90 ties and seven uncertain pairs; usefulness has ten gains,
+nine regressions and 97 ties. On the 60 requested-Twi slots, full-meaning passes
+are base 10, R4 24 and R5 29, while failures are 20, nine and ten. This is mixed
+progress, not a decisive improvement. Source-group dependence, ambiguous Twi,
+non-blinded agent judgments and pending native/domain validation remain explicit.
+The reproducible per-language summary is `evaluation-review-v1/fresh-summary-v2.json`.
 Fresh guarded run `r5_eval_20261110T124059Z` was submitted at 12:40 UTC with
 348 planned slots. Only that evaluation GPU is active while recovery is repaired.
 Development guarded remains prepared, not executed, with 225 slots.
@@ -376,7 +384,10 @@ all 225 agent ratings, with explicit partial retention coverage. Its generator,
 `--results LABEL=DIR` and `--agent-review FILE` inputs and a fresh `--out`
 directory. It validates raw records, identities, source hashes and denominators;
 it does not generate answers, add ratings or rewrite the source reports. New
-exports will include subsequent completed suites without replacing old snapshots.
+exports include subsequent completed suites without replacing old snapshots.
+`evaluation-view-v2/index.html` includes development raw and complete fresh raw,
+with all 573 raw-chat agent reviews and exact per-model histories. The local
+live comparison remains available at port 7869 throughout evaluation.
 
 ## Durable Locations
 

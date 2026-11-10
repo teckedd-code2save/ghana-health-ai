@@ -96,8 +96,49 @@ The four pack-local dataset snapshots have separate records, manifests and cards
 
 ## Evaluation Status
 
-Training and full adapter readback are complete. R5 comparison results are
-pending actual evaluation and review; training loss is not a quality score.
+Training and full adapter readback are complete. Raw development chat and fresh
+chat generation are complete. Language-retention completion and separate guarded
+runs are still in progress; training loss is not a quality score.
+
+| Raw generation measurement | Base | R4 | R5 |
+| --- | ---: | ---: | ---: |
+| Development EOS replies / 75 | 70 | 71 | 70 |
+| Development strict JSON matches / 8 | 6 | 8 | 6 |
+| Development replies with repeated 4-grams / 75 | 9 | 9 | 9 |
+| Fresh EOS replies / 116 | 109 | 112 | 109 |
+| Fresh replies with repeated 4-grams / 116 | 29 | 26 | 31 |
+
+The two R5 JSON failures contain the correct arithmetic answer inside Markdown
+fences, violating JSON-only output. Repeated 4-grams can include legitimate shared
+phrases; they are a diagnostic, not a semantic-failure count. Completion is not
+accuracy. All 348 fresh raw outputs now have separate agent reviews.
+
+All 225 development outputs have separate agent meaning/usefulness reviews.
+R5 versus R4 has four meaning gains, four regressions, 64 ties and three uncertain
+pairs across 75 output slots. These ordinal agent judgments do not establish
+broad improvement over R4, native-human accuracy or clinical safety. Original
+outputs and pending human-review fields are preserved. The local comparison
+serves the trained R5 checkpoint for inspection, not as a promoted default.
+
+| Fresh agent meaning judgment | Base | R4 | R5 |
+| --- | ---: | ---: | ---: |
+| Pass / 116 slots | 49 | 66 | 72 |
+| Partial | 42 | 36 | 27 |
+| Fail | 24 | 10 | 12 |
+| Uncertain | 1 | 4 | 5 |
+| Pass among 60 requested-Twi slots | 10 | 24 | 29 |
+| Pass among 56 requested-English slots | 39 | 42 | 43 |
+
+R5 versus R4 has 11 meaning gains, eight regressions, 90 ties and seven uncertain
+pairs. Usefulness has ten gains, nine regressions and 97 ties. Requested-Twi
+failure counts are base 20, R4 nine and R5 ten; more full passes coexist with
+some regressions. These are ordinal, non-blinded agent assessments, not gold
+accuracy. The 116 slots are related outputs from 40 source groups, not 116
+independent samples. Fresh proposal wording and native/domain validation remain
+limitations. Gains include some uncertainty/permission distinctions and context
+comparisons; clarification, negation, quantity arithmetic, context updates and
+unsupported action promises remain uneven. No decisive R5-over-R4 improvement
+or production readiness is established.
 
 The protocol compares base, final R4 and final R5 with independent rollout
 histories and matched decoding. Raw and guarded generation remain separate.
