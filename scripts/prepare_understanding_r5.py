@@ -12,7 +12,7 @@ from prepare_understanding_run import HoldoutIndex, effective_tokens
 from check_afrique_training_contract import encode_complete, load_tokenizer
 from screen_understanding_r5_data import inspect_messages
 from augment_understanding_r4_spelling import augment
-from select_understanding_r5_sources import bound_package, bound_read, recheck
+from select_understanding_r5_sources import bound_package, bound_read, nonblank, recheck, source_components
 
 R4_SHA = "b71682b47512506f9621faba7370f9f2d941437acc44e4dbe6c2716c0bf50cc7"
 
@@ -56,6 +56,51 @@ def review_resolutions(record):
         return set()
     return {(f["code"], f["turn"]) for f in review.get("screen_resolutions", [])
             if isinstance(f.get("reason"), str) and f["reason"].strip()}
+
+
+def additional_protection(folder, fresh, pins):
+    if folder is None:
+        return [], [], None
+    manifest = bound_package(folder, pins, {"held-content.jsonl", "excluded-sources.jsonl"}, "FROZEN.json")
+    data.require(manifest.get("version") == "r5-additional-protection-v1"
+                 and manifest.get("r4_manifest_sha256") == R4_SHA
+                 and manifest.get("fresh_manifest_sha256") == data.sha(fresh / "manifest.json"),
+                 "Additional protection identity differs")
+    held = bound_read(folder / "held-content.jsonl", pins, rows=True)
+    data.require(held and all(nonblank(r.get("id")) and nonblank(r.get("text")) for r in held)
+                 and len({r["id"] for r in held}) == len(held), "Invalid additional holdouts")
+    decisions = bound_read(folder / "excluded-sources.jsonl", pins, rows=True)
+    seen = set()
+    for row in decisions:
+        record = row.get("record", {})
+        data.require(nonblank(row.get("source_id")) and nonblank(row.get("record_id"))
+                     and data.valid_hash(row.get("record_sha256"))
+                     and record.get("source_id") == row["source_id"]
+                     and record.get("id") == row["record_id"]
+                     and data.digest(record) == row["record_sha256"]
+                     and nonblank(row.get("reason")) and isinstance(row.get("evidence"), dict)
+                     and row["evidence"], "Unbound additional exclusion")
+        key = row["record_id"], row["record_sha256"]
+        data.require(key not in seen, "Duplicate additional exclusion")
+        seen.add(key)
+    return held, decisions, {"path": str(folder.resolve()), "manifest_sha256": data.sha(folder / "manifest.json")}
+
+
+def audit_excluded_groups(expanded, decisions):
+    if not decisions:
+        return {}
+    components = source_components(expanded)
+    excluded = {"source:" + row["source_id"]: row for row in decisions}
+    roots = {}
+    for record in expanded:
+        for key in previous.source_keys(record) & excluded.keys():
+            row = excluded[key]
+            roots.setdefault(components[record["id"]], {
+                "kind": "conservative_audit_exclusion", "source_id": row["source_id"],
+                "record_id": row["record_id"], "record_sha256": row["record_sha256"],
+                "reason": row["reason"], "evidence": row["evidence"]})
+    return {record["id"]: roots[components[record["id"]]] for record in expanded
+            if components[record["id"]] in roots}
 
 
 def schedule(rows):
@@ -125,7 +170,7 @@ def response_coverage(rows, order):
         "note": "Source IDs can recur across original and spelling-derived groups; repeated exposures are tokens, not new examples."}
 
 
-def prepare(r4_pack, r2_pack, instruction, admissions, fresh, out, version):
+def prepare(r4_pack, r2_pack, instruction, admissions, fresh, out, version, protection=None):
     from run_understanding_r5 import INITIALIZATION, VERSION, verify_pack, verify_native_rows
     data.require(not out.exists() and not out.is_symlink() and data.valid_id(version), "Use a fresh path and version")
     pins = {}
@@ -139,6 +184,8 @@ def prepare(r4_pack, r2_pack, instruction, admissions, fresh, out, version):
     instruction_files = instruction_paths(instruction, instruction_manifest)
     tokenizer = load_tokenizer(r4_pack / "tokenizer")
     held = bound_read(r4_pack / "held-content.jsonl", pins, rows=True) + bound_read(fresh / "held-content.jsonl", pins, rows=True)
+    extra_held, exclusion_decisions, protection_ref = additional_protection(protection, fresh, pins)
+    held.extend({**r, "id": "additional-protection:" + r["id"]} for r in extra_held)
     holdouts = HoldoutIndex([(r["id"], r["text"]) for r in held])
     candidates, provenance, exclusions, duplicates = [], [], [], []
     records, rows, witnesses, seen = {}, [], [], {}
@@ -195,6 +242,7 @@ def prepare(r4_pack, r2_pack, instruction, admissions, fresh, out, version):
     replay_witnesses = bound_read(r2_pack / "source-witnesses.jsonl", pins, rows=True)
     expanded = list(protection_views([r for _, r, _ in candidates] + replay_witnesses))
     blocked = previous.protected_groups(expanded, holdouts)
+    blocked.update(audit_excluded_groups(expanded, exclusion_decisions))
 
     def add(row, witness, record, origin):
         key = data.digest({k: row[k] for k in ("objective", "input_ids", "labels")})
@@ -273,6 +321,7 @@ def prepare(r4_pack, r2_pack, instruction, admissions, fresh, out, version):
         data.write_rows(out / name, values)
     data.save(out / "stages.json", [stage])
     data.save(out / "admission-manifests.json", provenance)
+    data.save(out / "additional-protection.json", {"reference": protection_ref, "decisions": exclusion_decisions})
     data.save(out / "evaluation-manifest.json", {"development": bound_read(r4_pack / "evaluation-manifest.json", pins),
         "fresh_path": str(fresh.resolve()), "fresh_manifest_sha256": data.sha(fresh / "manifest.json")})
     data.save(out / "overlap-audit.json", {"overlap_free": True, "protected_units": len(held),
@@ -291,6 +340,8 @@ def prepare(r4_pack, r2_pack, instruction, admissions, fresh, out, version):
         "target_tokens_by_preparation_origin": dict(totals), "exclusions": dict(Counter(e["reason"] for e in exclusions)),
         "response_coverage": response_coverage(rows, stage["schedule"]),
         "duplicate_views": len(duplicates), "training_executed": False, "human_reviewed_new": 0}
+    report["additional_protection"] = {"reference": protection_ref,
+        "held_units": len(extra_held), "conservative_exclusion_decisions": len(exclusion_decisions)}
     data.save(out / "selection-report.json", report)
     manifest = {"version": VERSION, "model": previous.MODEL, "revision": previous.REVISION,
         "initialization": INITIALIZATION, "private_research_only": True, "production_eligible": False,
@@ -323,6 +374,7 @@ if __name__ == "__main__":
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--admission", type=Path, action="append", required=True)
     parser.add_argument("--dataset-version", required=True)
+    parser.add_argument("--additional-protection", type=Path)
     args = parser.parse_args()
     import json
-    print(json.dumps(prepare(args.r4_pack, args.r2_pack, args.instruction, args.admission, args.fresh, args.out, args.dataset_version), indent=2))
+    print(json.dumps(prepare(args.r4_pack, args.r2_pack, args.instruction, args.admission, args.fresh, args.out, args.dataset_version, args.additional_protection), indent=2))
