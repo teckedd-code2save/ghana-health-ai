@@ -793,15 +793,36 @@ def report(folder, plan, journal, evidence, identities, *, loss_preflight=()):
     return summary
 
 
-def terminal(call_id):
+def call_status(call_id):
+    """Only an actual output or a proven remote failure establishes termination.
+
+    Modal can deserialize user exceptions directly (including ValueError and
+    TimeoutError). Local polling, transport and deserialization failures do not
+    prove termination. A call graph is diagnostic, never authority for a resume.
+    """
     import modal
     try:
-        modal.FunctionCall.from_id(call_id).get(timeout=0)
-        return True
-    except (modal.exception.RemoteError, modal.exception.FunctionTimeoutError, modal.exception.UserCodeException):
-        return True
-    except (TimeoutError, modal.exception.TimeoutError, modal.exception.NotFoundError):
-        return False
+        result = modal.FunctionCall.from_id(call_id).get(timeout=0)
+        return {"terminal": True, "state": "returned", "call_id": call_id, "result": result}
+    except Exception as error:
+        remote_traceback = False
+        try:
+            from modal._traceback import traceback_contains_remote_call
+            remote_traceback = traceback_contains_remote_call(error.__traceback__)
+        except (ImportError, AttributeError):
+            pass  # Unknown SDK traceback format must not authorize a resume.
+        remote_wrapper = isinstance(error, (modal.exception.RemoteError, modal.exception.FunctionTimeoutError,
+                                             modal.exception.UserCodeException))
+        is_terminal = remote_traceback or remote_wrapper
+        pending = not is_terminal and isinstance(error, (TimeoutError, modal.exception.TimeoutError)) \
+            and not isinstance(error, modal.exception.OutputExpiredError)
+        return {"terminal": is_terminal, "state": "remote_failed" if is_terminal else "pending" if pending else "unknown",
+                "call_id": call_id, "error_type": type(error).__name__, "error": str(error)[:2000],
+                "remote_traceback": remote_traceback, "remote_wrapper": remote_wrapper}
+
+
+def terminal(call_id):
+    return call_status(call_id)["terminal"]
 
 
 def launch(package, checksum, receipt, authorize, profile, previous=None):
@@ -831,14 +852,10 @@ def remote_status(receipt):
     value = read(receipt)
     require(value.get("call_id"), "Ambiguous submission; do not retry")
     os.environ["MODAL_PROFILE"] = value["profile"]
-    import modal
-    try:
-        result = modal.FunctionCall.from_id(value["call_id"]).get(timeout=0)
-    except (TimeoutError, modal.exception.TimeoutError) as error:
-        if isinstance(error, (modal.exception.FunctionTimeoutError, modal.exception.OutputExpiredError)):
-            raise
-        return {"state": "pending", "call_id": value["call_id"]}
-    save(Path(receipt).with_suffix(".result.json"), result)
+    proof = call_status(value["call_id"])
+    result = proof["result"] if proof["state"] == "returned" else proof
+    if proof["terminal"]:
+        save(Path(receipt).with_suffix(".result.json"), result)
     return result
 
 

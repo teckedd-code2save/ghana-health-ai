@@ -13,7 +13,7 @@ turns, not completion scores alone.
 | C | Audit and repair the broader training pool | Complete for this version, agent-reviewed | 240 source histories reviewed; 106 admitted with 191 assistant targets; 134 excluded with reasons. Separately, 24 project-authored histories provide 72 targets |
 | D | Freeze fresh held-out scenarios | Final source audit passed | 40 source groups, 84 cases, 116 scoring slots/model; complete prior/fresh protection with zero selected-pack matches; native/domain judgments remain pending |
 | E | Seal R5 training data and run | Complete, full readback verified | 228 updates; all 3,647 scheduled exposures and 303,594 target tokens consumed from registered data |
-| F | Evaluate and compare locally | UI verified; development raw evaluation running | Base/R4/R5 at localhost:7869; two real UI turns passed transport/history checks; broad quality results pending |
+| F | Evaluate and compare locally | UI verified; fresh raw running; development raw recovery | Base/R4/R5 at localhost:7869; development raw saved 443 results before GPU preemption; no lost results are silently regenerated |
 | G | Back up and publish research handoff | Pending F | Private data and weights backed up; public progress and dataset/model cards contain measured results only |
 
 ## Confirmed Starting Findings
@@ -304,12 +304,39 @@ not a held-out accuracy score or a saved human assessment. The local session is
 `04a769d76a004b8b9f4f278a60587da9`; its first two turns preserve all six outputs.
 Cold-start and warm timings are not a fair latency comparison.
 
-Development raw evaluation `r5_eval_20261110T112211Z` is running on private Modal
-compute with 1,386 planned slots: 225 chat outputs plus 1,161 language-loss
-measurements across base/R4/R5. Separate development-guarded, fresh-raw and
-fresh-guarded execution packages are prepared, not yet executed. Their planned
-slot counts are 225, 348 and 348 respectively. Completion, meaning, language
-retention, repetition and guard behavior are reported separately.
+Development raw evaluation `r5_eval_20261110T112211Z` has 1,386 planned slots:
+225 chat outputs plus 1,161 language-loss measurements across base/R4/R5.
+It saved 443 result records before Modal preempted its GPU. Modal's restart on
+the same input was rejected by the duplicate-attempt guard. The original call
+is terminal with `ValueError: Attempt already claimed`; its app stopped at
+11:55 UTC. The result journal and original execution package remain unchanged.
+The client also exposed a recovery bug: terminal polling handled wrapped Modal
+exceptions but missed a deserialized remote `ValueError`. The repaired predicate
+requires an actual result or SDK-proven remote exception; unknown local/transport
+errors remain nonterminal. A separately sealed recovery controller changes only
+that callback in the unchanged evaluator, records the controller and terminal
+proof before resumption, and verifies every saved journal/provenance hash.
+It retains the atomic attempt claim and never retries completed or indeterminate
+requests. The controller is `recovery-controller-v2`, SHA-256
+`e6c67e1507cd79efcfcfaf1e4c0b8c4381b0209df83bea8d1ddf84946bd396da`;
+52 recovery and evaluation tests passed. It is prepared, not yet launched while
+fresh evaluation is active. Training and local inference are unaffected.
+
+The collected interrupted snapshot contains all 225 development chat outputs,
+218 loss measurements and one started request without a durable result. A
+separate partial report supports review without changing original evidence.
+Raw EOS counts are base 70/75, R4 71/75 and R5 70/75. Strict JSON matches are
+6/8, 8/8 and 6/8 respectively. Both R5 failures contain the correct arithmetic
+value, 28, inside Markdown fences rather than JSON alone: a formatting failure,
+not a wrong computed quantity. Repeated 4-gram diagnostics flag 9/75 replies
+for each model; that diagnostic is not automatically a harmful loop or a
+semantic judgment. All-chat agent review is underway; retention is incomplete.
+
+Fresh raw run `r5_eval_20261110T115927Z` was submitted at 11:59 UTC with 348
+planned chat slots. Only this evaluation GPU is active while recovery is prepared.
+Development-guarded and fresh-guarded packages remain prepared, not executed,
+with 225 and 348 slots respectively. Completion, meaning, language retention,
+repetition and guard behavior are reported separately.
 
 ## Durable Locations
 
