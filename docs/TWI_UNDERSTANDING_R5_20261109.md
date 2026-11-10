@@ -13,7 +13,7 @@ turns, not completion scores alone.
 | C | Audit and repair the broader training pool | Complete for this version, agent-reviewed | 240 source histories reviewed; 106 admitted with 191 assistant targets; 134 excluded with reasons. Separately, 24 project-authored histories provide 72 targets |
 | D | Freeze fresh held-out scenarios | Final source audit passed | 40 source groups, 84 cases, 116 scoring slots/model; complete prior/fresh protection with zero selected-pack matches; native/domain judgments remain pending |
 | E | Seal R5 training data and run | Complete, full readback verified | 228 updates; all 3,647 scheduled exposures and 303,594 target tokens consumed from registered data |
-| F | Evaluate and compare locally | UI verified; fresh raw running; development raw recovery | Base/R4/R5 at localhost:7869; development raw saved 443 results before GPU preemption; no lost results are silently regenerated |
+| F | Evaluate and compare locally | Fresh raw complete; fresh guarded running; development recovery | Base/R4/R5 at localhost:7869; all 348 fresh raw slots collected; 443 development results preserved after preemption |
 | G | Back up and publish research handoff | Pending F | Private data and weights backed up; public progress and dataset/model cards contain measured results only |
 
 ## Confirmed Starting Findings
@@ -319,8 +319,17 @@ proof before resumption, and verifies every saved journal/provenance hash.
 It retains the atomic attempt claim and never retries completed or indeterminate
 requests. The controller is `recovery-controller-v2`, SHA-256
 `e6c67e1507cd79efcfcfaf1e4c0b8c4381b0209df83bea8d1ddf84946bd396da`;
-52 recovery and evaluation tests passed. It is prepared, not yet launched while
-fresh evaluation is active. Training and local inference are unaffected.
+52 recovery and evaluation tests passed. Its attempted deployment at 12:39 UTC
+failed before any function was spawned: the wrapper added an image build setting
+after file mounts, which Modal rejects. The incomplete launch receipt is retained,
+not reused; no recovery GPU or generation ran. A corrected image-construction
+order is fixed in `recovery-controller-v3`, SHA-256
+`db470bdb00024fabbb5d97df8071f97850ec877b08165131c9fe6e0da1161525`.
+The offline SDK-loader test reproduces the original rejection and verifies the
+new wrapper's mount order. Recovery, evaluation and both viewer tests pass 80
+checks. The new controller is awaiting the current evaluation GPU's completion;
+the failed submitting receipt is retained and will not be reused. Training and
+local inference are unaffected.
 
 The collected interrupted snapshot contains all 225 development chat outputs,
 218 loss measurements and one started request without a durable result. A
@@ -330,13 +339,44 @@ Raw EOS counts are base 70/75, R4 71/75 and R5 70/75. Strict JSON matches are
 value, 28, inside Markdown fences rather than JSON alone: a formatting failure,
 not a wrong computed quantity. Repeated 4-gram diagnostics flag 9/75 replies
 for each model; that diagnostic is not automatically a harmful loop or a
-semantic judgment. All-chat agent review is underway; retention is incomplete.
+semantic judgment. All 225 chat slots have now received separate agent review;
+retention is incomplete. Review files are under `evaluation-review-v1`, with
+hash-bound source references and original human-review fields still pending.
 
-Fresh raw run `r5_eval_20261110T115927Z` was submitted at 11:59 UTC with 348
-planned chat slots. Only this evaluation GPU is active while recovery is prepared.
-Development-guarded and fresh-guarded packages remain prepared, not executed,
-with 225 and 348 slots respectively. Completion, meaning, language retention,
-repetition and guard behavior are reported separately.
+| Development agent meaning judgment | Base | R4 | R5 |
+| --- | ---: | ---: | ---: |
+| Pass | 26 | 44 | 41 |
+| Partial | 12 | 21 | 23 |
+| Fail | 35 | 9 | 8 |
+| Uncertain | 2 | 1 | 3 |
+
+Across the same 75 output slots per model, R5 versus R4 has four ordinal meaning
+gains, four regressions, 64 ties and three uncertain pairs. Versus base it has
+31 gains, eight regressions, 31 ties and five uncertain pairs. Usefulness versus
+R4 has four gains, five regressions, 65 ties and one uncertain pair. These are
+agent judgments on reused development data, not independent native-human
+accuracy, clinical certification or 75 independent source groups. Broad R5
+improvement over R4 is not established by these results.
+
+Fresh raw run `r5_eval_20261110T115927Z` completed all 348 slots in 2,353 seconds;
+its results were collected and checksummed under `evaluation-fresh-raw-v1/results-v1`.
+Raw EOS counts per 116 slots are base 109, R4 112 and R5 109. Repeated 4-gram
+diagnostics flag 29, 26 and 31 replies respectively. These are mechanical
+measurements, not meaning scores. Agent semantic review of all 348 slots is underway.
+Fresh guarded run `r5_eval_20261110T124059Z` was submitted at 12:40 UTC with
+348 planned slots. Only that evaluation GPU is active while recovery is repaired.
+Development guarded remains prepared, not executed, with 225 slots.
+Completion, meaning, language retention, repetition and guard behavior are
+reported separately.
+
+The private offline benchmark viewer is `evaluation-view-v1/index.html` under
+the R5 artifact root. It initially contains the development partial report and
+all 225 agent ratings, with explicit partial retention coverage. Its generator,
+`scripts/export_understanding_r5_evaluation_view.py`, accepts repeated
+`--results LABEL=DIR` and `--agent-review FILE` inputs and a fresh `--out`
+directory. It validates raw records, identities, source hashes and denominators;
+it does not generate answers, add ratings or rewrite the source reports. New
+exports will include subsequent completed suites without replacing old snapshots.
 
 ## Durable Locations
 

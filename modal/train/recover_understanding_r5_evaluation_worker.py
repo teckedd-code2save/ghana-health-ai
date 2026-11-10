@@ -17,9 +17,22 @@ try:
 finally:
     sys.dont_write_bytecode = _bytecode
 app = modal.App("ghana-understanding-evaluation-r5-recovery-private")
-image = worker.image.env({"PYTHONPATH": "/recovery/code:/execution/code:/execution/inference/code"})
-if modal.is_local():
-    image = image.add_local_dir(str(CONTROLLER), "/recovery")
+
+
+def build_image(contract, package, controller, local):
+    # Match the frozen worker's build recipe; lazy file mounts must be last.
+    image = modal.Image.debian_slim(python_version="3.11").pip_install(
+        *[name + "==" + version for name, version in contract["runtime"].items()]
+    ).env({"PYTHONPATH": "/recovery/code:/execution/code:/execution/inference/code", "PYTHONDONTWRITEBYTECODE": "1",
+           "HF_HOME": "/cache/hf", "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1",
+           "TOKENIZERS_PARALLELISM": "false", "DO_NOT_TRACK": "1", "CUBLAS_WORKSPACE_CONFIG": ":4096:8"})
+    if local:
+        image = image.add_local_dir(str(package), "/execution")
+        image = image.add_local_dir(str(controller), "/recovery")
+    return image
+
+
+image = build_image(worker.contract, PACKAGE, CONTROLLER, modal.is_local())
 
 
 @app.function(image=image, gpu="H100", cpu=4, memory=49152, timeout=7200,

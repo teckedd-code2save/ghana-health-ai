@@ -1,11 +1,14 @@
 """Offline terminal-proof and immutable recovery-controller tests. No Modal calls."""
 from pathlib import Path
+import ast
+import asyncio
 from contextlib import nullcontext
+import socket
 import shutil
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import modal
 import run_understanding_r5_evaluation as runner
@@ -213,6 +216,15 @@ class RecoveryTests(unittest.TestCase):
             recovery.launch(self.controller, self.sha, self.package, self.root / "new.json", False)
         self.assertFalse((self.root / "new.json").exists())
 
+    def test_submitting_receipt_is_never_reused_even_with_authorization(self):
+        receipt = self.root / "failed-before-spawn.json"
+        r = {"state": "submitting", "attempt": 2, "controller_sha256": self.sha}
+        runner.save(receipt, r)
+        with patch.object(recovery, "verify", side_effect=AssertionError("Must reject before verification or submission")):
+            with self.assertRaisesRegex(ValueError, "new receipt"):
+                recovery.launch(self.controller, self.sha, self.package, receipt, True)
+        self.assertEqual(runner.read(receipt), r)
+
     def test_launch_writes_bound_receipt_before_one_dispatch(self):
         receipt = self.root / "attempt-2.json"
         def spawn(checksum):
@@ -246,6 +258,90 @@ class RecoveryTests(unittest.TestCase):
             self.assertIn(text, source)
         self.assertNotIn(".spawn(", source)
         self.assertNotIn(".remote(", source)
+
+
+class ImageOrderingTests(unittest.TestCase):
+    def builder(self):
+        path = runner.ROOT / "modal/train" / recovery.WORKER
+        function = next(n for n in ast.parse(path.read_text()).body if isinstance(n, ast.FunctionDef) and n.name == "build_image")
+        namespace = {"modal": modal}
+        exec(compile(ast.Module(body=[function], type_ignores=[]), str(path), "exec"), namespace)
+        return namespace["build_image"], function
+
+    def sdk_load_validation(self, image):
+        """Exercise SDK 1.4.3 lazy loaders through their mount guard, stopping before RPC.
+
+        A dry import misses this error: _deferred_mounts is populated only when
+        mount layers load. Use real mount loaders and real build-layer validation;
+        stub the environment lookup at the first remote-build boundary.
+        """
+        from modal._utils.async_utils import synchronizer
+        from modal.image import _Image
+        from modal._load_context import LoadContext
+        class BuildBoundary(Exception):
+            pass
+        client = Mock()
+        context = LoadContext(client=client, environment_name="offline", app_id="ap-offline")
+        visited, builds = set(), []
+        async def visit(value):
+            if value in visited:
+                return
+            visited.add(value)
+            for dep in value._deps():
+                if isinstance(dep, _Image):
+                    await visit(dep)
+            try:
+                await value._load(value, SimpleNamespace(load=AsyncMock()), context, None)
+            except BuildBoundary:
+                builds.append(value)
+                value._hydrate("im-offline" + str(len(builds)), client, None)
+        with patch("modal.image._get_environment_cached", new=AsyncMock(side_effect=BuildBoundary)), \
+             patch.object(socket.socket, "connect", side_effect=AssertionError("Offline SDK validation only")):
+            underlying = synchronizer._translate_in(image)
+            asyncio.run(visit(underlying))
+        return builds, underlying
+
+    def test_old_mount_then_env_recipe_reproduces_actual_sdk_failure(self):
+        with tempfile.TemporaryDirectory() as folder:
+            bad = modal.Image.debian_slim(python_version="3.11").add_local_dir(folder, "/execution").env({"PYTHONPATH": "/recovery/code"})
+            with self.assertRaisesRegex(modal.exception.InvalidError, "build step after using"):
+                self.sdk_load_validation(bad)
+
+    def test_corrected_recipe_passes_sdk_load_guard_with_both_mounts_last(self):
+        build, _ = self.builder()
+        with tempfile.TemporaryDirectory() as folder:
+            image = build({"runtime": {"numpy": "2.4.2"}}, folder, folder, True)
+            builds, loaded = self.sdk_load_validation(image)
+            self.assertTrue(builds)
+            self.assertEqual(len(loaded._mount_layers), 2)
+
+    def test_runtime_environment_matches_frozen_worker_except_explicit_pythonpath(self):
+        _, function = self.builder()
+        old = ast.parse((runner.ROOT / "modal/train/evaluate_understanding_r5.py").read_text())
+        def environment(tree):
+            call = next(n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                        and n.func.attr == "env")
+            return ast.literal_eval(call.args[0])
+        before, after = environment(old), environment(function)
+        self.assertEqual({k: v for k, v in before.items() if k != "PYTHONPATH"},
+                         {k: v for k, v in after.items() if k != "PYTHONPATH"})
+        self.assertEqual(after["PYTHONPATH"], "/recovery/code:" + before["PYTHONPATH"])
+        trace = []
+        class Recipe:
+            def pip_install(self, *requirements):
+                trace.append(("pip", requirements)); return self
+            def env(self, values):
+                trace.append(("env", values)); return self
+            def add_local_dir(self, source, target):
+                trace.append(("mount", source, target)); return self
+        with patch.object(modal.Image, "debian_slim", return_value=Recipe()) as debian:
+            build, _ = self.builder()
+            runtime = {"torch": "2.13.0", "transformers": "5.17.0"}
+            build({"runtime": runtime}, "/frozen", "/control", True)
+        debian.assert_called_once_with(python_version="3.11")
+        self.assertEqual([step[0] for step in trace], ["pip", "env", "mount", "mount"])
+        self.assertEqual(trace[0][1], tuple(k + "==" + v for k, v in runtime.items()))
+        self.assertEqual(trace[-2:], [("mount", "/frozen", "/execution"), ("mount", "/control", "/recovery")])
 
 
 if __name__ == "__main__":
