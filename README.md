@@ -11,7 +11,8 @@ Research and application code for Twi/Akan speech, language understanding, and c
 - [Research overview: results, provenance, and reproduction limits](docs/research/overview.md)
 - [R4 continuation: consumed data, comparisons and current limitations](docs/TWI_UNDERSTANDING_R4_20261107.md)
 - [R4 companion model card](docs/TWI_R4_MODEL_CARD.md)
-- [R5 in progress: lab recovery, source repair, fresh evaluation and training](docs/TWI_UNDERSTANDING_R5_20261109.md)
+- [R5 trained: registered data, local comparison and evaluation progress](docs/TWI_UNDERSTANDING_R5_20261109.md)
+- [R5 companion model card](docs/TWI_R5_MODEL_CARD.md)
 - [Language understanding research programme](docs/GHANA_LANGUAGE_UNDERSTANDING_RESEARCH.md)
 - [ASR model decision record](docs/asr-model-decision.md)
 - [R3 application access](docs/R3_GUEST_CHAT.md)
@@ -42,8 +43,9 @@ competence; completion and perplexity do not establish response accuracy.
 The [R5 benchmark contract](docs/TWI_UNDERSTANDING_R5_20261109.md#benchmark-contract-for-every-training-run)
 defines this release requirement. Its current runner reports category-level
 mechanical diagnostics and preserves a separate quality-review queue. Official
-IFEval integration is in progress; no public-benchmark score or R5 improvement
-is claimed before execution and review.
+IFEval integration and source-overlap checks are complete; generation/scoring
+are pending. No public-benchmark score or broad R5 improvement is claimed before
+execution and review.
 
 ## Recorded Development Results
 
@@ -84,6 +86,22 @@ better follow-ups coexist with slightly worse perplexity, arithmetic failures
 and a name-retention regression. See [exact denominators, observations and local
 comparison instructions](docs/TWI_UNDERSTANDING_R4_20261107.md). The public
 application remains R3; R4 is available in the private local comparison only.
+
+### R5 Continuation
+
+**10 November 2026:** R5 completed 228 updates from the final R4 checkpoint,
+consuming 3,108 registered dataset records as 3,456 distinct views and 3,647
+presentations, totaling 303,594 supervised tokens. The expansion includes 106
+source-backed, agent-translated/corrected conversation histories and 24 separate
+project-authored repair histories. The source-backed additions contribute 52.66%
+of response-target tokens; targeted repairs contribute 1.63%.
+
+The final adapter passed checksum readback and is available in the private
+local base/R4/R5 comparison. Each model keeps its own history, with identical
+decoding and guard settings. Development and fresh evaluation results are pending;
+training completion is not a claim of semantic improvement. See the
+[model card](docs/TWI_R5_MODEL_CARD.md) and
+[execution record](docs/TWI_UNDERSTANDING_R5_20261109.md).
 
 ## Application and Code
 
