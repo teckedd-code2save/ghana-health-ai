@@ -2,6 +2,7 @@
 from pathlib import Path
 import ast
 import asyncio
+import importlib.metadata
 from contextlib import nullcontext
 import socket
 import shutil
@@ -79,6 +80,19 @@ class TerminalTests(unittest.TestCase):
                 self.call.get.side_effect = remote_error()
                 self.assertEqual(runner.remote_status(receipt)["state"], "remote_failed")
                 self.assertTrue(runner.read(receipt.with_suffix(".result.json"))["terminal"])
+
+
+class SdkIdentityTests(unittest.TestCase):
+    def test_mounted_sdk_does_not_need_distribution_metadata(self):
+        with patch.object(modal, "__version__", recovery.SDK), \
+             patch.object(importlib.metadata, "version", side_effect=importlib.metadata.PackageNotFoundError):
+            self.assertEqual(recovery.verify_sdk(), recovery.SDK)
+
+    def test_wrong_or_missing_sdk_identity_fails_closed(self):
+        for version in (None, "0.0.0", "1.4.3-dev"):
+            with self.subTest(version=version), patch.object(modal, "__version__", version):
+                with self.assertRaisesRegex(ValueError, "Unverified Modal SDK"):
+                    recovery.verify_sdk()
 
 
 class RecoveryTests(unittest.TestCase):

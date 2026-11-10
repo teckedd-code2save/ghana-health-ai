@@ -7,7 +7,6 @@ written to a separate immutable sidecar before the sealed worker's local call.
 """
 import argparse
 from collections import Counter
-import importlib.metadata
 import os
 from pathlib import Path
 import re
@@ -22,6 +21,14 @@ CODE = ("recover_understanding_r5_evaluation.py", "run_understanding_r5_evaluati
 PATCH = {"target": "sealed_worker.runner.terminal", "replacement": "controller_runner.terminal",
          "reason": "Recognize SDK-proven deserialized remote exceptions; unknown remains nonterminal",
          "inference_data_prompt_decoding_changes": False, "claim_and_journal_changes": False}
+
+
+def verify_sdk():
+    import modal
+    # Modal mounts its SDK under /pkg in workers without distribution metadata.
+    version = getattr(modal, "__version__", None)
+    api.require(version == SDK, "Unverified Modal SDK version")
+    return version
 
 
 def previous_receipt(value, checksum):
@@ -141,7 +148,7 @@ def verify_baseline(folder, snapshot):
 def execute(worker, controller, controller_sha, package, call_id, *, artifacts_root=Path("/artifacts")):
     """Called only inside the separately authorized bounded wrapper container."""
     contract, old, snapshot = verify(controller, controller_sha, package)
-    api.require(importlib.metadata.version("modal") == SDK, "Unverified Modal SDK version")
+    verify_sdk()
     api.require(worker.claims.get(old["run_id"] + ":binding") == old["execution_sha256"]
                 and worker.claims.get(old["run_id"] + ":" + str(old["attempt"])) == old["call_id"], "Previous claim differs")
     api.require(worker.claims.get(old["run_id"] + ":" + str(contract["attempt"])) is None, "Attempt already claimed")
@@ -170,7 +177,7 @@ def launch(controller, checksum, package, receipt, authorize):
     api.require(authorize and not Path(receipt).exists(), "Explicit GPU authorization and new receipt required")
     controller, package = Path(controller).resolve(), Path(package).resolve()
     contract, old, _ = verify(controller, checksum, package)
-    api.require(importlib.metadata.version("modal") == SDK, "Unverified Modal SDK version")
+    verify_sdk()
     os.environ.update(MODAL_PROFILE=old["profile"], GHA_R5_EVALUATION_PACKAGE=str(package), GHA_R5_RECOVERY_PACKAGE=str(controller))
     import modal
     proof = api.call_status(old["call_id"])

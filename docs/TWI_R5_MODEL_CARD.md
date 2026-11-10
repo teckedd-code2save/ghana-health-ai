@@ -96,9 +96,10 @@ The four pack-local dataset snapshots have separate records, manifests and cards
 
 ## Evaluation Status
 
-Training and full adapter readback are complete. Raw development chat and fresh
-chat generation are complete. Language-retention completion and separate guarded
-runs are still in progress; training loss is not a quality score.
+Training and full adapter readback are complete. Raw development chat and both
+fresh raw/guarded generation runs are complete. Language-retention recovery and
+development guarded evaluation are still in progress; training loss is not a
+quality score.
 
 | Raw generation measurement | Base | R4 | R5 |
 | --- | ---: | ---: | ---: |
@@ -107,6 +108,12 @@ runs are still in progress; training loss is not a quality score.
 | Development replies with repeated 4-grams / 75 | 9 | 9 | 9 |
 | Fresh EOS replies / 116 | 109 | 112 | 109 |
 | Fresh replies with repeated 4-grams / 116 | 29 | 26 | 31 |
+
+Fresh guarded EOS counts are 109/116, 112/116 and 110/116 respectively; repeated
+4-gram counts remain 29/26/31. No guard-triggered pause occurred in this suite.
+Seven changed outputs/histories receive separate review; 341 exact counterparts
+link to their original raw agent ratings, with explicit transfer provenance.
+Small differences without guard triggers are not treated as guard improvements.
 
 The two R5 JSON failures contain the correct arithmetic answer inside Markdown
 fences, violating JSON-only output. Repeated 4-grams can include legitimate shared

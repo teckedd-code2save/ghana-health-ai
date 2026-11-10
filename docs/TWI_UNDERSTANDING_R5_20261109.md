@@ -13,7 +13,7 @@ turns, not completion scores alone.
 | C | Audit and repair the broader training pool | Complete for this version, agent-reviewed | 240 source histories reviewed; 106 admitted with 191 assistant targets; 134 excluded with reasons. Separately, 24 project-authored histories provide 72 targets |
 | D | Freeze fresh held-out scenarios | Final source audit passed | 40 source groups, 84 cases, 116 scoring slots/model; complete prior/fresh protection with zero selected-pack matches; native/domain judgments remain pending |
 | E | Seal R5 training data and run | Complete, full readback verified | 228 updates; all 3,647 scheduled exposures and 303,594 target tokens consumed from registered data |
-| F | Evaluate and compare locally | Fresh raw complete; fresh guarded running; development recovery | Base/R4/R5 at localhost:7869; all 348 fresh raw slots collected; 443 development results preserved after preemption |
+| F | Evaluate and compare locally | Fresh raw/guarded complete; development guarded running; raw retention recovery prepared | Base/R4/R5 at localhost:7869; 696 fresh outputs collected; 443 development results preserved after preemption |
 | G | Back up and publish research handoff | Pending F | Private data and weights backed up; public progress and dataset/model cards contain measured results only |
 
 ## Confirmed Starting Findings
@@ -327,9 +327,15 @@ order is fixed in `recovery-controller-v3`, SHA-256
 `db470bdb00024fabbb5d97df8071f97850ec877b08165131c9fe6e0da1161525`.
 The offline SDK-loader test reproduces the original rejection and verifies the
 new wrapper's mount order. Recovery, evaluation and both viewer tests pass 80
-checks. The new controller is awaiting the current evaluation GPU's completion;
-the failed submitting receipt is retained and will not be reused. Training and
-local inference are unaffected.
+checks. That controller reached a worker but failed before a claim or model load:
+the worker-mounted Modal SDK has no installed distribution metadata. Version
+checking now reads the mounted SDK's exact `__version__`, still requiring 1.4.3.
+The v3 terminal receipt is retained. Offline regressions cover missing distribution
+metadata and reject missing/wrong SDK identity. The complete R5 evaluation test
+selection passes 103 checks. Controller v4, SHA-256
+`3e4f7235578146cfaff09aacae93ff521d4cb47e4dffe82b642883abe1806daa`,
+is sealed for the next available evaluation GPU; it has not yet run. Training
+and local inference are unaffected. Failed controllers and receipts are preserved.
 
 The collected interrupted snapshot contains all 225 development chat outputs,
 218 loss measurements and one started request without a durable result. A
@@ -371,9 +377,16 @@ are base 10, R4 24 and R5 29, while failures are 20, nine and ten. This is mixed
 progress, not a decisive improvement. Source-group dependence, ambiguous Twi,
 non-blinded agent judgments and pending native/domain validation remain explicit.
 The reproducible per-language summary is `evaluation-review-v1/fresh-summary-v2.json`.
-Fresh guarded run `r5_eval_20261110T124059Z` was submitted at 12:40 UTC with
-348 planned slots. Only that evaluation GPU is active while recovery is repaired.
-Development guarded remains prepared, not executed, with 225 slots.
+Fresh guarded run `r5_eval_20261110T124059Z` completed all 348 slots in 2,272
+seconds. EOS counts are base 109/116, R4 112/116 and R5 110/116; repeated-4-gram
+reply counts remain 29/26/31. No guard-triggered pauses occurred. Seven outputs
+or their histories differ from raw, so they receive separate agent review;
+341 exactly matching cases reuse their existing judgments with explicit,
+hash-bound transfer provenance, not a claim of independent new reviews.
+Small differences without guard triggers are not credited to the guard.
+Development guarded run `r5_eval_20261110T132122Z` was submitted at 13:21 UTC
+with 225 slots. It is the only active evaluation GPU; raw-retention recovery
+waits for its terminal result.
 Completion, meaning, language retention, repetition and guard behavior are
 reported separately.
 
