@@ -10,9 +10,9 @@ turns, not completion scores alone.
 | --- | --- | --- | --- |
 | A | Preserve and review lab evidence | Complete, agent review | R4 raw/guarded exports plus local snapshot of 5 saved sessions, 13 rounds and 39 reply slots; no saved human assessments |
 | B | Recover the blocked comparison UI | Complete | 46 focused tests passed; actual failed session recovered in the browser, new follow-up completed on all three models, input enabled afterward |
-| C | Audit and repair the broader training pool | In progress | Count usable original histories, targets and tokens; retain source lineage and reasons for exclusions; do not inflate counts with spelling variants |
+| C | Audit and repair the broader training pool | Complete for this version, agent-reviewed | 240 source histories reviewed; 106 admitted with 191 assistant targets; 134 excluded with reasons. Separately, 24 project-authored histories provide 72 targets |
 | D | Freeze fresh held-out scenarios | Frozen; final source audit pending | 40 source groups, 84 cases, 116 scoring slots/model; 232 protected text units; native/domain judgments are still pending |
-| E | Seal R5 training data and run | Pending C/D | Actual admitted counts, source snapshots, target-token mixture, masking/EOS/native encoding, initialization and recovery proof |
+| E | Seal R5 training data and run | Pack prepared; final overlap audit and GPU check pending | 3,108 registered dataset records, 3,456 distinct views, 3,647 scheduled exposures, 303,594 target tokens; full native encoding verified |
 | F | Evaluate and compare locally | Pending E | Base/R4/R5, independent histories, matched decoding and guards, raw and guarded evidence, failures retained |
 | G | Back up and publish research handoff | Pending F | Private data and weights backed up; public progress and dataset/model cards contain measured results only |
 
@@ -201,6 +201,46 @@ source; a separate note records this distinction without changing old evidence.
 No OpenAI requests were made in this pass. The existing lifetime US$10 ledger
 remains authoritative; completed reservations have not been reset. Three private
 Modal inference requests verified lab recovery. R5 training has not started.
+
+## Prepared R5 Dataset
+
+The complete reviewed pack is `tmp/understanding-r5-20261109/pack-v1`, version
+`r5-reviewed-conversations-v1-20261109`. Its manifest SHA-256 is
+`29e23dfa6d363a30b9d3f457963513d3f6777d3c0e88b8d62ed24d30d7340147`.
+Preparation counts below are not a claim of completed training.
+
+| Registered dataset | Records | Distinct training views | Scheduled target tokens | Token share |
+| --- | ---: | ---: | ---: | ---: |
+| Responses | 657 | 908 | 192,703 | 63.47% |
+| English retention | 217 | 314 | 46,920 | 15.45% |
+| Twi language replay | 1,187 | 1,187 | 31,856 | 10.49% |
+| Meaning replay | 1,047 | 1,047 | 32,115 | 10.58% |
+| Total | 3,108 | 3,456 | 303,594 | 100% |
+
+A complete history can produce multiple final-assistant training views. The
+schedule presents 191 new source-backed targets twice, giving 3,647 exposures
+and 228 optimizer updates; other targets are presented once. These are not
+3,647 independent conversations. Related English/Twi versions and spelling
+derivatives retain common source identity and split protection.
+
+All 130 newly admitted histories survive pack selection: 106 source-backed,
+agent-translated/corrected histories plus 24 project-authored repair histories.
+The source-backed additions contribute 52.66% of response-target tokens;
+project-authored repairs contribute 1.63%. The remaining response supervision
+comes from inherited R4 records, the complete 333-record instruction export,
+and explicitly marked spelling derivatives. No new record is described as
+human-reviewed or clinically certified.
+
+The complete candidate ledger retains 28 duplicate views, four further
+screening exclusions and 186 protected-content exclusions. The protection
+extension accounts for derived rollout contexts missed by the earlier scan,
+and conservatively excludes flagged source groups. The separate broad final
+audit must still clear this exact pack before training. Original sources and
+earlier decisions remain unchanged.
+
+The official IFEval adapter and scorer are implemented separately. Its 541
+English-prompt tasks are not Twi-understanding results, and no R5 benchmark
+score exists before training and actual evaluation.
 
 ## Durable Locations
 

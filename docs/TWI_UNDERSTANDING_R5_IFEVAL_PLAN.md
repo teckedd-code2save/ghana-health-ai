@@ -1,8 +1,10 @@
 # R5 IFEval Proposal
 
-Status: source metadata verified; adapter, generation protocol, official scoring
-execution, and model results are **not implemented or run**. This is a separate
-follow-up, not a blocker for current R5 training. No GPU/model calls were made.
+Historical proposal, now implemented as separate IFEval-only code. See
+[the implementation and exact commands](TWI_UNDERSTANDING_R5_IFEVAL.md).
+No GPU/model calls or real model benchmark scores have been produced. This
+integration does not block current R5 training. The proposal below records the
+original design constraints.
 
 ## Verified Source
 
