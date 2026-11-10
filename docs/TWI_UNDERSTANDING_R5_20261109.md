@@ -11,8 +11,8 @@ turns, not completion scores alone.
 | A | Preserve and review lab evidence | Complete, agent review | R4 raw/guarded exports plus local snapshot of 5 saved sessions, 13 rounds and 39 reply slots; no saved human assessments |
 | B | Recover the blocked comparison UI | Complete | 46 focused tests passed; actual failed session recovered in the browser, new follow-up completed on all three models, input enabled afterward |
 | C | Audit and repair the broader training pool | Complete for this version, agent-reviewed | 240 source histories reviewed; 106 admitted with 191 assistant targets; 134 excluded with reasons. Separately, 24 project-authored histories provide 72 targets |
-| D | Freeze fresh held-out scenarios | Frozen; final source audit pending | 40 source groups, 84 cases, 116 scoring slots/model; 232 protected text units; native/domain judgments are still pending |
-| E | Seal R5 training data and run | Pack prepared; final overlap audit and GPU check pending | 3,108 registered dataset records, 3,456 distinct views, 3,647 scheduled exposures, 303,594 target tokens; full native encoding verified |
+| D | Freeze fresh held-out scenarios | Final source audit passed | 40 source groups, 84 cases, 116 scoring slots/model; complete prior/fresh protection with zero selected-pack matches; native/domain judgments remain pending |
+| E | Seal R5 training data and run | Pack sealed; real-weight GPU check submitted | 3,108 registered dataset records, 3,456 distinct views, 3,647 scheduled exposures, 303,594 target tokens; full native encoding verified |
 | F | Evaluate and compare locally | Pending E | Base/R4/R5, independent histories, matched decoding and guards, raw and guarded evidence, failures retained |
 | G | Back up and publish research handoff | Pending F | Private data and weights backed up; public progress and dataset/model cards contain measured results only |
 
@@ -128,8 +128,8 @@ and review decisions are privately backed up; they are not public datasets.
 
 The current continuation passed 193 local preparation, training-contract,
 inference and workbench tests. These verify code behavior, not Twi quality.
-The remaining independent conversation reviews are being completed before the
-final pack is sealed. Repairable source errors are corrected in explicit new
+The independent conversation reviews are complete and the final pack is sealed.
+Repairable source errors are corrected in explicit new
 English/Twi derivatives, with original source bytes and earlier decisions kept.
 Examples include invented performance-review evidence, inconsistent recipe
 ingredients and invalid CSS instructions. Separate reviewers check those
@@ -161,9 +161,9 @@ the next failed validation. Base and R4 retain their own six turns. The recovery
 test was appended as an agent UI check, not a user quality assessment. The raw
 mode remains raw; recovery is not a claim that repetitions or meaning are fixed.
 
-There are also 24 project-authored bilingual repair proposals, containing 72
-assistant turns. They target semantic contrasts and recovery behavior and require
-a separate reviewer. They are not counted as naturally collected conversations.
+There are also 24 project-authored bilingual repair histories, containing 72
+assistant turns. They target semantic contrasts and recovery behavior and passed
+a separate agent review. They are not counted as naturally collected conversations.
 Repairable source defects are corrected in explicit English/Twi derivatives with
 reasons; unsafe or unresolved material is excluded from this run, not deleted.
 
@@ -200,7 +200,9 @@ source; a separate note records this distinction without changing old evidence.
 
 No OpenAI requests were made in this pass. The existing lifetime US$10 ledger
 remains authoritative; completed reservations have not been reset. Three private
-Modal inference requests verified lab recovery. R5 training has not started.
+Modal inference requests verified lab recovery. The real-weight GPU check was
+submitted on November 10 as `understanding_20261110T102958Z`; the full R5
+training schedule has not started.
 
 ## Prepared R5 Dataset
 
@@ -235,8 +237,19 @@ The complete candidate ledger retains 28 duplicate views, four further
 screening exclusions and 186 protected-content exclusions. The protection
 extension accounts for derived rollout contexts missed by the earlier scan,
 and conservatively excludes flagged source groups. The separate broad final
-audit must still clear this exact pack before training. Original sources and
-earlier decisions remain unchanged.
+audit cleared this exact pack: all 248 input hashes were rechecked; all 3,456
+rows and witnesses resolve to registered records; there were zero selected-pack
+exact, normalized, near or source-group matches against prior/fresh protection.
+The clearance is `evaluation-design/final-pack-audit-v1/clearance.json`, SHA-256
+`d34fd7befb1ecb4ed51db8001fe74d3f5e0c594f5ba810942e714e102d4438fa`.
+Earlier development overlap in ancestor training remains disclosed; the audit
+does not establish independence from unknown base-model pretraining. Original
+sources and earlier decisions remain unchanged.
+
+For scale comparison, the completed R4 run consumed 1,544 registered records,
+1,642 distinct views and 161,773 target tokens. This R5 continuation schedules
+about 1.88 times those target tokens and about 2.10 times the distinct views.
+This measures supervision volume, not an improvement in model quality.
 
 The official IFEval adapter and scorer are implemented separately. Its 541
 English-prompt tasks are not Twi-understanding results, and no R5 benchmark
@@ -256,5 +269,11 @@ snapshot were backed up and read back from the private research volume at
 `e4a2c7d682870adb7a941f0f66a84be338ddf2e660e172ce16e1e57d48b1092c`,
 under `/research-training-r5/` with that manifest hash as its directory. The
 local receipt is `backup-preparation-v1/storage.json`. User lab conversations
-were not included. Later reviews and the final pack still require their own
-verified backup. R5 training has not started.
+were not included.
+
+The complete pack, all conversation proposals/reviews, five admission packages,
+protection extension and progress snapshot were backed up with full remote
+checksum readback at 10:30 UTC on November 10. The 90-file snapshot is under
+`/research-training-r5/d503e9ded94f51987deca6318ba1733bcf094cc26d5fdc28a38ff7c95f9df217`
+on the same private Modal volume; `backup-pack-v1/storage.json` is the receipt.
+Final audit evidence, training receipts and evaluations receive later snapshots.
