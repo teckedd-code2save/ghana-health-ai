@@ -98,8 +98,23 @@ of response-target tokens; targeted repairs contribute 1.63%.
 
 The final adapter passed checksum readback and is available in the private
 local base/R4/R5 comparison. Each model keeps its own history, with identical
-decoding and guard settings. Development and fresh evaluation results are pending;
-training completion is not a claim of semantic improvement. See the
+decoding and guard settings. All development and fresh chat-generation runs,
+raw and guarded, have finished. Retention recovery and final evidence sealing
+are in progress. Separate agent reviews of the raw outputs give:
+
+| Agent meaning judgment: full passes | Base | R4 | R5 |
+| --- | ---: | ---: | ---: |
+| Reused development, 75 outputs/model | 26 | 44 | 41 |
+| Fresh requested-Twi, 60 outputs/model | 10 | 24 | 29 |
+| Fresh requested-English, 56 outputs/model | 39 | 42 | 43 |
+
+The 116 fresh slots come from 40 source groups with related bilingual/spelling
+variants and multi-turn exchanges. These are non-blinded agent judgments, not
+native-human accuracy or clinical certification. Against R4 on fresh raw outputs,
+R5 has 11 meaning gains, eight regressions, 90 ties and seven uncertain pairs.
+On development it has four gains and four regressions. This is mixed progress;
+R5 is available for research comparison, not promoted as a proven replacement.
+Every raw output, exact history and judgment remains inspectable. See the
 [model card](docs/TWI_R5_MODEL_CARD.md) and
 [execution record](docs/TWI_UNDERSTANDING_R5_20261109.md).
 

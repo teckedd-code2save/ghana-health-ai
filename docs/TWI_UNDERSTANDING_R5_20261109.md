@@ -13,7 +13,7 @@ turns, not completion scores alone.
 | C | Audit and repair the broader training pool | Complete for this version, agent-reviewed | 240 source histories reviewed; 106 admitted with 191 assistant targets; 134 excluded with reasons. Separately, 24 project-authored histories provide 72 targets |
 | D | Freeze fresh held-out scenarios | Final source audit passed | 40 source groups, 84 cases, 116 scoring slots/model; complete prior/fresh protection with zero selected-pack matches; native/domain judgments remain pending |
 | E | Seal R5 training data and run | Complete, full readback verified | 228 updates; all 3,647 scheduled exposures and 303,594 target tokens consumed from registered data |
-| F | Evaluate and compare locally | Fresh raw/guarded complete; development guarded running; raw retention recovery prepared | Base/R4/R5 at localhost:7869; 696 fresh outputs collected; 443 development results preserved after preemption |
+| F | Evaluate and compare locally | All 1,146 chat outputs complete and review-covered; raw retention recovery running | Base/R4/R5 at localhost:7869; 573 raw agent judgments, 559 exact guarded transfers and 14 separately reviewed changed outputs |
 | G | Back up and publish research handoff | Pending F | Private data and weights backed up; public progress and dataset/model cards contain measured results only |
 
 ## Confirmed Starting Findings
@@ -334,8 +334,10 @@ The v3 terminal receipt is retained. Offline regressions cover missing distribut
 metadata and reject missing/wrong SDK identity. The complete R5 evaluation test
 selection passes 103 checks. Controller v4, SHA-256
 `3e4f7235578146cfaff09aacae93ff521d4cb47e4dffe82b642883abe1806daa`,
-is sealed for the next available evaluation GPU; it has not yet run. Training
-and local inference are unaffected. Failed controllers and receipts are preserved.
+was submitted as call `fc-01M72TWV82PVEP4JT8216Y0NXF`. It claimed attempt 2 and
+loaded the pinned model. It resumes only unstarted retention slots; the original
+443 durable results and one indeterminate request remain preserved. Training and
+local inference are unaffected. Failed controllers and receipts are preserved.
 
 The collected interrupted snapshot contains all 225 development chat outputs,
 218 loss measurements and one started request without a durable result. A
@@ -380,15 +382,40 @@ The reproducible per-language summary is `evaluation-review-v1/fresh-summary-v2.
 Fresh guarded run `r5_eval_20261110T124059Z` completed all 348 slots in 2,272
 seconds. EOS counts are base 109/116, R4 112/116 and R5 110/116; repeated-4-gram
 reply counts remain 29/26/31. No guard-triggered pauses occurred. Seven outputs
-or their histories differ from raw, so they receive separate agent review;
+or their histories differ from raw and received separate agent review;
 341 exactly matching cases reuse their existing judgments with explicit,
 hash-bound transfer provenance, not a claim of independent new reviews.
 Small differences without guard triggers are not credited to the guard.
-Development guarded run `r5_eval_20261110T132122Z` was submitted at 13:21 UTC
-with 225 slots. It is the only active evaluation GPU; raw-retention recovery
-waits for its terminal result.
+Development guarded run `r5_eval_20261110T132122Z` completed all 225 slots in
+922 seconds. EOS counts are base 70/75, R4 72/75 and R5 70/75; guards pause
+one, two and one replies respectively. The 218 exact matches retain their
+original judgments; seven changed outputs received separate reviews. Shorter
+loops did not restore the requested answers. Guarded meaning counts are base
+26/12/35/2, R4 44/21/9/1 and R5 41/22/9/3 (pass/partial/fail/uncertain).
+The guarded fresh R5 count is 73/26/12/5, versus raw 72/27/12/5; no guard
+trigger caused this difference, and one downstream history changed as well.
 Completion, meaning, language retention, repetition and guard behavior are
 reported separately.
+
+The private `evaluation-review-v1/capability-benchmark-v1` report preserves all
+authored capability/task labels and exact paired examples. Its 21 tests pass.
+Development source-group metadata is missing; case IDs are not substituted for
+independent source groups. Fresh task labels are unclassified while its capability
+labels and all 40 source groups are available. Categories overlap and cannot be
+summed into a larger sample count. Selected raw full-meaning-pass counts are:
+
+| Fresh capability | Source groups | Outputs/model | Base | R4 | R5 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Uncertainty | 6 | 20 | 6 | 11 | 15 |
+| Negation | 7 | 20 | 10 | 8 | 11 |
+| Multi-turn | 16 | 64 | 22 | 38 | 41 |
+| Clarification | 4 | 12 | 2 | 5 | 4 |
+| Quantities/math | 9 | 27 | 11 | 16 | 14 |
+
+These are non-blinded agent judgments on this authored suite, not general
+capability accuracy. Full partial/fail/uncertain counts and paired regressions
+are retained. Independent rollouts intentionally have different prior model
+replies; fixed-history tests separately hold the full input constant.
 
 The private offline benchmark viewer is `evaluation-view-v1/index.html` under
 the R5 artifact root. It initially contains the development partial report and
@@ -401,6 +428,31 @@ exports include subsequent completed suites without replacing old snapshots.
 `evaluation-view-v2/index.html` includes development raw and complete fresh raw,
 with all 573 raw-chat agent reviews and exact per-model histories. The local
 live comparison remains available at port 7869 throughout evaluation.
+`evaluation-view-v3/index.html` includes all four chat executions and their
+1,146 review-covered outputs, with transferred judgments visibly distinguished.
+Its development retention panel still reflects the preserved partial snapshot;
+it will receive a new export after recovery, never an in-place rewrite.
+
+### What the Evidence Supports Next
+
+The private `evaluation-review-v1/research-findings-v1.md` connects observed
+errors to verified data composition without claiming unproven causation. The
+106 new source-backed histories contain 21 single-assistant-turn and 85
+two-assistant-turn histories; none has a third assistant turn. All 24 repair
+histories have three assistant turns but contribute only 1.63% of response
+tokens. Longer contexts do exist in inherited records, so this is a depth/mix
+imbalance in the new cohort, not total absence of multi-turn training.
+
+The next preparation should measure response acts, actor/negation scope,
+known-versus-unknown state, selective updates, clarification resolution and
+honest action boundaries across the registered pool. Prioritize varied,
+source-separated correction chains and useful alternatives over exact test-prompt
+repairs. Preserve these evaluation prompts and outcomes outside data authoring.
+Validate calculations, units, requested output format and language separately.
+Compare a predeclared capability-balanced mixture before changing several
+training factors together. No new run or test-derived training data is launched
+by this recommendation. Native ambiguity adjudication and independent domain
+assessment remain separate from the completed agent reviews.
 
 ## Durable Locations
 
@@ -424,3 +476,12 @@ checksum readback at 10:30 UTC on November 10. The 90-file snapshot is under
 `/research-training-r5/d503e9ded94f51987deca6318ba1733bcf094cc26d5fdc28a38ff7c95f9df217`
 on the same private Modal volume; `backup-pack-v1/storage.json` is the receipt.
 Final audit evidence, training receipts and evaluations receive later snapshots.
+
+The 1,962-file completed-chat snapshot was remotely read back and verified at
+14:12 UTC. It contains the fresh raw/guarded and development guarded journals,
+reviews, capability report, recovery controls and viewer/progress sources under
+`/research-training-r5/601f043242472feb46c0d07908b3604b645148692fa1cf0bfe2ccbae246b1f8b`.
+Receipt: `backup-chat-evaluations-v1/storage.json`. User chat stores, secrets and
+weights are excluded; weights and the earlier interrupted journal have their
+separate verified storage/readback records. Final retention and handoff receive
+an additional snapshot after completion.

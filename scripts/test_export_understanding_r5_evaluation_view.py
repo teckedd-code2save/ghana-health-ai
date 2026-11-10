@@ -241,6 +241,22 @@ class EvaluationViewTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "new output"):
             view.export([("raw", self.folder)], [], self.root / "view")
 
+    def test_transferred_judgment_keeps_its_label_and_proof(self):
+        path = self.agent()
+        value = r.read(path)
+        value["rows"][0].update(transferred_judgment=True, independent_new_review=False,
+                                transfer_proof={"original_rating": {"file_sha256": "a" * 64}})
+        r.save(path, value)
+        result = view.export([("raw", self.folder)], [path], self.root / "view")
+        html = Path(result["path"]).read_text()
+        embedded = html.split('<script id="snapshot" type="application/json">', 1)[1].split('</script>', 1)[0]
+        rating = next(iter(json.loads(embedded)["results"][0]["agent"].values()))["rating"]
+        self.assertTrue(rating["transferred_judgment"])
+        self.assertFalse(rating["independent_new_review"])
+        self.assertEqual(rating["transfer_proof"], value["rows"][0]["transfer_proof"])
+        self.assertIn("Agent judgment reused from an exact raw match", html)
+        self.assertIn("Exact-match transfer evidence (not a new independent review)", html)
+
     def test_mutation_during_render_never_publishes(self):
         def render(data):
             (self.folder / "review.json").write_text("changed")
