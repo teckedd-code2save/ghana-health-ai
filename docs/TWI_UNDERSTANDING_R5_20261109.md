@@ -12,7 +12,7 @@ turns, not completion scores alone.
 | B | Recover the blocked comparison UI | Complete | 46 focused tests passed; actual failed session recovered in the browser, new follow-up completed on all three models, input enabled afterward |
 | C | Audit and repair the broader training pool | Complete for this version, agent-reviewed | 240 source histories reviewed; 106 admitted with 191 assistant targets; 134 excluded with reasons. Separately, 24 project-authored histories provide 72 targets |
 | D | Freeze fresh held-out scenarios | Final source audit passed | 40 source groups, 84 cases, 116 scoring slots/model; complete prior/fresh protection with zero selected-pack matches; native/domain judgments remain pending |
-| E | Seal R5 training data and run | Pack sealed; real-weight GPU check submitted | 3,108 registered dataset records, 3,456 distinct views, 3,647 scheduled exposures, 303,594 target tokens; full native encoding verified |
+| E | Seal R5 training data and run | Training running on private Modal H100 | Real-weight backward and bitwise recovery passed; 228 planned updates over the sealed 3,108-record dataset |
 | F | Evaluate and compare locally | Pending E | Base/R4/R5, independent histories, matched decoding and guards, raw and guarded evidence, failures retained |
 | G | Back up and publish research handoff | Pending F | Private data and weights backed up; public progress and dataset/model cards contain measured results only |
 
@@ -126,7 +126,7 @@ views, repeated presentations and supervised tokens. Until a completed worker
 receipt exists, counts describe preparation only. All selected research sources
 and review decisions are privately backed up; they are not public datasets.
 
-The current continuation passed 193 local preparation, training-contract,
+The current continuation passed 201 local preparation, training-contract,
 inference and workbench tests. These verify code behavior, not Twi quality.
 The independent conversation reviews are complete and the final pack is sealed.
 Repairable source errors are corrected in explicit new
@@ -200,9 +200,14 @@ source; a separate note records this distinction without changing old evidence.
 
 No OpenAI requests were made in this pass. The existing lifetime US$10 ledger
 remains authoritative; completed reservations have not been reset. Three private
-Modal inference requests verified lab recovery. The real-weight GPU check was
-submitted on November 10 as `understanding_20261110T102958Z`; the full R5
-training schedule has not started.
+Modal inference requests verified lab recovery. The real-weight GPU check
+`understanding_20261110T102958Z` completed in 235 seconds with exact initial
+adapter loading, backward training and bitwise uninterrupted/resumed equivalence.
+The full R5 run `understanding_20261110T103734Z` was then launched and reached
+the training phase. Its receipt is `train-v1/launch.json`, with private Modal
+app `ap-hLgXKc5nolUhHUmPRLZYTv`. It uses one H100, fresh optimizer/scheduler,
+learning rate `1e-5`, 228 planned updates and a 10,500-second soft budget.
+Only an actual completed consumption receipt can establish completion.
 
 ## Prepared R5 Dataset
 
@@ -251,9 +256,19 @@ For scale comparison, the completed R4 run consumed 1,544 registered records,
 about 1.88 times those target tokens and about 2.10 times the distinct views.
 This measures supervision volume, not an improvement in model quality.
 
+The 2,234 selected language/meaning records comprise 1,272 GhanaNLP parallel,
+786 GhanaNLP speech-transcript, 174 INJONGO and two community-parallel records.
+These are class-specific registered records, not a count of unique new source
+documents. The response origins and complete histories remain inspectable in
+`pack-v1/datasets/responses/records.jsonl`; all four snapshots have dataset cards.
+
 The official IFEval adapter and scorer are implemented separately. Its 541
 English-prompt tasks are not Twi-understanding results, and no R5 benchmark
 score exists before training and actual evaluation.
+The dedicated IFEval source audit also passed all 541 original prompts against
+the final pack and inherited actual consumption/full source histories, with zero
+exact, normalized, near or recorded-lineage matches and no benchmark cases removed.
+Its clearance is `evaluation-design/ifeval-source-audit-v1/clearance.json`.
 
 ## Durable Locations
 
