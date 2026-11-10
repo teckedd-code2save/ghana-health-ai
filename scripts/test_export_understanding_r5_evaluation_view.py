@@ -95,6 +95,75 @@ class EvaluationViewTests(unittest.TestCase):
                 "usefulness": "partial", "requested_language": "not_applicable", "unsupported_claims": None, "notes": UNSAFE}]})
         return path
 
+    def phrase(self):
+        path = self.root / "phrase.json"
+        row = r.read(self.folder / "review.json")["rows"][0]
+        r.save(path, {"version": "r5-user-phrase-review-v1", "event_id": "synthetic-event",
+            "reviewer_type": "user", "review_scope": "quoted_phrase_only",
+            "full_response_reviewed": False, "training_eligible": False, "original_output_modified": False,
+            "question": "Is this phrase correct?", "user_answer": "Change true to false.",
+            "original_quote": "globalThis.injected=true", "corrected_quote": "globalThis.injected=false",
+            "occurrences": [{"source_file_sha256": r.sha(self.folder / "review.json"),
+                             **{k: row[k] for k in ("slot_id", "case_id", "variant", "turn")}}]})
+        return path
+
+    def test_phrase_correction_preserves_original_output_and_whole_answer_ratings(self):
+        data = self.load()
+        view.attach_reviews([data], [self.agent()])
+        original_rows, original_ratings = copy.deepcopy(data["rows"]), copy.deepcopy(data["agent"])
+        sources, hashes = view.attach_phrase_reviews([data], [self.phrase()])
+        self.assertEqual(data["rows"], original_rows)
+        self.assertEqual(data["agent"], original_ratings)
+        self.assertEqual(len(sources), 1)
+        self.assertEqual(len(hashes), 1)
+        self.assertTrue(all(row["human_review"]["status"] == "pending" for row in data["rows"]))
+        self.assertEqual(next(iter(data["phrase_reviews"].values()))[0]["review"]["corrected_quote"],
+                         "globalThis.injected=false")
+
+    def test_phrase_correction_rejects_wrong_output_binding_and_duplicate_event(self):
+        path = self.phrase()
+        original = r.read(path)
+        for mutate in (lambda d: d["occurrences"][0].update(source_file_sha256="0" * 64),
+                       lambda d: d["occurrences"][0].update(variant="r5_response"),
+                       lambda d: d.update(original_quote="not in the output"),
+                       lambda d: d["occurrences"].append(d["occurrences"][0]),
+                       lambda d: d.update(occurrences=[])):
+            value = copy.deepcopy(original)
+            mutate(value)
+            r.save(path, value)
+            with self.assertRaises(ValueError):
+                view.attach_phrase_reviews([self.load()], [path])
+        r.save(path, original)
+        duplicate = self.root / "duplicate-phrase.json"
+        r.save(duplicate, original)
+        with self.assertRaisesRegex(ValueError, "Invalid phrase review"):
+            view.attach_phrase_reviews([self.load()], [path, duplicate])
+
+    def test_phrase_review_cannot_claim_full_approval_or_training_admission(self):
+        path = self.phrase()
+        original = r.read(path)
+        for key in ("full_response_reviewed", "training_eligible", "original_output_modified"):
+            value = copy.deepcopy(original)
+            value[key] = True
+            r.save(path, value)
+            with self.assertRaisesRegex(ValueError, "full-response approval"):
+                view.attach_phrase_reviews([self.load()], [path])
+
+    def test_phrase_correction_is_rendered_separately_and_html_escaped(self):
+        path = self.phrase()
+        value = r.read(path)
+        value["user_answer"] = UNSAFE
+        r.save(path, value)
+        result = view.export([("raw", self.folder)], [self.agent()], self.root / "view", [path])
+        html = Path(result["path"]).read_text()
+        embedded = html.split('<script id="snapshot" type="application/json">', 1)[1].split('</script>', 1)[0]
+        data = json.loads(embedded)
+        self.assertNotIn("<", embedded)
+        self.assertEqual(html.count("<script"), 2)
+        self.assertEqual(data["results"][0]["rows"][0]["output"], UNSAFE)
+        self.assertEqual(data["phrase_review_sources"][0]["review"]["user_answer"], UNSAFE)
+        self.assertIn("User-confirmed wording correction", html)
+
     def test_errors_pending_incomplete_and_partial_retention_are_not_dropped(self):
         data = self.load()
         self.assertEqual(len(data["rows"]), 9)

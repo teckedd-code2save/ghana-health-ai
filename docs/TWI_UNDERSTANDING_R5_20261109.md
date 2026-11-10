@@ -432,6 +432,18 @@ live comparison remains available at port 7869 throughout evaluation.
 1,146 review-covered outputs, with transferred judgments visibly distinguished.
 Its development retention panel still reflects the preserved partial snapshot;
 it will receive a new export after recovery, never an in-place rewrite.
+`evaluation-view-v4/index.html` additionally attaches the user's confirmed
+wording correction to the exact saved arithmetic reply: `yɛnnya` should be
+`yɛnya`. The earlier agent review had marked that phrase uncertain. This is
+one phrase-level confirmation, linked to identical raw/guarded occurrences,
+not two independent reviews or approval of the complete answer. Original outputs
+and aggregate agent ratings remain unchanged. The private sidecar is
+`evaluation-review-v1/user-phrase-check-20261110.json`; it stays evaluation
+evidence, not training data. The exporter accepts `--phrase-review FILE` and
+checks the source hash, exact quote, occurrence identity and limited review scope.
+All 355 R5 tests completed: 350 passed, five optional-dependency tests skipped.
+The 20 viewer tests include correction binding, unchanged original ratings and
+safe rendering. Actual GPU training/resume checks are recorded separately above.
 
 ### What the Evidence Supports Next
 

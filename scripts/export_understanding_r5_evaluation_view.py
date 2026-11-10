@@ -212,6 +212,40 @@ def escaped_json(value):
     return text
 
 
+def attach_phrase_reviews(results, paths):
+    hashes, sources, events = {}, [], set()
+    for path in paths:
+        path = Path(path).absolute()
+        r.require(not path.is_symlink() and path not in hashes, "Duplicate/linked phrase review")
+        hashes[path] = r.sha(path)
+        value = r.read(path)
+        r.require(value["version"] == "r5-user-phrase-review-v1" and value["reviewer_type"] == "user"
+                  and value["review_scope"] == "quoted_phrase_only" and value["full_response_reviewed"] is False
+                  and value["training_eligible"] is False and value["original_output_modified"] is False,
+                  "Phrase review must not imply full-response approval or training admission")
+        r.require(isinstance(value["event_id"], str) and value["event_id"] and value["event_id"] not in events
+                  and all(isinstance(value[k], str) and value[k].strip() for k in
+                          ("question", "user_answer", "original_quote", "corrected_quote"))
+                  and value["original_quote"] != value["corrected_quote"], "Invalid phrase review evidence")
+        events.add(value["event_id"])
+        source = {"path": str(path), "sha256": hashes[path], "review": value}
+        sources.append(source)
+        r.require(isinstance(value["occurrences"], list) and value["occurrences"], "Missing phrase occurrences")
+        seen = set()
+        for occurrence in value["occurrences"]:
+            matches = [d for d in results if d["proof"]["review_sha256"] == occurrence["source_file_sha256"]]
+            key = (occurrence["source_file_sha256"], occurrence["slot_id"])
+            r.require(len(matches) == 1 and key not in seen, "Unbound/duplicate phrase occurrence")
+            seen.add(key)
+            result = matches[0]
+            rows = [row for row in result["rows"] if row["slot_id"] == occurrence["slot_id"]]
+            r.require(len(rows) == 1 and all(rows[0][k] == occurrence[k] for k in ("case_id", "variant", "turn"))
+                      and isinstance(rows[0]["output"], str) and value["original_quote"] in rows[0]["output"],
+                      "Phrase review does not match saved output")
+            result.setdefault("phrase_reviews", {}).setdefault(occurrence["slot_id"], []).append(source)
+    return sources, hashes
+
+
 STYLE = """
 *{box-sizing:border-box;letter-spacing:0}body{margin:0;background:#fff;color:#202b27;font:14px/1.5 system-ui,sans-serif}header{padding:20px 24px 12px;border-top:5px solid #24715d}h1{font-size:25px;margin:0}h2{font-size:18px;margin:0 0 10px}h3{font-size:15px;margin:16px 0 8px}p{margin:5px 0 12px}.muted{color:#5b6862}
 .toolbar{display:flex;flex-wrap:wrap;gap:12px;padding:12px 24px;background:#f6f8f6;border-block:1px solid #dce4df}.toolbar label{display:grid;gap:4px;min-width:120px}.grow{flex:1}select,input,button{font:inherit;border:1px solid #b8c6bd;border-radius:4px;background:white;color:inherit;padding:8px;min-width:0;width:100%}select{max-width:100%}:focus-visible{outline:3px solid #41846b;outline-offset:2px}
@@ -256,6 +290,7 @@ function compare(){const g=groups.find(g=>g.key===groupKey);$('comparison').repl
   node('h4','Exact output',pane);node('div',row.output===null?'No saved output.':row.output===''?'Empty output (0 characters).':row.output,pane).className='output';
   if(row.error||row.reason)node('p',[row.error_type,row.error,row.reason].filter(Boolean).join(': '),pane).className='notice';
   if(rating){node('p',rating.rating.notes,pane);node('p','Agent unsupported-claim flag: '+(rating.rating.unsupported_claims===null?'uncertain':rating.rating.unsupported_claims?'flagged':'none identified'),pane).className='small';details(pane,'Agent review source',rating.source);if(rating.rating.transferred_judgment)details(pane,'Exact-match transfer evidence (not a new independent review)',rating.rating.transfer_proof);}
+  for(const evidence of result.phrase_reviews?.[row.slot_id]||[]){node('h4','User-confirmed wording correction',pane);node('p','Phrase only; full-answer ratings and original output remain unchanged.',pane).className='small';node('p','Original: '+evidence.review.original_quote,pane);node('p','Correction: '+evidence.review.corrected_quote,pane);details(pane,'User confirmation and exact source',evidence);}
   const history=node('details',undefined,pane);node('summary',row.evaluation_type==='rollout'?'Exact prompt / own rollout history':'Exact prompt / supplied history',history);for(const m of row.messages||[]){const d=node('div',undefined,history);d.className='message';node('b',m.role,d);node('div',m.content,d);}
   details(pane,'Authored criteria and capability metadata',{criteria:row.review_criteria,labels:row.benchmark_labels,source_group_id:row.source_group_id,source_case_sha256:row.source_case_sha256});
   details(pane,'Raw record and hash reference',{source_directory:result.proof.directory,review_sha256:result.proof.review_sha256,record_path:row.record,record_file_sha256:row.record?result.proof.files[row.record]:null,review_row:row,raw_record:result.raw_chat[row.slot_id]||null});
@@ -278,7 +313,7 @@ def render_html(data):
 <noscript>JavaScript is required to display the embedded results.</noscript><script id="snapshot" type="application/json">{escaped_json(data)}</script><script>{SCRIPT}</script></body></html>"""
 
 
-def export(results, agent_reviews, out):
+def export(results, agent_reviews, out, phrase_reviews=()):
     out = Path(out).absolute()
     r.require(results and not out.exists() and not out.is_symlink(), "Use a new output directory and at least one report")
     loaded, hashes, labels, identities = [], {}, set(), set()
@@ -293,7 +328,10 @@ def export(results, agent_reviews, out):
         hashes.update(bound)
     sources, bound = attach_reviews(loaded, agent_reviews)
     hashes.update(bound)
-    data = {"version": "r5-evaluation-view-v1", "results": loaded, "agent_sources": sources}
+    phrases, bound = attach_phrase_reviews(loaded, phrase_reviews)
+    hashes.update(bound)
+    data = {"version": "r5-evaluation-view-v1", "results": loaded, "agent_sources": sources,
+            "phrase_review_sources": phrases}
     html = render_html(data)
     unchanged(hashes)
     out.mkdir(mode=0o700)
@@ -313,6 +351,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--results", action="append", required=True, metavar="LABEL=DIR")
     parser.add_argument("--agent-review", action="append", default=[], type=Path)
+    parser.add_argument("--phrase-review", action="append", default=[], type=Path)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     results = []
@@ -320,7 +359,7 @@ def main():
         label, separator, folder = value.partition("=")
         r.require(separator and folder, "Use --results LABEL=DIR")
         results.append((label, Path(folder)))
-    print(json.dumps(export(results, args.agent_review, args.out), indent=2))
+    print(json.dumps(export(results, args.agent_review, args.out, args.phrase_review), indent=2))
 
 
 if __name__ == "__main__":
