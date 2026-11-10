@@ -158,6 +158,33 @@ class RecoveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Remote journal"):
             recovery.verify_baseline(self.snapshot, snapshot)
 
+    def test_bounded_baseline_preserves_all_protected_hashes(self):
+        snapshot = runner.read(self.controller / "snapshot.json")
+        runner.save(self.snapshot / "unprotected-summary.json", {"not_authoritative": True})
+        with patch.object(recovery, "ThreadPoolExecutor", wraps=recovery.ThreadPoolExecutor) as pool, \
+             patch.object(runner, "sha", wraps=runner.sha) as hashing:
+            recovery.verify_baseline(self.snapshot, snapshot)
+        pool.assert_called_once_with(max_workers=8)
+        checked = {call.args[0].relative_to(self.snapshot).as_posix() for call in hashing.call_args_list}
+        self.assertEqual(checked, set(snapshot["files"]))
+        self.assertEqual(runner.read(self.controller / "controller.json")["baseline_verification"], recovery.BASELINE)
+
+    def test_baseline_rejects_missing_changed_and_linked_files(self):
+        snapshot = runner.read(self.controller / "snapshot.json")
+        path = self.snapshot / "journal/binding.json"
+        original = path.read_bytes()
+        path.write_bytes(b"changed")
+        with self.assertRaisesRegex(ValueError, "Remote journal"):
+            recovery.verify_baseline(self.snapshot, snapshot)
+        path.unlink()
+        with self.assertRaisesRegex(ValueError, "Remote journal"):
+            recovery.verify_baseline(self.snapshot, snapshot)
+        path.write_bytes(original)
+        link = self.snapshot / "unprotected-link.json"
+        link.symlink_to(path)
+        with self.assertRaisesRegex(ValueError, "Linked artifact"):
+            recovery.verify_baseline(self.snapshot, snapshot)
+
     def worker(self):
         folder = self.root / "artifacts" / self.previous["remote_directory"].lstrip("/")
         shutil.copytree(self.snapshot, folder)

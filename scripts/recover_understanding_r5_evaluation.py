@@ -7,6 +7,7 @@ written to a separate immutable sidecar before the sealed worker's local call.
 """
 import argparse
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 import os
 from pathlib import Path
 import re
@@ -18,6 +19,7 @@ VERSION = "r5-evaluation-recovery-v1"
 SDK = "1.4.3"
 WORKER = "recover_understanding_r5_evaluation_worker.py"
 CODE = ("recover_understanding_r5_evaluation.py", "run_understanding_r5_evaluation.py", "r5_retention.py", WORKER)
+BASELINE = {"hash_concurrency": 8, "scope": "all_protected_files", "preserve_all_hashes": True}
 PATCH = {"target": "sealed_worker.runner.terminal", "replacement": "controller_runner.terminal",
          "reason": "Recognize SDK-proven deserialized remote exceptions; unknown remains nonterminal",
          "inference_data_prompt_decoding_changes": False, "claim_and_journal_changes": False}
@@ -100,7 +102,7 @@ def prepare(package, checksum, previous, snapshot, out):
     contract = {"version": VERSION, "execution_sha256": checksum, "original_worker_sha256": execution["files"]["code/evaluate_understanding_r5.py"],
                 "original_runner_sha256": execution["files"]["code/run_understanding_r5_evaluation.py"],
                 "run_id": old["run_id"], "attempt": old["attempt"] + 1, "previous_call_id": old["call_id"],
-                "profile": old["profile"], "patch": PATCH, "modal_version": SDK,
+                "profile": old["profile"], "patch": PATCH, "modal_version": SDK, "baseline_verification": BASELINE,
                 "resources": {"gpu": "H100", "maximum_gpu_workers": 1, "hard_seconds": 7200, "automatic_retries": 0},
                 "files": api.files(out)}
     api.save(out / "controller.json", contract)
@@ -118,6 +120,7 @@ def verify(controller, controller_sha, package):
     api.require(api.sha(controller / "controller.json") == controller_sha
                 and api.read(controller / "SEALED.json") == {"controller_sha256": controller_sha}, "Controller seal differs")
     api.require(contract["version"] == VERSION and contract["patch"] == PATCH and contract["modal_version"] == SDK
+                and contract["baseline_verification"] == BASELINE
                 and contract["resources"] == {"gpu": "H100", "maximum_gpu_workers": 1, "hard_seconds": 7200, "automatic_retries": 0},
                 "Recovery control contract differs")
     api.require(set(contract["files"]) == {"previous.json", "snapshot.json"} | {"code/" + n for n in CODE}
@@ -141,7 +144,16 @@ def verify(controller, controller_sha, package):
 
 
 def verify_baseline(folder, snapshot):
-    actual = {k: v for k, v in api.files(folder).items() if protected(k)}
+    paths = sorted(Path(folder).rglob("*"))
+    api.require(not any(p.is_symlink() for p in paths), "Linked artifact")
+    selected = [(p.relative_to(folder).as_posix(), p) for p in paths
+                if p.is_file() and protected(p.relative_to(folder).as_posix())]
+    # Verify every protected byte; bound parallel reads on the remote volume.
+    def checksum(item):
+        name, path = item
+        return name, api.sha(path)
+    with ThreadPoolExecutor(max_workers=BASELINE["hash_concurrency"]) as pool:
+        actual = dict(pool.map(checksum, selected))
     api.require(actual == snapshot["files"], "Remote journal/provenance differs from collected snapshot")
 
 

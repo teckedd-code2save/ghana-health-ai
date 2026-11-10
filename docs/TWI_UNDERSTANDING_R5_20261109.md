@@ -339,6 +339,20 @@ loaded the pinned model. It resumes only unstarted retention slots; the original
 443 durable results and one indeterminate request remain preserved. Training and
 local inference are unaffected. Failed controllers and receipts are preserved.
 
+Attempt 2 subsequently reached its 7,200-second outer timeout with 1,332 saved
+records, including 1,106 measured losses and the original indeterminate loss.
+There was no newly started request without a saved result. The complete second
+snapshot verifies all 899 protected files from the first snapshot unchanged.
+Recovery verification occurs before the inner evaluation timer starts, so startup
+overhead can exhaust the outer timeout before the inner soft pause. Controller v5
+uses eight bounded file readers for every protected checksum instead of serial
+reads; it still rejects additions, removals, changed bytes and links. No weights,
+data, scoring, prompts, decoding or original journal checks change. Its checksum
+is `02375c79f7cf58d8a645a9dafb36a886535512949c482b4426a0265159caaa30`.
+Attempt 3 (`fc-01M732DBPVW13TVHZ4ZX55BTYP`) resumes the 54 unstarted slots.
+The updated R5 tests complete 357 checks: 352 pass and five optional-dependency
+tests skip. The timeout and all earlier records remain part of the final evidence.
+
 The collected interrupted snapshot contains all 225 development chat outputs,
 218 loss measurements and one started request without a durable result. A
 separate partial report supports review without changing original evidence.
