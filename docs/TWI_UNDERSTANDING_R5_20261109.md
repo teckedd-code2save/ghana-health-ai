@@ -263,6 +263,19 @@ These are class-specific registered records, not a count of unique new source
 documents. The response origins and complete histories remain inspectable in
 `pack-v1/datasets/responses/records.jsonl`; all four snapshots have dataset cards.
 
+The private offline explorer is `dataset-view-v1/index.html` under the R5 artifact
+root. It presents exactly the consumed records, with separate class counts,
+search, complete registered messages, available English references, review
+metadata and source provenance. Its counts are reconstructed from the completed
+consumption receipt and checked against the sealed pack, not a separate registry.
+It makes no network requests and adds no quality certification. Regeneration uses
+`scripts/export_understanding_r5_dataset_view.py --pack <pack-v1> --consumption
+<train-v1/completed/consumption.json> --out <new-private-directory>`.
+The explorer and training-contract tests passed 43 checks, including nine
+explorer tests. Browser interaction was checked by the implementation agent;
+the main agent's in-app browser refused the local-file URL. The local artifact
+remains directly openable by the user without a server.
+
 The official IFEval adapter and scorer are implemented separately. Its 541
 English-prompt tasks are not Twi-understanding results, and no R5 benchmark
 score exists before training and actual evaluation.
