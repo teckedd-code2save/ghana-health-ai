@@ -25,6 +25,7 @@ import sqlite3
 import threading
 import time
 import types
+import unicodedata
 import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -149,8 +150,19 @@ def new_session(checksum, *, loop_guard=True):
 def model_session(state, variant):
     """R4 is deliberately not passed to demo.new_session, whose LABELS exclude it."""
     require(variant in VARIANTS, "Unknown comparison variant")
+    excluded = {(e["round_id"], e["variant"]) for e in state.get("context_exclusions", [])}
     return {"id": state["model_sessions"][variant], "variant": variant,
-            "turns": [copy.deepcopy(r["sides"][variant]["turn"]) for r in state["rounds"]]}
+            "turns": [copy.deepcopy(r["sides"][variant]["turn"]) for r in state["rounds"]
+                      if (r["id"], variant) not in excluded]}
+
+
+def unicode_problem(content):
+    # Match the frozen tokenizer contract before entering the remote transport.
+    for index, char in enumerate(content):
+        category = unicodedata.category(char)
+        if char == "\ufffd" or category in {"Co", "Cs"} or (category == "Cc" and char not in "\n\r\t"):
+            return f"Invalid Unicode in message (U+{ord(char):04X} at character {index + 1})"
+    return None
 
 
 class Store:
@@ -208,6 +220,9 @@ class Store:
                 require(all(old[k] == state[k] for k in ("manifest_sha256", "history_policy", "loop_guard",
                                                         "execution_order", "model_sessions")),
                         "Policy changed; start a new session")
+                exclusions = old.get("context_exclusions", [])
+                require(state.get("context_exclusions", [])[:len(exclusions)] == exclusions,
+                        "Context exclusions are append-only")
             revision = state["revision"] + 1
             record = json.dumps({**state, "revision": revision}, ensure_ascii=False, allow_nan=False)
             db.execute("INSERT INTO r4_sessions VALUES (?,?,?,?) ON CONFLICT(id) DO UPDATE SET revision=excluded.revision,updated=excluded.updated,record=excluded.record",
@@ -277,28 +292,28 @@ class Workbench:
             raise ValueError("Missing final remote evidence")
 
     @staticmethod
-    def continue_round(item):
-        if not item.get("verified") or item["status"] not in {"complete", "incomplete", "paused"}:
+    def continue_side(side, guarded):
+        if not side.get("verified") or side["status"] not in {"complete", "incomplete", "paused"}:
             return False
-        for side in item["sides"].values():
-            if not side.get("verified") or side["status"] not in {"complete", "incomplete", "paused"}:
-                return False
-            turn = side["turn"]
-            result = turn.get("remote_result", {})
-            if not turn["answer"].strip():
-                return False
-            if side["status"] == "paused":
-                if not item["loop_guard"] or not result.get("loop_guard", {}).get("trigger"):
-                    return False
-            elif side["status"] == "incomplete" and result.get("finish_reason") not in {"max_new_tokens", "time_limit"}:
-                return False
-            elif side["status"] == "complete" and (result.get("finish_reason") != "eos" or result.get("complete") is not True):
-                return False
-        return True
+        turn = side["turn"]
+        result = turn.get("remote_result", {})
+        if not turn["answer"].strip():
+            return False
+        if side["status"] == "paused":
+            return bool(guarded and result.get("loop_guard", {}).get("trigger"))
+        if side["status"] == "incomplete":
+            return result.get("finish_reason") in {"max_new_tokens", "time_limit"}
+        return result.get("finish_reason") == "eos" and result.get("complete") is True
+
+    def context_problem(self, item, variant):
+        side = item["sides"][variant]
+        if not self.continue_side(side, item["loop_guard"]):
+            return side.get("error") or "No usable verified reply (" + side["status"] + ")"
+        return unicode_problem(item["question"]) or unicode_problem(side["turn"]["answer"])
 
     @staticmethod
     def matched_prompts(item):
-        sides = list(item["sides"].values())
+        sides = [s for s in item["sides"].values() if s.get("verified")]
         for i, left in enumerate(sides):
             for right in sides[i + 1:]:
                 if left["turn"]["messages"] == right["turn"]["messages"]:
@@ -306,32 +321,97 @@ class Workbench:
                             right["turn"]["remote_result"]["prompt_ids_sha256"],
                             "Native prompt hashes differ for identical inputs")
 
-    def histories(self, state):
+    def validate_messages(self, messages):
+        self.module.validate_messages(messages)
+        for message in messages:
+            problem = unicode_problem(message["content"])
+            require(problem is None, problem)
+
+    @staticmethod
+    def context_messages(rounds, variant, exclusions):
+        excluded = {(e["round_id"], e["variant"]) for e in exclusions}
+        return [message for item in rounds if (item["id"], variant) not in excluded for message in (
+            {"role": "user", "content": item["question"]},
+            {"role": "assistant", "content": (item["sides"][variant].get("turn") or {}).get("answer", "")})]
+
+    def audit_context(self, state):
         require(state["manifest_sha256"] == self.checksum and state["history_policy"] == HISTORY_POLICY
                 and state["execution_order"] == list(VARIANTS) and type(state["loop_guard"]) is bool,
                 "Conversation policy or bundle differs")
-        messages = {v: [] for v in VARIANTS}
+        exclusions = state.get("context_exclusions", [])
+        keys = [(e["round_id"], e["variant"]) for e in exclusions]
+        require(len(keys) == len(set(keys)) and all(v in VARIANTS for _, v in keys), "Invalid context exclusions")
+        prior, previous = [], []
         for item in state["rounds"]:
-            require(self.continue_round(item), "Unfinished or unverified round; start a new chat, no automatic retry")
             require(item["loop_guard"] is state["loop_guard"] and set(item["sides"]) == set(VARIANTS),
                     "Saved repetition policy or checkpoint set differs")
+            # Audit old requests against their original context, not today's exclusions.
+            applied = item.get("context_exclusions", [])
+            require(applied == exclusions[:len(applied)] and applied[:len(previous)] == previous
+                    and all(e["round_id"] in {r["id"] for r in prior} for e in applied),
+                    "Saved context exclusions differ")
             for v in VARIANTS:
-                expected = messages[v] + [{"role": "user", "content": item["question"]}]
+                expected = self.context_messages(prior, v, applied) + [{"role": "user", "content": item["question"]}]
                 require(item["input_messages"][v] == expected
                         and item["input_messages_sha256"][v] == digest(expected), "Saved model history is not independent")
-                turn = item["sides"][v]["turn"]
-                require(turn["session_id"] == state["model_sessions"][v], "Model session ownership differs")
-                self.accept(copy.deepcopy(item["sides"][v]), turn, expected, state["loop_guard"])
-                self.module.validate_messages(expected)
-                messages[v] = expected + [{"role": "assistant", "content": turn["answer"]}]
+                side, turn = item["sides"][v], item["sides"][v]["turn"]
+                require(side["variant"] == v, "Side checkpoint differs")
+                if turn:
+                    require(turn["session_id"] == state["model_sessions"][v], "Model session ownership differs")
+                    require(turn["messages"] == expected and turn["question"] == item["question"]
+                            and turn["variant"] == v, "Side input history differs")
+                    require(turn["identity"] == self.demo.identity(self.manifest, self.checksum, v)
+                            and turn.get("loop_guard", False) is state["loop_guard"], "Side checkpoint or policy differs")
+                if side.get("verified"):
+                    checked = copy.deepcopy(side)
+                    self.accept(checked, turn, expected, state["loop_guard"])
+                    require(checked["verified"] and checked["status"] == side["status"], "Side evidence status differs")
             self.matched_prompts(item)
+            prior.append(item)
+            previous = applied
+        require(all(round_id in {r["id"] for r in prior} for round_id, _ in keys), "Unknown excluded round")
+        by_id = {item["id"]: item for item in prior}
+        for entry in exclusions:
+            problem = self.context_problem(by_id[entry["round_id"]], entry["variant"])
+            require(problem and entry["reason"] == problem, "Context exclusion reason differs")
+
+    def recovery_plan(self, state):
+        self.audit_context(state)
+        excluded = {(e["round_id"], e["variant"]) for e in state.get("context_exclusions", [])}
+        plan = []
+        for item in state["rounds"]:
+            require(item["status"] != "pending", "Unfinished round; stop the request or start a new chat")
+            for v in VARIANTS:
+                if (item["id"], v) in excluded:
+                    continue
+                reason = self.context_problem(item, v)
+                if reason:
+                    plan.append({"round_id": item["id"], "variant": v, "reason": reason})
+        return plan
+
+    def histories(self, state):
+        require(not self.recovery_plan(state),
+                "Unfinished or unusable branch history; exclude unusable turns or start a new chat. No automatic retry.")
+        messages = {v: self.context_messages(state["rounds"], v, state.get("context_exclusions", [])) for v in VARIANTS}
+        for history in messages.values():
+            self.validate_messages(history + [{"role": "user", "content": "?"}])
         return messages
+
+    def recover(self, state):
+        state = copy.deepcopy(state)
+        require(self.store.load(state["id"]) == state, "Stale or modified session; reload without retrying")
+        plan = self.recovery_plan(state)
+        require(plan, "No unusable turns to exclude")
+        state.setdefault("context_exclusions", []).extend(plan)
+        self.histories(state)
+        self.store.save(state)
+        return state
 
     def ready(self, state):
         try:
             self.histories(state)
             return True
-        except (ValueError, KeyError, TypeError):
+        except (ValueError, KeyError, TypeError, AttributeError):
             return False
 
     async def compare(self, state, question, *, stop=None, remote=None, cancel=None, audition_fn=None):
@@ -341,7 +421,7 @@ class Workbench:
                 "Enter a nonempty message of at most 16000 characters")
         inputs = {v: history + [{"role": "user", "content": question}] for v, history in self.histories(state).items()}
         for messages in inputs.values():
-            self.module.validate_messages(messages)
+            self.validate_messages(messages)
         sessions = {v: model_session(state, v) for v in VARIANTS}
         guarded = state["loop_guard"]
         remote = remote if remote is not None else self.demo.routed_events(self.manifest, loop_guard=guarded)
@@ -350,6 +430,7 @@ class Workbench:
         stop = stop if stop is not None else threading.Event()
         item = {"id": uuid.uuid4().hex, "question": question, "created": time.time(), "status": "pending",
                 "verified": False, "error": None, "loop_guard": guarded, "input_messages": copy.deepcopy(inputs),
+                "context_exclusions": copy.deepcopy(state.get("context_exclusions", [])),
                 "input_messages_sha256": {v: digest(m) for v, m in inputs.items()},
                 "sides": {v: {"variant": v, "status": "queued", "verified": False, "turn": None,
                               "ttft_seconds": None, "wall_seconds": None, "error": None} for v in VARIANTS}}
@@ -366,7 +447,7 @@ class Workbench:
                 started, iterator = time.monotonic(), None
                 try:
                     iterator = audition_fn(sessions[v], question, v, self.manifest, self.checksum,
-                        self.module.validate_messages, self.store.path, remote=remote, cancel=cancel,
+                        self.validate_messages, self.store.path, remote=remote, cancel=cancel,
                         stop=stop, loop_guard=guarded)
                     async for current in iterator:
                         turn = current["turns"][-1]
@@ -386,7 +467,11 @@ class Workbench:
                     side.update(status="error", verified=False, error=str(exc)[:2000])
                 finally:
                     if iterator is not None:
-                        await iterator.aclose()
+                        try:
+                            await iterator.aclose()
+                        except Exception as exc:
+                            side.update(status="error", verified=False,
+                                        error="Stream cleanup failed: " + str(exc)[:1800])
                     side["wall_seconds"] = time.monotonic() - started
                 if side["status"] == "cancelled":
                     stop.set()
@@ -444,6 +529,17 @@ def side_status(side):
     return "<br>".join(html.escape(p) for p in parts)
 
 
+def context_status(state, variant, plan):
+    numbers = {item["id"]: i + 1 for i, item in enumerate(state["rounds"])}
+    parts = []
+    for label, entries in (("Excluded from future context", state.get("context_exclusions", [])),
+                           ("Needs context exclusion", plan)):
+        for entry in entries:
+            if entry["variant"] == variant:
+                parts.append(f"{label}: turn {numbers[entry['round_id']]} ({entry['reason']})")
+    return "".join("<br>" + html.escape(part) for part in parts)
+
+
 def evidence(workbench, state):
     item = state["rounds"][-1] if state["rounds"] else None
     return {"manifest_sha256": workbench.checksum, "history_policy": HISTORY_POLICY,
@@ -452,6 +548,8 @@ def evidence(workbench, state):
             "verified": bool(item and item["verified"]), "completion_status": item["status"] if item else "empty",
             "input_messages_by_model": item["input_messages"] if item else {},
             "input_messages_sha256": item["input_messages_sha256"] if item else {},
+            "context_exclusions": state.get("context_exclusions", []),
+            "round_context_exclusions": item.get("context_exclusions", []) if item else [],
             "identities": {v: workbench.demo.identity(workbench.manifest, workbench.checksum, v) for v in VARIANTS},
             "checkpoint_directories": {v: workbench.manifest["variants"][v]["directory"] for v in VARIANTS if v != "base"},
             "decoding": workbench.manifest["decoding"], "actor": workbench.manifest["actor"],
@@ -518,6 +616,7 @@ def build_app(workbench, *, remote=None, cancel=None):
                         allow_file_downloads=False, allow_tags=False))
                     statuses.append(gr.HTML("Ready", elem_classes="r4-status"))
         status = gr.HTML("Ready", elem_id="r4-status")
+        recover_button = gr.Button("Exclude unusable turns", size="sm", interactive=False)
         composer = gr.Textbox(label="Question", placeholder="Twi or English", lines=2, max_lines=5,
                               max_length=16000, submit_btn=True)
         stop_button = gr.Button("Stop", size="sm", variant="stop")
@@ -534,52 +633,68 @@ def build_app(workbench, *, remote=None, cancel=None):
             proof = gr.JSON({}, label="Checkpoints, exact histories and stream evidence", open=False)
 
         outputs = [state, remembered, *chats, *statuses, status, composer, mode, fresh, saved,
-                   selected_round, proof, review_status, note, rating, reviews]
+                   selected_round, proof, review_status, note, rating, reviews, recover_button]
 
-        def view(current, message=None):
+        def view(current, message=None, *, keep_question=False):
             item = current["rounds"][-1] if current["rounds"] else None
             with lock:
                 pending = current["id"] in active
-            ready = workbench.ready(current)
+            ready, plan = False, []
+            if not pending:
+                ready = workbench.ready(current)
+                try:
+                    plan = workbench.recovery_plan(current)
+                except (ValueError, KeyError, TypeError, AttributeError):
+                    pass
             if message is None:
                 message = ("Ready" if not item else item["status"].capitalize() +
                            (" | Evidence verified" if item["verified"] else " | Evidence not verified"))
-                if item and not pending and not ready:
+                if plan:
+                    message += " | Context recovery needed; original evidence retained"
+                elif item and not pending and not ready:
                     message += " | Start a new chat"
                 if item and item.get("error"):
                     message += " | " + item["error"]
             choices = [(f"{i + 1}: {r['question'][:65]}", r["id"]) for i, r in enumerate(current["rounds"])
                        if r["status"] != "pending"]
             return (current, current["id"], *[transcript(current, v) for v in VARIANTS],
-                *[side_status(item["sides"][v] if item else None) for v in VARIANTS], html.escape(message),
-                gr.update(value="", interactive=ready and not pending),
+                *[side_status(item["sides"][v] if item else None) + context_status(current, v, plan) for v in VARIANTS], html.escape(message),
+                gr.update(**({} if keep_question else {"value": ""}), interactive=not pending),
                 gr.update(value="guarded" if current["loop_guard"] else "raw", interactive=not pending),
                 gr.update(interactive=not pending),
                 gr.update(choices=workbench.store.conversations(), value=current["id"], interactive=not pending),
                 gr.update(choices=choices, value=choices[-1][1] if choices else None),
                 evidence(workbench, current), "", gr.update(value="", interactive=not pending),
-                gr.update(value="unsure", interactive=not pending), workbench.store.reviews(current["id"]))
+                gr.update(value="unsure", interactive=not pending), workbench.store.reviews(current["id"]),
+                gr.update(interactive=bool(plan) and not pending))
 
         async def respond(question, prior, selected_mode):
             current = prior or workbench.fresh(loop_guard=selected_mode == "guarded")
-            require(current["loop_guard"] is (selected_mode == "guarded"), "Mode changed; start a new chat")
-            signal, error = threading.Event(), None
-            with lock:
-                require(current["id"] not in active, "Conversation already active")
-                active[current["id"]] = signal
-            iterator = workbench.compare(current, question, stop=signal, remote=remote, cancel=cancel)
+            session_id = current["id"]
+            signal, error, iterator, owned, accepted = threading.Event(), None, None, False, False
             try:
+                require(current["loop_guard"] is (selected_mode == "guarded"), "Mode changed; start a new chat")
+                with lock:
+                    require(session_id not in active, "Conversation already active")
+                    active[session_id] = signal
+                    owned = True
+                iterator = workbench.compare(current, question, stop=signal, remote=remote, cancel=cancel)
                 async for current in iterator:
+                    accepted = True
                     yield view(current)
             except Exception as exc:
-                error = str(exc)[:2000]
+                error = ("This message was not submitted: " if not accepted else "") + str(exc)[:2000]
             finally:
                 try:
-                    await iterator.aclose()
+                    if iterator is not None:
+                        await iterator.aclose()
+                except Exception as exc:
+                    error = "Stream cleanup failed: " + str(exc)[:1800]
                 finally:
                     with lock:
-                        active.pop(current["id"], None)
-            yield view(workbench.store.load(current["id"]), error)
+                        if owned:
+                            active.pop(session_id, None)
+            yield view(workbench.store.load(session_id), error, keep_question=not accepted)
 
         options = {"api_visibility": "private", "concurrency_limit": 1, "concurrency_id": "r4-workbench"}
         composer.submit(respond, [composer, state, mode], outputs, **options)
@@ -591,9 +706,25 @@ def build_app(workbench, *, remote=None, cancel=None):
                     signal.set()
 
         stop_button.click(stop, [state], None, queue=False, api_visibility="private")
+
+        def new_chat(selected):
+            return view(workbench.fresh(loop_guard=selected == "guarded"))
+
         for event in (mode.input, fresh.click):
-            event(lambda selected: view(workbench.fresh(loop_guard=selected == "guarded")), [mode], outputs, **options)
+            event(new_chat, [mode], outputs, **options)
         saved.input(lambda key: view(workbench.restore(key)), [saved], outputs, **options)
+
+        def recover(current):
+            try:
+                with lock:
+                    require(current["id"] not in active, "Conversation already active")
+                    recovered = workbench.recover(current)
+                return view(recovered, "Unusable turns excluded from future context. Original evidence retained; no requests retried.",
+                            keep_question=True)
+            except (ValueError, KeyError, TypeError) as exc:
+                return view(workbench.store.load(current["id"]), str(exc), keep_question=True)
+
+        recover_button.click(recover, [state], outputs, **options)
 
         def restore(key):
             try:

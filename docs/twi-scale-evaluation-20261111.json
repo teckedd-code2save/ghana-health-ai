@@ -1,0 +1,119 @@
+{
+  "conversation": {
+    "hashes": {
+      "bundle": "6e232b799c622fa55885baa1f76d5d86b1388974144ae16ddf5f5b9ef02076a6",
+      "inputs": "749e3c388a382700c91e5e736590f67ae5e0be7eefb9569b09ce8f4627a2b5d2",
+      "results": "6099c21edfa34bef52471a263f37b63211dc86a18d6d0b1f6c7ef7717d672ec1",
+      "worker": "3c7190fd86da1ca1879975d2c1cfc8a149977643fee78580d5e7af0dc7b90017"
+    },
+    "interpretation": "Four project-authored templates, six assignments each in each language. Strict requires the requested bare value, normalized; slot allows prose with the expected value and no other controlled value from any scenario. Neither certifies free prose quality. Incomplete histories remain failures in the denominator. Independent model histories; greedy, 48 new tokens per reply.",
+    "results": {
+      "en": {
+        "base": {
+          "both_slot": 18,
+          "both_strict": 18,
+          "changed_slot": 24,
+          "dialogues": 24,
+          "missing_turns": 0,
+          "turns_hit_token_cap": 11,
+          "unchanged_slot": 18
+        },
+        "r4_response": {
+          "both_slot": 18,
+          "both_strict": 17,
+          "changed_slot": 24,
+          "dialogues": 24,
+          "missing_turns": 0,
+          "turns_hit_token_cap": 4,
+          "unchanged_slot": 18
+        },
+        "r5_response": {
+          "both_slot": 18,
+          "both_strict": 17,
+          "changed_slot": 24,
+          "dialogues": 24,
+          "missing_turns": 0,
+          "turns_hit_token_cap": 1,
+          "unchanged_slot": 18
+        }
+      },
+      "tw": {
+        "base": {
+          "both_slot": 11,
+          "both_strict": 11,
+          "changed_slot": 11,
+          "dialogues": 24,
+          "missing_turns": 0,
+          "turns_hit_token_cap": 4,
+          "unchanged_slot": 17
+        },
+        "r4_response": {
+          "both_slot": 23,
+          "both_strict": 23,
+          "changed_slot": 23,
+          "dialogues": 24,
+          "missing_turns": 3,
+          "turns_hit_token_cap": 3,
+          "unchanged_slot": 23
+        },
+        "r5_response": {
+          "both_slot": 24,
+          "both_strict": 24,
+          "changed_slot": 24,
+          "dialogues": 24,
+          "missing_turns": 0,
+          "turns_hit_token_cap": 3,
+          "unchanged_slot": 24
+        }
+      }
+    }
+  },
+  "recognition": {
+    "differences": {
+      "R5_vs_base": {
+        "delta_points": 24.18,
+        "gains": 271,
+        "losses": 7,
+        "paired_95pct_interval_points": [
+          21.52,
+          26.83
+        ]
+      },
+      "R5_vs_r4_response": {
+        "delta_points": 0.92,
+        "gains": 13,
+        "losses": 3,
+        "paired_95pct_interval_points": [
+          0.18,
+          1.65
+        ]
+      }
+    },
+    "hashes": {
+      "bundle": "6e232b799c622fa55885baa1f76d5d86b1388974144ae16ddf5f5b9ef02076a6",
+      "inputs": "9d15b0686f44686cb6806f7e56a879e660c33270f93230fe432920f2ff687a4d",
+      "results": "0563b230e8975f82f418e7232d25e708dbf5cd9bb9cfbab4dd2945dee2a33231",
+      "worker": "3bab8005dd1bc0565173eae9eb12c413014e2e57034622ab15e5af4456e4b7f8"
+    },
+    "results": {
+      "base": {
+        "pairs": 546,
+        "pairs_both_sentences_and_orders": 184,
+        "sentences": 1092,
+        "sentences_both_orders": 636
+      },
+      "r4_response": {
+        "pairs": 546,
+        "pairs_both_sentences_and_orders": 367,
+        "sentences": 1092,
+        "sentences_both_orders": 890
+      },
+      "r5_response": {
+        "pairs": 546,
+        "pairs_both_sentences_and_orders": 376,
+        "sentences": 1092,
+        "sentences_both_orders": 900
+      }
+    }
+  }
+}

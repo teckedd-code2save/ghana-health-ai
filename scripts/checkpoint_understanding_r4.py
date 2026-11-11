@@ -15,7 +15,8 @@ VOLUME = "ghana-health-understand-train"
 SECRET = re.compile(rb"-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----|\b(?:hf_|ghp_|github_pat_|sk-(?:proj-)?)[A-Za-z0-9_-]{20,}")
 
 
-def freeze(items, out):
+def freeze(items, out, version="r4-private-snapshot-v1"):
+    require(version in {"r4-private-snapshot-v1", "r5-private-snapshot-v1"}, "Unknown snapshot version")
     require(not out.exists(), "Use a fresh snapshot directory")
     payload = {}
     for item in items:
@@ -39,7 +40,7 @@ def freeze(items, out):
             payload[name] = raw
     require(payload and sum(map(len, payload.values())) <= 256 * 1024**2, "Empty or oversized snapshot")
     out.mkdir(parents=True)
-    manifest = {"version": "r4-private-snapshot-v1", "private": True,
+    manifest = {"version": version, "private": True,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "scope": "Explicit research artifacts; no user chat stores, credentials or base weights",
         "files": {name: {"sha256": hashlib.sha256(raw).hexdigest(), "bytes": len(raw)} for name, raw in payload.items()}}
@@ -56,7 +57,7 @@ def freeze(items, out):
 
 def verify(out):
     manifest = json.loads((out / "manifest.json").read_text())
-    require(manifest["version"] == "r4-private-snapshot-v1" and manifest["private"] is True, "Wrong snapshot")
+    require(manifest["version"] in {"r4-private-snapshot-v1", "r5-private-snapshot-v1"} and manifest["private"] is True, "Wrong snapshot")
     expected = {**manifest["files"], "manifest.json": {"bytes": (out / "manifest.json").stat().st_size, "sha256": sha(out / "manifest.json")}}
     seen = set()
     with tarfile.open(out / "research.tar.gz", "r:gz") as archive:
@@ -73,11 +74,12 @@ def verify(out):
 
 
 def upload(out, profile):
-    verify(out)
+    manifest = verify(out)
     os.environ["MODAL_PROFILE"] = profile
     import modal
     volume = modal.Volume.from_name(VOLUME, create_if_missing=False)
-    prefix = "/research-training-r4/" + sha(out / "manifest.json")
+    release = manifest["version"].split("-", 1)[0]
+    prefix = "/research-training-" + release + "/" + sha(out / "manifest.json")
     expected = {n: sha(out / n) for n in ("manifest.json", "research.tar.gz")}
     def remote_hash(name):
         h = hashlib.sha256()
@@ -108,8 +110,9 @@ if __name__ == "__main__":
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--profile", default="createdliving1000")
     parser.add_argument("--authorize-upload", action="store_true")
+    parser.add_argument("--version", choices=("r4-private-snapshot-v1", "r5-private-snapshot-v1"), default="r4-private-snapshot-v1")
     args = parser.parse_args()
     if args.action == "upload":
         require(args.authorize_upload, "Explicit upload authorization required")
-    result = freeze(args.item, args.out) if args.action == "freeze" else upload(args.out, args.profile) if args.action == "upload" else verify(args.out)
+    result = freeze(args.item, args.out, args.version) if args.action == "freeze" else upload(args.out, args.profile) if args.action == "upload" else verify(args.out)
     print(json.dumps(result, indent=2))

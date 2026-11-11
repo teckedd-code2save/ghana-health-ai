@@ -11,6 +11,10 @@ Research and application code for Twi/Akan speech, language understanding, and c
 - [Research overview: results, provenance, and reproduction limits](docs/research/overview.md)
 - [R4 continuation: consumed data, comparisons and current limitations](docs/TWI_UNDERSTANDING_R4_20261107.md)
 - [R4 companion model card](docs/TWI_R4_MODEL_CARD.md)
+- [R5 trained: registered data, local comparison and evaluation progress](docs/TWI_UNDERSTANDING_R5_20261109.md)
+- [R5 companion model card](docs/TWI_R5_MODEL_CARD.md)
+- [Base vs R4 vs R5: matched meaning and conversation tests, limitations, and pre-R6 data status](docs/TWI_UNDERSTANDING_SCALE_EVALUATION.md)
+- Hugging Face model cards: [Twi R4](https://huggingface.co/teckedd/gha-twi-understanding-r4) and [Twi R5](https://huggingface.co/teckedd/gha-twi-understanding-r5). Cards and evaluation summaries are public; weights and evaluation rows are private.
 - [Language understanding research programme](docs/GHANA_LANGUAGE_UNDERSTANDING_RESEARCH.md)
 - [ASR model decision record](docs/asr-model-decision.md)
 - [R3 application access](docs/R3_GUEST_CHAT.md)
@@ -28,6 +32,22 @@ Dated documents retain historical plans and decisions; they are not live deploym
 | Language retention | Token-weighted negative log-likelihood and perplexity | Lower loss is not clinical or conversational quality |
 | Speech synthesis | Language routing, text preservation, listening review | Routing checks are not naturalness certification |
 | Data accountability | Versioned admission, source lineage, consumed rows/tokens | Inventory is not training consumption or human approval |
+
+### Benchmark Every Training Run
+
+Each new checkpoint must be compared with the previous checkpoint and the
+adapter-disabled base. Reports separate meaning, conversation, language,
+reasoning, factual uncertainty, safety and reliability, retaining failures and
+actual outputs. Known regression cases, fresh held-out cases, raw generation
+and product guards remain distinct. English retention does not establish Twi
+competence; completion and perplexity do not establish response accuracy.
+
+The [R5 benchmark contract](docs/TWI_UNDERSTANDING_R5_20261109.md#benchmark-contract-for-every-training-run)
+defines this release requirement. Its current runner reports category-level
+mechanical diagnostics and preserves a separate quality-review queue. Official
+IFEval integration and source-overlap checks are complete; generation/scoring
+are pending. No public-benchmark score or broad R5 improvement is claimed before
+execution and review.
 
 ## Recorded Development Results
 
@@ -68,6 +88,41 @@ better follow-ups coexist with slightly worse perplexity, arithmetic failures
 and a name-retention regression. See [exact denominators, observations and local
 comparison instructions](docs/TWI_UNDERSTANDING_R4_20261107.md). The public
 application remains R3; R4 is available in the private local comparison only.
+
+### R5 Continuation
+
+**10 November 2026:** R5 completed 228 updates from the final R4 checkpoint,
+consuming 3,108 registered dataset records as 3,456 distinct views and 3,647
+presentations, totaling 303,594 supervised tokens. The expansion includes 106
+source-backed, agent-translated/corrected conversation histories and 24 separate
+project-authored repair histories. The source-backed additions contribute 52.66%
+of response-target tokens; targeted repairs contribute 1.63%.
+
+The final adapter passed checksum readback and is available in the private
+local base/R4/R5 comparison. Each model keeps its own history, with identical
+decoding and guard settings. All development and fresh chat-generation runs,
+raw and guarded, have finished. Retention has 1,160 measurements and one explicitly
+missing measurement, with no pending slots. Separate agent reviews of the raw outputs give:
+
+| Agent meaning judgment: full passes | Base | R4 | R5 |
+| --- | ---: | ---: | ---: |
+| Reused development, 75 outputs/model | 26 | 44 | 41 |
+| Fresh requested-Twi, 60 outputs/model | 10 | 24 | 29 |
+| Fresh requested-English, 56 outputs/model | 39 | 42 | 43 |
+
+The 116 fresh slots come from 40 source groups with related bilingual/spelling
+variants and multi-turn exchanges. These are non-blinded agent judgments, not
+native-human accuracy or clinical certification. Against R4 on fresh raw outputs,
+R5 has 11 meaning gains, eight regressions, 90 ties and seven uncertain pairs.
+On development it has four gains and four regressions. This is mixed progress;
+R5 is available for research comparison, not promoted as a proven replacement.
+On the same 342 Twi retention examples, perplexity is 15.41 for base, 5.20 for
+R4 and 5.13 for R5. On 44 English histories it is 3.14, 3.10 and 3.10. These
+separate prediction tasks show retained language adaptation, not conversational
+accuracy. The missing Twi measurement is excluded from every model's paired total.
+Every raw output, exact history and judgment remains inspectable. See the
+[model card](docs/TWI_R5_MODEL_CARD.md) and
+[execution record](docs/TWI_UNDERSTANDING_R5_20261109.md).
 
 ## Application and Code
 
