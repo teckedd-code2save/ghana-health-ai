@@ -13,6 +13,8 @@ Research and application code for Twi/Akan speech, language understanding, and c
 - [R4 companion model card](docs/TWI_R4_MODEL_CARD.md)
 - [R5 trained: registered data, local comparison and evaluation progress](docs/TWI_UNDERSTANDING_R5_20261109.md)
 - [R5 companion model card](docs/TWI_R5_MODEL_CARD.md)
+- [Base vs R4 vs R5: matched meaning and conversation tests, limitations, and pre-R6 data status](docs/TWI_UNDERSTANDING_SCALE_EVALUATION.md)
+- Hugging Face model cards: [Twi R4](https://huggingface.co/teckedd/gha-twi-understanding-r4) and [Twi R5](https://huggingface.co/teckedd/gha-twi-understanding-r5). Cards and evaluation summaries are public; weights and evaluation rows are private.
 - [Language understanding research programme](docs/GHANA_LANGUAGE_UNDERSTANDING_RESEARCH.md)
 - [ASR model decision record](docs/asr-model-decision.md)
 - [R3 application access](docs/R3_GUEST_CHAT.md)

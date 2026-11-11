@@ -1,6 +1,39 @@
 ---
 base_model: McGill-NLP/AfriqueQwen3.5-9B-50Langs-Instruct-v1
 library_name: peft
+inference: false
+model-index:
+  - name: Ghana Health AI Twi R5
+    results:
+      - task:
+          type: text-classification
+          name: Two-choice meaning recognition
+        dataset:
+          type: gha-twi-reference-choice-v1
+          name: Published Twi-English references, disjoint same-domain pairs
+        metrics:
+          - type: accuracy
+            name: Correct in both option orders (900/1092)
+            value: 0.824176
+        source:
+          name: Ghana Health AI matched checkpoint evaluation
+          url: https://github.com/teckedd-code2save/ghana-health-ai/blob/main/docs/TWI_UNDERSTANDING_SCALE_EVALUATION.md
+      - task:
+          type: text-generation
+          name: Own-history dialogue state recall
+        dataset:
+          type: gha-context-rollout-v1
+          name: Controlled bilingual corrections (4 templates, 24 scenarios per language)
+        metrics:
+          - type: twi_both_slots_accuracy
+            name: Both values recalled, Twi (24/24)
+            value: 1.000000
+          - type: english_both_slots_accuracy
+            name: Both values recalled, English (18/24)
+            value: 0.75
+        source:
+          name: Ghana Health AI matched checkpoint evaluation
+          url: https://github.com/teckedd-code2save/ghana-health-ai/blob/main/docs/TWI_UNDERSTANDING_SCALE_EVALUATION.md
 pipeline_tag: text-generation
 language:
   - tw
@@ -11,6 +44,17 @@ tags:
 ---
 
 # Ghana Health AI: Twi R5
+
+**Availability:** This Hugging Face release is a model card only. It contains no
+downloadable adapter, base weights, training examples or inference endpoint.
+
+In the matched 11 November comparison, R5 picked the published English meaning
+in both answer orders for 900 of 1,092 Twi sentences (base: 636). In independent
+conversation histories it recalled both the changed and unchanged fact in
+24/24 Twi scenarios and 18/24 English scenarios. The former measures agreement
+with fallible references; the latter uses four authored templates and does not
+establish general conversational usefulness. See the [side-by-side results and
+protocol](https://github.com/teckedd-code2save/ghana-health-ai/blob/main/docs/TWI_UNDERSTANDING_SCALE_EVALUATION.md).
 
 R5 continues the final R4 LoRA adapter to study useful Twi conversation,
 meaning preservation and general instruction following with English retention.
@@ -200,5 +244,5 @@ and errors remain visible, and context exclusions are explicit and recorded.
 No current web facts or real shopping actions are connected to this comparison.
 Do not rely on R5 alone for consequential medical, legal or purchasing decisions.
 
-See the [execution record](TWI_UNDERSTANDING_R5_20261109.md) for dataset admission,
+See the [execution record](https://github.com/teckedd-code2save/ghana-health-ai/blob/main/docs/TWI_UNDERSTANDING_R5_20261109.md) for dataset admission,
 private storage, checksums, actual run receipts and the evaluation handoff.
