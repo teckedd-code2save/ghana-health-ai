@@ -57,7 +57,7 @@ async function main() {
   const problems: string[] = [];
   const warnings: string[] = [];
 
-  lines.forEach((line, index) => {
+  for (const [index, line] of lines.entries()) {
     const lineNo = index + 1;
     let parsed: unknown;
     try {
@@ -83,10 +83,12 @@ async function main() {
     }
     if (result.data.audio_path.startsWith("MISSING_AUDIO")) {
       warnings.push(`line ${lineNo}: missing audio path placeholder`);
+    } else {
+      const audioWarning = await localAudioWarning(result.data.audio_path);
+      if (audioWarning) warnings.push(`line ${lineNo}: ${audioWarning}`);
     }
-
     rows.push(result.data);
-  });
+  }
 
   const counts = Object.fromEntries(buckets.map((bucket) => [bucket, 0])) as Record<
     (typeof buckets)[number],
@@ -125,6 +127,18 @@ async function main() {
         ? `Manifest has ${problems.length} validation problem(s)`
         : "Manifest does not meet strict product-eval readiness",
     );
+  }
+}
+
+async function localAudioWarning(audioPath: string) {
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(audioPath)) return null;
+  const resolved = path.isAbsolute(audioPath) ? audioPath : path.resolve(process.cwd(), audioPath);
+  try {
+    const stat = await fs.stat(resolved);
+    if (!stat.isFile() || stat.size < 800) return `local audio path missing or too small: ${audioPath}`;
+    return null;
+  } catch {
+    return `local audio path missing or too small: ${audioPath}`;
   }
 }
 
