@@ -80,6 +80,10 @@ def first_letter(text):
     m = re.search(r"(?m)^\s*([A-Fa-f])[\s.):]", text)
     if m:
         return m.group(1).upper()
+    # "The correct answer is B" / "Answer: C" / "option D" — letter mid-line.
+    m = re.search(r"(?:answer|option|correct)\s*(?:is|:)?\s*([A-Fa-f])\b", text, re.I)
+    if m:
+        return m.group(1).upper()
     # Fall back: first A-F character after any leading prose.
     for ch in text:
         if ch.upper() in "ABCDEF":
@@ -88,21 +92,29 @@ def first_letter(text):
 
 
 def mcq(model, tok, rows, limit):
-    """rows: iterable of (prompt, correct_letter)."""
+    """Score MCQ by log-probability of each option letter (no free-text extraction)."""
+    import torch
     correct = total = 0
-    samples = []
     for i, (prompt, answer) in enumerate(rows):
         if limit and i >= limit:
             break
-        pred = generate(model, tok, prompt)
+        if tok.chat_template:
+            enc = tok.apply_chat_template([{"role": "user", "content": prompt}],
+                                          add_generation_prompt=True, return_tensors="pt")
+            ids = enc["input_ids"].to("cuda")
+        else:
+            ids = tok(prompt, return_tensors="pt").input_ids.to("cuda")
+        with torch.inference_mode():
+            out = model(input_ids=ids, attention_mask=torch.ones_like(ids))
+        logits = out.logits[0, -1, :].float()
+        logprobs = torch.log_softmax(logits, dim=-1)
+        letters = "ABCDE"
+        letter_ids = [tok.encode(l, add_special_tokens=False)[0] for l in letters]
+        pred = max(letters, key=lambda l: logprobs[letter_ids[letters.index(l)]].item())
         total += 1
-        got = first_letter(pred) == answer.upper()
-        correct += got
-        if len(samples) < 3:
-            samples.append({"pred": pred[:60], "got_letter": first_letter(pred),
-                            "answer": answer, "match": got})
+        correct += (pred == answer.upper())
     return {"correct": correct, "total": total,
-            "accuracy": round(correct / total, 4) if total else None, "samples": samples}
+            "accuracy": round(correct / total, 4) if total else None}
 
 
 def _mcq_prompt(question, opts):
@@ -215,9 +227,12 @@ BENCHMARKS = (("afrimmlu_twi", bench_afrimmlu),
 @app.function(gpu="H100", image=image, volumes={"/cache": cache_vol, "/artifacts": train_vol},
               timeout=7200)
 def benchmark(variant: str = "r6", limit: int = 0):
+    import os, json
     model, tok = load_model(variant)
     limit = limit or 0
     results = {"variant": variant}
+    out_dir = "/artifacts/understanding-adaptation-r6/benchmark-results"
+    os.makedirs(out_dir, exist_ok=True)
     for name, fn in BENCHMARKS:
         try:
             results[name] = fn(model, tok, limit)
@@ -227,6 +242,10 @@ def benchmark(variant: str = "r6", limit: int = 0):
             results[name] = {"error": f"{type(e).__name__}: {e}"}
             print(f"[{variant}] {name}: ERROR {type(e).__name__}: {e}", flush=True)
             traceback.print_exc()
+        # persist incrementally so a client/container death can't lose completed benchmarks
+        with open(f"{out_dir}/{variant}.json", "w") as f:
+            json.dump(results, f, indent=2)
+        train_vol.commit()
     return results
 
 
