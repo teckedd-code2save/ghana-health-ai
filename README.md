@@ -8,6 +8,7 @@ Research and application code for Twi/Akan speech, language understanding, and c
 
 ## Start Here
 
+- [R6 training, benchmark corrections, matched results and reproduction](R6-STATUS.md)
 - [Research overview: results, provenance, and reproduction limits](docs/research/overview.md)
 - [R4 continuation: consumed data, comparisons and current limitations](docs/TWI_UNDERSTANDING_R4_20261107.md)
 - [R4 companion model card](docs/TWI_R4_MODEL_CARD.md)
@@ -43,11 +44,32 @@ and product guards remain distinct. English retention does not establish Twi
 competence; completion and perplexity do not establish response accuracy.
 
 The [R5 benchmark contract](docs/TWI_UNDERSTANDING_R5_20261109.md#benchmark-contract-for-every-training-run)
-defines this release requirement. Its current runner reports category-level
+defines this release requirement. Its development runner reports category-level
 mechanical diagnostics and preserves a separate quality-review queue. Official
 IFEval integration and source-overlap checks are complete; generation/scoring
-are pending. No public-benchmark score or broad R5 improvement is claimed before
-execution and review.
+in that separate program remain pending. The later
+[R6 matched public-task evaluation](R6-STATUS.md) records the corrected scorer,
+actual subset results, and preserved earlier measurements. It is not an IFEval
+result or a claim of broad conversational or clinical improvement.
+
+### R6 Corrected Benchmark
+
+**17 November 2026:** all 6,012 base/R5/R6 predictions were collected and
+independently rescored from frozen inputs and saved option scores or category
+outputs. The earlier results remain preserved, with their scoring defects named.
+
+| Corrected Twi task | Base | R5 | R6 |
+| --- | ---: | ---: | ---: |
+| SIB-200 topic classification | 154/204 (75.49%) | 160/204 (78.43%) | 166/204 (81.37%) |
+| AfriMMLU, three-subject subset | 79/300 (26.33%) | 112/300 (37.33%) | 120/300 (40.00%) |
+| Mathematics within that subset | 28/100 | 37/100 | 36/100 |
+
+R6's observed SIB gain over R5 is **2.94 points**, replacing the earlier 4.9-point
+claim. All five English task scores are slightly below R5, so no unchanged-English
+claim is made. These custom zero-shot subsets do not establish broad dialogue
+quality or clinical safety. See the [full table, paired changes and limits](R6-STATUS.md#corrected-results).
+The local [R6-versus-R5 comparison](http://127.0.0.1:7870/?__theme=light) streams
+R6 first and keeps separate model histories; base remains in the offline benchmark.
 
 ## Recorded Development Results
 

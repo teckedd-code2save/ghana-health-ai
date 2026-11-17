@@ -1,0 +1,2931 @@
+{
+  "run_id": "r6-matched-v2-20261117",
+  "protocol": "r6-benchmark-v2",
+  "manifest_sha256": "6f703d7aefb211c11ead4b3d6ebed50b4490f2d31353fa2f129d12d5cd5616b5",
+  "model": "McGill-NLP/AfriqueQwen3.5-9B-50Langs-Instruct-v1",
+  "revision": "693f12e444a30971ca53889128d7bade9491ecb3",
+  "adapters": {
+    "r5": {
+      "directory": "/artifacts/understanding-adaptation-r5/understanding_20261110T103734Z/responses-adapter",
+      "files": {
+        "adapter_config.json": "e66b69cf23b576fb5dd9e5b6a8f4156a14983ec7599fc60a0188f553eab4ab0f",
+        "adapter_model.safetensors": "2085ee881927ee559d4bd978ae2372e12dea963d588fd136b2130bc551835d25"
+      }
+    },
+    "r6": {
+      "directory": "/artifacts/understanding-adaptation-r6/understanding_20261113T152209Z/responses-adapter",
+      "files": {
+        "adapter_config.json": "577b80656dbcff84886c4e402022d9507abbef34b0e0013bceab029ccf4c9403",
+        "adapter_model.safetensors": "6e56d8c7c04f456f94579d4bd82064521c97d0b9e23dbbef1e9783280568861c"
+      }
+    }
+  },
+  "sources": {
+    "afrimmlu_twi": {
+      "repo": "masakhane/afrimmlu",
+      "revision": "96f247619673906ae4c321a3232afc67b98ea57e",
+      "config": "twi",
+      "split": "test",
+      "available": 500,
+      "selected": 300,
+      "selection": "first_n_in_source_order",
+      "subjects": {
+        "elementary_mathematics": 100,
+        "high_school_geography": 100,
+        "international_law": 100
+      }
+    },
+    "sib200_twi": {
+      "repo": "davlan/sib200",
+      "revision": "38977a667f6fc264d5c26ec57a01e16db040b358",
+      "config": "twi_Latn",
+      "split": "test",
+      "available": 204,
+      "selected": 204,
+      "selection": "first_n_in_source_order",
+      "subjects": {
+        "unspecified": 204
+      }
+    },
+    "mmlu": {
+      "repo": "cais/mmlu",
+      "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+      "config": "all",
+      "split": "test",
+      "available": 14042,
+      "selected": 300,
+      "selection": "first_n_in_source_order",
+      "subjects": {
+        "abstract_algebra": 100,
+        "anatomy": 135,
+        "astronomy": 65
+      }
+    },
+    "hellaswag": {
+      "repo": "Rowan/hellaswag",
+      "revision": "218ec52e09a7e7462a5400043bb9a69a41d06b76",
+      "config": null,
+      "split": "validation",
+      "available": 10042,
+      "selected": 300,
+      "selection": "first_n_in_source_order",
+      "subjects": {
+        "Roof shingle removal": 1,
+        "Clean and jerk": 7,
+        "Canoeing": 3,
+        "High jump": 6,
+        "Playing harmonica": 10,
+        "Sumo": 1,
+        "Sharpening knives": 18,
+        "Playing bagpipes": 2,
+        "Playing water polo": 6,
+        "Having an ice cream": 10,
+        "Cheerleading": 3,
+        "Cutting the grass": 16,
+        "Washing face": 13,
+        "Paintball": 3,
+        "Gargling mouthwash": 4,
+        "Archery": 1,
+        "Surfing": 5,
+        "Plastering": 1,
+        "Applying sunscreen": 1,
+        "Beer pong": 3,
+        "Grooming dog": 3,
+        "Polishing shoes": 1,
+        "Zumba": 1,
+        "Running a marathon": 8,
+        "Using the pommel horse": 3,
+        "Kayaking": 2,
+        "Cleaning windows": 2,
+        "Ice fishing": 8,
+        "Hitting a pinata": 3,
+        "Playing violin": 17,
+        "Making a sandwich": 1,
+        "Making a lemonade": 1,
+        "Ironing clothes": 3,
+        "Clipping cat claws": 3,
+        "Baton twirling": 3,
+        "Removing ice from car": 3,
+        "Throwing darts": 1,
+        "Rollerblading": 5,
+        "Layup drill in basketball": 14,
+        "Using parallel bars": 1,
+        "Doing a powerbomb": 1,
+        "Scuba diving": 4,
+        "Cleaning sink": 1,
+        "Playing polo": 5,
+        "Doing fencing": 2,
+        "Putting on shoes": 1,
+        "Mooping floor": 4,
+        "Tennis serve with ball bouncing": 5,
+        "Blowing leaves": 1,
+        "Drinking beer": 4,
+        "Playing guitarra": 1,
+        "Skiing": 3,
+        "Hand car wash": 8,
+        "Using the rowing machine": 1,
+        "Kite flying": 1,
+        "Putting on makeup": 1,
+        "Putting in contact lenses": 2,
+        "BMX": 1,
+        "Longboarding": 2,
+        "Getting a piercing": 1,
+        "Hand washing clothes": 3,
+        "Disc dog": 5,
+        "Shuffleboard": 2,
+        "Snow tubing": 1,
+        "Cricket": 3,
+        "Hanging wallpaper": 4,
+        "Drum corps": 2,
+        "Painting furniture": 3,
+        "Fun sliding down": 1,
+        "Doing motocross": 1,
+        "Assembling bicycle": 3,
+        "Playing drums": 2,
+        "Spread mulch": 1,
+        "Camel ride": 1,
+        "Painting": 1,
+        "Playing badminton": 1,
+        "Wakeboarding": 1,
+        "Rock climbing": 2,
+        "Cleaning shoes": 1,
+        "Discus throw": 1,
+        "Hurling": 3,
+        "Raking leaves": 1,
+        "Wrapping presents": 1,
+        "Waterskiing": 3,
+        "Tai chi": 3,
+        "Rope skipping": 1,
+        "Bathing dog": 1,
+        "Triple jump": 1,
+        "Playing kickball": 1
+      }
+    },
+    "arc_challenge": {
+      "repo": "allenai/ai2_arc",
+      "revision": "210d026faf9955653af8916fad021475a3f00453",
+      "config": "ARC-Challenge",
+      "split": "test",
+      "available": 1172,
+      "selected": 300,
+      "selection": "first_n_in_source_order",
+      "subjects": {
+        "unspecified": 300
+      }
+    },
+    "medqa": {
+      "repo": "bigbio/med_qa",
+      "revision": "484a6c066fe8e75c83edea0c88b5169316714fcd",
+      "config": "med_qa_en_4options_bigbio_qa",
+      "split": "test",
+      "available": 1273,
+      "selected": 300,
+      "selection": "first_n_in_source_order",
+      "subjects": {
+        "unspecified": 300
+      }
+    },
+    "pubmedqa": {
+      "repo": "qiaojin/PubMedQA",
+      "revision": "9001f2853fb87cab8d220904e0de81ac6973b318",
+      "config": "pqa_labeled",
+      "split": "train",
+      "available": 1000,
+      "selected": 300,
+      "selection": "first_n_in_source_order",
+      "subjects": {
+        "unspecified": 300
+      }
+    }
+  },
+  "tasks": {
+    "afrimmlu_twi": {
+      "base": {
+        "correct": 79,
+        "total": 300,
+        "accuracy": 0.2633333333333333,
+        "invalid": 0,
+        "chance": 0.25
+      },
+      "r5": {
+        "correct": 112,
+        "total": 300,
+        "accuracy": 0.37333333333333335,
+        "invalid": 0,
+        "chance": 0.25
+      },
+      "r6": {
+        "correct": 120,
+        "total": 300,
+        "accuracy": 0.4,
+        "invalid": 0,
+        "chance": 0.25
+      },
+      "r6_vs_r5": {
+        "gains": 24,
+        "losses": 16,
+        "ties": 260,
+        "delta_points": 2.6666666666666665,
+        "mcnemar_exact_two_sided_p": 0.26818725105476915,
+        "inference_limit": "descriptive source-order subset; no multiple-comparison adjustment"
+      },
+      "r6_vs_base": {
+        "gains": 63,
+        "losses": 22,
+        "ties": 215,
+        "delta_points": 13.666666666666666,
+        "mcnemar_exact_two_sided_p": 9.811984308900493e-06,
+        "inference_limit": "descriptive source-order subset; no multiple-comparison adjustment"
+      },
+      "subjects": {
+        "elementary_mathematics": {
+          "base": {
+            "correct": 28,
+            "total": 100,
+            "accuracy": 0.28,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 37,
+            "total": 100,
+            "accuracy": 0.37,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 36,
+            "total": 100,
+            "accuracy": 0.36,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "high_school_geography": {
+          "base": {
+            "correct": 27,
+            "total": 100,
+            "accuracy": 0.27,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 41,
+            "total": 100,
+            "accuracy": 0.41,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 42,
+            "total": 100,
+            "accuracy": 0.42,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "international_law": {
+          "base": {
+            "correct": 24,
+            "total": 100,
+            "accuracy": 0.24,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 34,
+            "total": 100,
+            "accuracy": 0.34,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 42,
+            "total": 100,
+            "accuracy": 0.42,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        }
+      }
+    },
+    "sib200_twi": {
+      "base": {
+        "correct": 154,
+        "total": 204,
+        "accuracy": 0.7549019607843137,
+        "invalid": 0,
+        "chance": 0.14285714285714285
+      },
+      "r5": {
+        "correct": 160,
+        "total": 204,
+        "accuracy": 0.7843137254901961,
+        "invalid": 0,
+        "chance": 0.14285714285714285
+      },
+      "r6": {
+        "correct": 166,
+        "total": 204,
+        "accuracy": 0.8137254901960784,
+        "invalid": 0,
+        "chance": 0.14285714285714285
+      },
+      "r6_vs_r5": {
+        "gains": 7,
+        "losses": 1,
+        "ties": 196,
+        "delta_points": 2.9411764705882355,
+        "mcnemar_exact_two_sided_p": 0.0703125,
+        "inference_limit": "descriptive source-order subset; no multiple-comparison adjustment"
+      },
+      "r6_vs_base": {
+        "gains": 19,
+        "losses": 7,
+        "ties": 178,
+        "delta_points": 5.882352941176471,
+        "mcnemar_exact_two_sided_p": 0.028959274291992188,
+        "inference_limit": "descriptive source-order subset; no multiple-comparison adjustment"
+      },
+      "subjects": {
+        "unspecified": {
+          "base": {
+            "correct": 154,
+            "total": 204,
+            "accuracy": 0.7549019607843137,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          },
+          "r5": {
+            "correct": 160,
+            "total": 204,
+            "accuracy": 0.7843137254901961,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          },
+          "r6": {
+            "correct": 166,
+            "total": 204,
+            "accuracy": 0.8137254901960784,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          }
+        }
+      },
+      "by_label": {
+        "politics": {
+          "base": {
+            "correct": 24,
+            "total": 30,
+            "accuracy": 0.8,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          },
+          "r5": {
+            "correct": 23,
+            "total": 30,
+            "accuracy": 0.7666666666666667,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          },
+          "r6": {
+            "correct": 23,
+            "total": 30,
+            "accuracy": 0.7666666666666667,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          }
+        },
+        "sports": {
+          "base": {
+            "correct": 18,
+            "total": 25,
+            "accuracy": 0.72,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          },
+          "r5": {
+            "correct": 21,
+            "total": 25,
+            "accuracy": 0.84,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          },
+          "r6": {
+            "correct": 21,
+            "total": 25,
+            "accuracy": 0.84,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          }
+        },
+        "health": {
+          "base": {
+            "correct": 15,
+            "total": 22,
+            "accuracy": 0.6818181818181818,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          },
+          "r5": {
+            "correct": 16,
+            "total": 22,
+            "accuracy": 0.7272727272727273,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          },
+          "r6": {
+            "correct": 16,
+            "total": 22,
+            "accuracy": 0.7272727272727273,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          }
+        },
+        "entertainment": {
+          "base": {
+            "correct": 7,
+            "total": 19,
+            "accuracy": 0.3684210526315789,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          },
+          "r5": {
+            "correct": 8,
+            "total": 19,
+            "accuracy": 0.42105263157894735,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          },
+          "r6": {
+            "correct": 10,
+            "total": 19,
+            "accuracy": 0.5263157894736842,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          }
+        },
+        "science/technology": {
+          "base": {
+            "correct": 42,
+            "total": 51,
+            "accuracy": 0.8235294117647058,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          },
+          "r5": {
+            "correct": 43,
+            "total": 51,
+            "accuracy": 0.8431372549019608,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          },
+          "r6": {
+            "correct": 45,
+            "total": 51,
+            "accuracy": 0.8823529411764706,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          }
+        },
+        "travel": {
+          "base": {
+            "correct": 34,
+            "total": 40,
+            "accuracy": 0.85,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          },
+          "r5": {
+            "correct": 35,
+            "total": 40,
+            "accuracy": 0.875,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          },
+          "r6": {
+            "correct": 36,
+            "total": 40,
+            "accuracy": 0.9,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          }
+        },
+        "geography": {
+          "base": {
+            "correct": 14,
+            "total": 17,
+            "accuracy": 0.8235294117647058,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          },
+          "r5": {
+            "correct": 14,
+            "total": 17,
+            "accuracy": 0.8235294117647058,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          },
+          "r6": {
+            "correct": 15,
+            "total": 17,
+            "accuracy": 0.8823529411764706,
+            "invalid": 0,
+            "chance": 0.14285714285714285
+          }
+        }
+      }
+    },
+    "mmlu": {
+      "base": {
+        "correct": 164,
+        "total": 300,
+        "accuracy": 0.5466666666666666,
+        "invalid": 0,
+        "chance": 0.25
+      },
+      "r5": {
+        "correct": 201,
+        "total": 300,
+        "accuracy": 0.67,
+        "invalid": 0,
+        "chance": 0.25
+      },
+      "r6": {
+        "correct": 197,
+        "total": 300,
+        "accuracy": 0.6566666666666666,
+        "invalid": 0,
+        "chance": 0.25
+      },
+      "r6_vs_r5": {
+        "gains": 2,
+        "losses": 6,
+        "ties": 292,
+        "delta_points": -1.3333333333333333,
+        "mcnemar_exact_two_sided_p": 0.2890625,
+        "inference_limit": "descriptive source-order subset; no multiple-comparison adjustment"
+      },
+      "r6_vs_base": {
+        "gains": 49,
+        "losses": 16,
+        "ties": 235,
+        "delta_points": 11.0,
+        "mcnemar_exact_two_sided_p": 5.084767048790177e-05,
+        "inference_limit": "descriptive source-order subset; no multiple-comparison adjustment"
+      },
+      "subjects": {
+        "abstract_algebra": {
+          "base": {
+            "correct": 25,
+            "total": 100,
+            "accuracy": 0.25,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 52,
+            "total": 100,
+            "accuracy": 0.52,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 50,
+            "total": 100,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "anatomy": {
+          "base": {
+            "correct": 86,
+            "total": 135,
+            "accuracy": 0.6370370370370371,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 92,
+            "total": 135,
+            "accuracy": 0.6814814814814815,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 90,
+            "total": 135,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "astronomy": {
+          "base": {
+            "correct": 53,
+            "total": 65,
+            "accuracy": 0.8153846153846154,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 57,
+            "total": 65,
+            "accuracy": 0.8769230769230769,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 57,
+            "total": 65,
+            "accuracy": 0.8769230769230769,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        }
+      }
+    },
+    "hellaswag": {
+      "base": {
+        "correct": 179,
+        "total": 300,
+        "accuracy": 0.5966666666666667,
+        "invalid": 0,
+        "chance": 0.25
+      },
+      "r5": {
+        "correct": 200,
+        "total": 300,
+        "accuracy": 0.6666666666666666,
+        "invalid": 0,
+        "chance": 0.25
+      },
+      "r6": {
+        "correct": 199,
+        "total": 300,
+        "accuracy": 0.6633333333333333,
+        "invalid": 0,
+        "chance": 0.25
+      },
+      "r6_vs_r5": {
+        "gains": 7,
+        "losses": 8,
+        "ties": 285,
+        "delta_points": -0.3333333333333333,
+        "mcnemar_exact_two_sided_p": 1.0,
+        "inference_limit": "descriptive source-order subset; no multiple-comparison adjustment"
+      },
+      "r6_vs_base": {
+        "gains": 32,
+        "losses": 12,
+        "ties": 256,
+        "delta_points": 6.666666666666667,
+        "mcnemar_exact_two_sided_p": 0.003657766827927844,
+        "inference_limit": "descriptive source-order subset; no multiple-comparison adjustment"
+      },
+      "subjects": {
+        "Applying sunscreen": {
+          "base": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Archery": {
+          "base": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Assembling bicycle": {
+          "base": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "BMX": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Bathing dog": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Baton twirling": {
+          "base": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Beer pong": {
+          "base": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Blowing leaves": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Camel ride": {
+          "base": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Canoeing": {
+          "base": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Cheerleading": {
+          "base": {
+            "correct": 1,
+            "total": 3,
+            "accuracy": 0.3333333333333333,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Clean and jerk": {
+          "base": {
+            "correct": 4,
+            "total": 7,
+            "accuracy": 0.5714285714285714,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 3,
+            "total": 7,
+            "accuracy": 0.42857142857142855,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 4,
+            "total": 7,
+            "accuracy": 0.5714285714285714,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Cleaning shoes": {
+          "base": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Cleaning sink": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Cleaning windows": {
+          "base": {
+            "correct": 0,
+            "total": 2,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 2,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 0,
+            "total": 2,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Clipping cat claws": {
+          "base": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Cricket": {
+          "base": {
+            "correct": 1,
+            "total": 3,
+            "accuracy": 0.3333333333333333,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 3,
+            "accuracy": 0.3333333333333333,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 3,
+            "accuracy": 0.3333333333333333,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Cutting the grass": {
+          "base": {
+            "correct": 10,
+            "total": 16,
+            "accuracy": 0.625,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 12,
+            "total": 16,
+            "accuracy": 0.75,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 11,
+            "total": 16,
+            "accuracy": 0.6875,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Disc dog": {
+          "base": {
+            "correct": 1,
+            "total": 5,
+            "accuracy": 0.2,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 5,
+            "accuracy": 0.2,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 5,
+            "accuracy": 0.2,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Discus throw": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Doing a powerbomb": {
+          "base": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Doing fencing": {
+          "base": {
+            "correct": 2,
+            "total": 2,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 2,
+            "total": 2,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 2,
+            "total": 2,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Doing motocross": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Drinking beer": {
+          "base": {
+            "correct": 3,
+            "total": 4,
+            "accuracy": 0.75,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 4,
+            "total": 4,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 4,
+            "total": 4,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Drum corps": {
+          "base": {
+            "correct": 1,
+            "total": 2,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 2,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 2,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Fun sliding down": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Gargling mouthwash": {
+          "base": {
+            "correct": 1,
+            "total": 4,
+            "accuracy": 0.25,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 4,
+            "total": 4,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 4,
+            "total": 4,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Getting a piercing": {
+          "base": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Grooming dog": {
+          "base": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Hand car wash": {
+          "base": {
+            "correct": 4,
+            "total": 8,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 6,
+            "total": 8,
+            "accuracy": 0.75,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 6,
+            "total": 8,
+            "accuracy": 0.75,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Hand washing clothes": {
+          "base": {
+            "correct": 1,
+            "total": 3,
+            "accuracy": 0.3333333333333333,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Hanging wallpaper": {
+          "base": {
+            "correct": 2,
+            "total": 4,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 2,
+            "total": 4,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 2,
+            "total": 4,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Having an ice cream": {
+          "base": {
+            "correct": 8,
+            "total": 10,
+            "accuracy": 0.8,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 8,
+            "total": 10,
+            "accuracy": 0.8,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 7,
+            "total": 10,
+            "accuracy": 0.7,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "High jump": {
+          "base": {
+            "correct": 4,
+            "total": 6,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 6,
+            "total": 6,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 6,
+            "total": 6,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Hitting a pinata": {
+          "base": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Hurling": {
+          "base": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Ice fishing": {
+          "base": {
+            "correct": 6,
+            "total": 8,
+            "accuracy": 0.75,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 8,
+            "total": 8,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 6,
+            "total": 8,
+            "accuracy": 0.75,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Ironing clothes": {
+          "base": {
+            "correct": 1,
+            "total": 3,
+            "accuracy": 0.3333333333333333,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Kayaking": {
+          "base": {
+            "correct": 0,
+            "total": 2,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 2,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 0,
+            "total": 2,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Kite flying": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Layup drill in basketball": {
+          "base": {
+            "correct": 8,
+            "total": 14,
+            "accuracy": 0.5714285714285714,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 11,
+            "total": 14,
+            "accuracy": 0.7857142857142857,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 9,
+            "total": 14,
+            "accuracy": 0.6428571428571429,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Longboarding": {
+          "base": {
+            "correct": 2,
+            "total": 2,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 2,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 2,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Making a lemonade": {
+          "base": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Making a sandwich": {
+          "base": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Mooping floor": {
+          "base": {
+            "correct": 2,
+            "total": 4,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 4,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 0,
+            "total": 4,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Paintball": {
+          "base": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Painting": {
+          "base": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Painting furniture": {
+          "base": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Plastering": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Playing badminton": {
+          "base": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Playing bagpipes": {
+          "base": {
+            "correct": 1,
+            "total": 2,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 2,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 2,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Playing drums": {
+          "base": {
+            "correct": 1,
+            "total": 2,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 2,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 2,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Playing guitarra": {
+          "base": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Playing harmonica": {
+          "base": {
+            "correct": 6,
+            "total": 10,
+            "accuracy": 0.6,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 8,
+            "total": 10,
+            "accuracy": 0.8,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 7,
+            "total": 10,
+            "accuracy": 0.7,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Playing kickball": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Playing polo": {
+          "base": {
+            "correct": 4,
+            "total": 5,
+            "accuracy": 0.8,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 3,
+            "total": 5,
+            "accuracy": 0.6,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 3,
+            "total": 5,
+            "accuracy": 0.6,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Playing violin": {
+          "base": {
+            "correct": 9,
+            "total": 17,
+            "accuracy": 0.5294117647058824,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 12,
+            "total": 17,
+            "accuracy": 0.7058823529411765,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 12,
+            "total": 17,
+            "accuracy": 0.7058823529411765,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Playing water polo": {
+          "base": {
+            "correct": 5,
+            "total": 6,
+            "accuracy": 0.8333333333333334,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 5,
+            "total": 6,
+            "accuracy": 0.8333333333333334,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 5,
+            "total": 6,
+            "accuracy": 0.8333333333333334,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Polishing shoes": {
+          "base": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Putting in contact lenses": {
+          "base": {
+            "correct": 1,
+            "total": 2,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 2,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 2,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Putting on makeup": {
+          "base": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Putting on shoes": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Raking leaves": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Removing ice from car": {
+          "base": {
+            "correct": 1,
+            "total": 3,
+            "accuracy": 0.3333333333333333,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 3,
+            "accuracy": 0.3333333333333333,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 3,
+            "accuracy": 0.3333333333333333,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Rock climbing": {
+          "base": {
+            "correct": 2,
+            "total": 2,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 2,
+            "total": 2,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 2,
+            "total": 2,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Rollerblading": {
+          "base": {
+            "correct": 4,
+            "total": 5,
+            "accuracy": 0.8,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 4,
+            "total": 5,
+            "accuracy": 0.8,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 4,
+            "total": 5,
+            "accuracy": 0.8,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Roof shingle removal": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Rope skipping": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Running a marathon": {
+          "base": {
+            "correct": 4,
+            "total": 8,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 6,
+            "total": 8,
+            "accuracy": 0.75,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 6,
+            "total": 8,
+            "accuracy": 0.75,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Scuba diving": {
+          "base": {
+            "correct": 1,
+            "total": 4,
+            "accuracy": 0.25,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 4,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 4,
+            "accuracy": 0.25,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Sharpening knives": {
+          "base": {
+            "correct": 8,
+            "total": 18,
+            "accuracy": 0.4444444444444444,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 10,
+            "total": 18,
+            "accuracy": 0.5555555555555556,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 10,
+            "total": 18,
+            "accuracy": 0.5555555555555556,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Shuffleboard": {
+          "base": {
+            "correct": 0,
+            "total": 2,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 2,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 2,
+            "accuracy": 0.5,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Skiing": {
+          "base": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Snow tubing": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Spread mulch": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Sumo": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Surfing": {
+          "base": {
+            "correct": 1,
+            "total": 5,
+            "accuracy": 0.2,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 2,
+            "total": 5,
+            "accuracy": 0.4,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 2,
+            "total": 5,
+            "accuracy": 0.4,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Tai chi": {
+          "base": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 2,
+            "total": 3,
+            "accuracy": 0.6666666666666666,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Tennis serve with ball bouncing": {
+          "base": {
+            "correct": 3,
+            "total": 5,
+            "accuracy": 0.6,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 3,
+            "total": 5,
+            "accuracy": 0.6,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 3,
+            "total": 5,
+            "accuracy": 0.6,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Throwing darts": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Triple jump": {
+          "base": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Using parallel bars": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Using the pommel horse": {
+          "base": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Using the rowing machine": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Wakeboarding": {
+          "base": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Washing face": {
+          "base": {
+            "correct": 10,
+            "total": 13,
+            "accuracy": 0.7692307692307693,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 9,
+            "total": 13,
+            "accuracy": 0.6923076923076923,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 10,
+            "total": 13,
+            "accuracy": 0.7692307692307693,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Waterskiing": {
+          "base": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 3,
+            "total": 3,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Wrapping presents": {
+          "base": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 1,
+            "total": 1,
+            "accuracy": 1.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        },
+        "Zumba": {
+          "base": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 0,
+            "total": 1,
+            "accuracy": 0.0,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        }
+      }
+    },
+    "arc_challenge": {
+      "base": {
+        "correct": 265,
+        "total": 300,
+        "accuracy": 0.8833333333333333,
+        "invalid": 0,
+        "chance": 0.25027777777777777
+      },
+      "r5": {
+        "correct": 280,
+        "total": 300,
+        "accuracy": 0.9333333333333333,
+        "invalid": 0,
+        "chance": 0.25027777777777777
+      },
+      "r6": {
+        "correct": 279,
+        "total": 300,
+        "accuracy": 0.93,
+        "invalid": 0,
+        "chance": 0.25027777777777777
+      },
+      "r6_vs_r5": {
+        "gains": 0,
+        "losses": 1,
+        "ties": 299,
+        "delta_points": -0.3333333333333333,
+        "mcnemar_exact_two_sided_p": 1.0,
+        "inference_limit": "descriptive source-order subset; no multiple-comparison adjustment"
+      },
+      "r6_vs_base": {
+        "gains": 18,
+        "losses": 4,
+        "ties": 278,
+        "delta_points": 4.666666666666667,
+        "mcnemar_exact_two_sided_p": 0.004343509674072266,
+        "inference_limit": "descriptive source-order subset; no multiple-comparison adjustment"
+      },
+      "subjects": {
+        "unspecified": {
+          "base": {
+            "correct": 265,
+            "total": 300,
+            "accuracy": 0.8833333333333333,
+            "invalid": 0,
+            "chance": 0.25027777777777777
+          },
+          "r5": {
+            "correct": 280,
+            "total": 300,
+            "accuracy": 0.9333333333333333,
+            "invalid": 0,
+            "chance": 0.25027777777777777
+          },
+          "r6": {
+            "correct": 279,
+            "total": 300,
+            "accuracy": 0.93,
+            "invalid": 0,
+            "chance": 0.25027777777777777
+          }
+        }
+      }
+    },
+    "medqa": {
+      "base": {
+        "correct": 118,
+        "total": 300,
+        "accuracy": 0.3933333333333333,
+        "invalid": 0,
+        "chance": 0.25
+      },
+      "r5": {
+        "correct": 198,
+        "total": 300,
+        "accuracy": 0.66,
+        "invalid": 0,
+        "chance": 0.25
+      },
+      "r6": {
+        "correct": 193,
+        "total": 300,
+        "accuracy": 0.6433333333333333,
+        "invalid": 0,
+        "chance": 0.25
+      },
+      "r6_vs_r5": {
+        "gains": 1,
+        "losses": 6,
+        "ties": 293,
+        "delta_points": -1.6666666666666667,
+        "mcnemar_exact_two_sided_p": 0.125,
+        "inference_limit": "descriptive source-order subset; no multiple-comparison adjustment"
+      },
+      "r6_vs_base": {
+        "gains": 105,
+        "losses": 30,
+        "ties": 165,
+        "delta_points": 25.0,
+        "mcnemar_exact_two_sided_p": 5.969502290052047e-11,
+        "inference_limit": "descriptive source-order subset; no multiple-comparison adjustment"
+      },
+      "subjects": {
+        "unspecified": {
+          "base": {
+            "correct": 118,
+            "total": 300,
+            "accuracy": 0.3933333333333333,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r5": {
+            "correct": 198,
+            "total": 300,
+            "accuracy": 0.66,
+            "invalid": 0,
+            "chance": 0.25
+          },
+          "r6": {
+            "correct": 193,
+            "total": 300,
+            "accuracy": 0.6433333333333333,
+            "invalid": 0,
+            "chance": 0.25
+          }
+        }
+      }
+    },
+    "pubmedqa": {
+      "base": {
+        "correct": 187,
+        "total": 300,
+        "accuracy": 0.6233333333333333,
+        "invalid": 0,
+        "chance": 0.3333333333333333
+      },
+      "r5": {
+        "correct": 175,
+        "total": 300,
+        "accuracy": 0.5833333333333334,
+        "invalid": 0,
+        "chance": 0.3333333333333333
+      },
+      "r6": {
+        "correct": 174,
+        "total": 300,
+        "accuracy": 0.58,
+        "invalid": 0,
+        "chance": 0.3333333333333333
+      },
+      "r6_vs_r5": {
+        "gains": 5,
+        "losses": 6,
+        "ties": 289,
+        "delta_points": -0.3333333333333333,
+        "mcnemar_exact_two_sided_p": 1.0,
+        "inference_limit": "descriptive source-order subset; no multiple-comparison adjustment"
+      },
+      "r6_vs_base": {
+        "gains": 11,
+        "losses": 24,
+        "ties": 265,
+        "delta_points": -4.333333333333333,
+        "mcnemar_exact_two_sided_p": 0.04095959151163697,
+        "inference_limit": "descriptive source-order subset; no multiple-comparison adjustment"
+      },
+      "subjects": {
+        "unspecified": {
+          "base": {
+            "correct": 187,
+            "total": 300,
+            "accuracy": 0.6233333333333333,
+            "invalid": 0,
+            "chance": 0.3333333333333333
+          },
+          "r5": {
+            "correct": 175,
+            "total": 300,
+            "accuracy": 0.5833333333333334,
+            "invalid": 0,
+            "chance": 0.3333333333333333
+          },
+          "r6": {
+            "correct": 174,
+            "total": 300,
+            "accuracy": 0.58,
+            "invalid": 0,
+            "chance": 0.3333333333333333
+          }
+        }
+      }
+    }
+  },
+  "verified": true
+}

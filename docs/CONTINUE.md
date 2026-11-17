@@ -1,5 +1,15 @@
 # Continue here — Ghana Health AI
 
+## 2026-11-17 R6 Benchmark Correction and Comparison
+
+Start with [R6-STATUS.md](../R6-STATUS.md), not the historical checkpoints below.
+R6 training is complete. Corrected base/R5/R6 benchmarks use an immutable Modal
+run under `understanding-adaptation-r6/benchmark-corrections/r6-matched-v2-20261117/`
+on `ghana-health-understand-train`; old aggregates remain unchanged. The report
+records completion, corrected results, source/scoring limitations and recovery
+instructions. Local R6-first/R5-second comparison is at `http://127.0.0.1:7870/`.
+No production promotion or new model training is part of this correction.
+
 ## 2026-08-28 understanding research checkpoint
 
 Current checkpoint:

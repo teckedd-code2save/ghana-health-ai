@@ -6,6 +6,11 @@ The presentation takes a cue from [BLUFF's task/metric table and experiment docu
 
 ## Research Scope
 
+Latest continuation: [R6 training and corrected matched benchmark](../../R6-STATUS.md).
+The R3 tables below remain historical evidence; do not treat them as current R6
+measurements. The R6 report records corrections to malformed benchmark inputs,
+task-specific scoring, exact denominators and independently preserved old results.
+
 The programme investigates Twi understanding and conversational generation while retaining general capabilities. Speech recognition and synthesis are evaluated separately. Health and commerce provide application settings, not a restriction of the research question to medical classification.
 
 Existing documentation: [research programme](../GHANA_LANGUAGE_UNDERSTANDING_RESEARCH.md), [research stack](../research-stack.md), [ASR decision record](../asr-model-decision.md), and [R3 application access](../R3_GUEST_CHAT.md). These include historical decisions; their dates and limitations matter.
