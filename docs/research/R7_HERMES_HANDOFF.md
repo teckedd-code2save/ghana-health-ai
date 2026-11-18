@@ -12,10 +12,29 @@ Keep each model's own conversation history and identical decoding/guard settings
 Do not substitute a stronger model's answers or restart corpus exploration.
 No public dataset upload, production promotion or ASR/TTS changes in this pass.
 
-**R7 full training has not started at this handoff checkpoint.** Its real-weight
-smoke test is submitted. A submitted job is not a passing result. Check the
-receipts and remote state below before acting; later entries in R7-STATUS.md may
-supersede this checkpoint. Do not submit an existing run again.
+**R7 full training is submitted as a detached Modal job.** The real-weight smoke
+passed. Full training completion and evaluation remain pending. Check the
+existing training receipt first; do not prepare or launch a duplicate run.
+
+## Resume Here: Submitted Training
+
+- Receipt: `tmp/r7-20261117/train-v1.receipt.json`.
+- Run: `understanding_20261118T010701Z`.
+- Call: `fc-01M7P3443CKHMZGBK47M0V2CCG`.
+- App: `ap-8NwjfRswPmhUIOSMIPlkzu`.
+- Package: `tmp/r7-20261117/execution-train-v1/`.
+- Execution SHA: `cd4f6824907a179552b26a575fa97a1807a4b3540cb6ede8513b3f27df5e1aa2`.
+- Remote path: `/understanding-adaptation-r7/understanding_20261118T010701Z`.
+
+```bash
+/Users/welcome/miniconda3/bin/python scripts/run_understanding_r7.py status --receipt tmp/r7-20261117/train-v1.receipt.json --wait 60
+/Users/welcome/miniconda3/bin/python scripts/run_understanding_r7.py collect --receipt tmp/r7-20261117/train-v1.receipt.json --out tmp/r7-20261117/train-readback-hermes-01
+```
+
+The launcher exited successfully with a real call ID. Its final app-log timeout
+was not a submission failure. Verify remote startup, committed consumption and
+completion; submission alone does not prove optimizer progress. Training is
+detached from this Codex conversation and local launcher.
 
 ## Exact Locations
 
@@ -74,9 +93,13 @@ Inherited health examples are research data, not clinically certified.
 **466 integrated tests passed** before submission. This proves infrastructure
 checks, not semantic quality or model improvement. No R7 evaluation result exists yet.
 
-## Active Jobs: Recover, Do Not Duplicate
+## Supporting Jobs and Evidence
 
 ### R7 Smoke
+
+**Completed and passed** in 627 seconds. Final readback:
+`tmp/r7-20261117/smoke-final-readback/`. All 38,607 rows were native-reencoded;
+real backward passes and bitwise-equivalent resumed state passed.
 
 - Receipt: `tmp/r7-20261117/smoke-v1.receipt.json`.
 - Run: `understanding_20261118T004044Z`.
@@ -108,11 +131,13 @@ must prove actual backward passes and bitwise-equivalent full-state recovery.
 - Package: `tmp/r7-20261117/tool-r6-execution-v1/`.
 - Execution SHA: `7804c2c42047ba5e52187e240634586e1606d21e3a953f2ba58889bbed2acada`.
 
-Collect with `scripts/r7_tool_eval_run.py collect --package <package> --receipt
-<receipt> --out <new-directory>`. The first readback contained 19/72 cases, all
-without a valid native tool call. This is partial evidence, not a final score.
+Completed readback: `tmp/r7-20261117/tool-r6-final-readback/`. All **72/72** cases
+were scored; **0 valid native tool calls**, hence 0 executed successes. Final
+answer grounding is not evaluable when no tool executed. This measures this
+controlled English tool protocol, not every possible tool prompt. Preserve the
+outputs and compare R7 on the identical protocol after training.
 
-## Immediate Next Step: Train After Smoke Passes
+## Training Launch Recipe (Already Executed; Do Not Repeat)
 
 Preparation uses Python 3.13 with local tokenizer dependencies. Launches use
 the prepared Python 3.11 environment to match Modal serialization.
@@ -173,8 +198,11 @@ Private backups live in volume `ghana-health-understand-train`, prefix
 `/research-handoffs/twi-understanding/2026-11-17-r7/`. Local verified receipts:
 `tmp/r7-20261117/backups/*.receipt.json`. Select the latest receipt with
 `remote_verified: true`; verify its SHA when restoring. Earlier confirmed
-archive `1ba6aab9f10d275e6587804b6305fd27f7c6e7567af5ad05b62a34b1f1953544.tar.gz`
-predates the final pack; do not use it as the complete current state.
+archive `673ac4802412935319fe6871f8dd06967511c5a79f747a8fa5f78b46f663f0a5.tar.gz`
+contains the final sealed data and smoke package: **607,656,162 bytes, 6,534
+files, remote readback verified**. It predates the completed smoke/training
+receipt and this final handoff; use the accompanying Hermes supplement for
+those. Earlier archives are preserved, not the latest state.
 
 Run `MODAL_PROFILE=createdliving1000 /Users/welcome/miniconda3/bin/python
 scripts/backup_r7_progress.py --upload` after updating this handoff and receipts.
@@ -189,9 +217,9 @@ original dirty tree, frozen datasets or old model/evaluation evidence.
 Continue R7 from docs/research/R7_HERMES_HANDOFF.md in
 /Users/welcome/.codex/worktrees/r4-train/ghana-health-ai on
 codex/61-r7-data-training. First reconcile the existing smoke, tool-evaluation
-and any later training receipts against Modal; never duplicate jobs. The data
-pack is sealed and fully checked. After the real-weight smoke passes, run the
-prepared full R7 continuation, verify consumption, run matched R6/R7 behavior,
+and training receipts against Modal; never duplicate jobs. The data pack is
+sealed and fully checked, smoke passed, and full training is already submitted
+as fc-01M7P3443CKHMZGBK47M0V2CCG. Monitor it, verify consumption, run matched R6/R7 behavior,
 public and executed-tool evaluations, and serve R7 first against R6 in the local
 UI. Preserve independent histories and equal guard settings. Keep R6's existing
 UI and production unchanged. Continue on Modal, no OpenAI calls. Record honest

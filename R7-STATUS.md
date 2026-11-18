@@ -1,7 +1,8 @@
 # R7 Execution Record
 
 Updated 18 November 2026. Issue #61. Branch `codex/61-r7-data-training`, stacked
-on corrected R6 commit `587e375`. No R7 model has been trained yet.
+on corrected R6 commit `587e375`. R7 training is submitted on Modal; no completed
+R7 model or R7 evaluation result is claimed yet.
 
 ## Goal
 
@@ -18,7 +19,7 @@ pinned AfriqueQwen 9B base and continues R6; more data does not add parameters.
 | B. Broader evaluation freeze | Behavior pack frozen; all 117 R6 outputs collected and agent-assessed | Eight bilingual source scenarios, 112 derived views, five separate observed regressions; public-task and tool comparisons being prepared |
 | C. Data expansion and correction | Selected admissions sealed; deferred sources remain explicit | 12,067 original bilingual pairs; 129 executed English tool histories; 7,921 replay records; all selected response findings reviewed |
 | D. Encoding and leakage checks | Complete for pack-v1 | 38,607 views native-reencoded; inherited, behavior, tool-dev and 2,004 exact public-benchmark protections; 855 exact duplicate views removed |
-| E. Training and recovery smoke | Smoke submitted on Modal; full training awaits its result | Pinned R6 initialization, real backward/resume proof, then detached training |
+| E. Training and recovery smoke | Smoke passed; full training submitted detached | Real R6 backward and bitwise recovery passed; call `fc-01M7P3443CKHMZGBK47M0V2CCG` |
 | F. Matched R6/R7 evaluations | Pending E | Raw outputs, per-category gains/losses, uncertainty, failure examples |
 | G. Local comparison and handoff | Pending F | Inspectable calls/results, checkpoint identity, durable Modal backup |
 
@@ -295,19 +296,18 @@ Each archive is named by its SHA256 and verified by reading it back from Modal.
 Local receipts are in `tmp/r7-20261117/backups/`. The backup contains work in
 progress, not an admitted training release. Existing R6 evidence is untouched.
 
-Latest completed backup: `1ba6aab9f10d275e6587804b6305fd27f7c6e7567af5ad05b62a34b1f1953544.tar.gz`,
-378,014,184 bytes / 372 files, remote read-back verified. It predates final pack
-assembly; a later snapshot must include that release and its training receipts.
+Latest completed full backup: `673ac4802412935319fe6871f8dd06967511c5a79f747a8fa5f78b46f663f0a5.tar.gz`,
+607,656,162 bytes / 6,534 files, remote read-back verified. It includes the sealed
+pack and smoke package. The final handoff and subsequent run receipts belong
+to a small separate Hermes supplement; see `R7_HERMES_HANDOFF.md`.
 Data preparation code is committed as `e1d7c0f`; the training/tool contracts are
 in `82e2513`. UI/evaluation extensions are committed as `de2ecde`. All are pushed
 to `origin/codex/61-r7-data-training`; no production deployment was made.
 
-Resume by checking the existing smoke receipt, then collect its result and
-prepare the training package only after a passing result. Do not rebuild the
-sealed data or duplicate submissions. The R6 behavior baseline is complete;
-the R6 tool benchmark is submitted. The R7/R6 UI and matched evaluation code
-are ready, but require an actual completed R7 checkpoint. The R6 workbench is
-unchanged. No full R7 training is running yet.
+Resume by checking `tmp/r7-20261117/train-v1.receipt.json`. Do not rebuild the
+sealed data or duplicate submissions. The R6 behavior and tool baselines are
+complete. The R7/R6 UI and matched evaluation code are ready, but require an
+actual completed R7 checkpoint. The R6 workbench is unchanged.
 
 ## Credit Checkpoint
 
@@ -331,3 +331,21 @@ group-field naming mismatch without altering its sealed artifacts. Supplement:
 The detailed dataset profile is `pack-profile-v1/REPORT.md`; it reports 15,365
 alias-connected groups (not proven independent tasks), 390 target-only groups
 shared across collections, and 2,766 views without explicit language labels.
+
+## Latest Execution: 18 November, 01:08 UTC
+
+Smoke completed in 627 seconds: all 38,607 native encodings, real backward
+passes and bitwise-equivalent full-state checkpoint recovery passed. Evidence:
+`tmp/r7-20261117/smoke-final-readback/`.
+
+Full training submitted detached, run `understanding_20261118T010701Z`,
+call `fc-01M7P3443CKHMZGBK47M0V2CCG`, app `ap-8NwjfRswPmhUIOSMIPlkzu`.
+Execution SHA256: `cd4f6824907a179552b26a575fa97a1807a4b3540cb6ede8513b3f27df5e1aa2`.
+Receipt: `tmp/r7-20261117/train-v1.receipt.json`. Submission is confirmed;
+committed update counts and completion must be read from the running job.
+
+R6 tool baseline finished 72/72 cases: 0 valid native calls and 0 sandbox
+executions under this fixed English protocol. Grounding is not evaluable without
+an executed result. Final evidence: `tmp/r7-20261117/tool-r6-final-readback/`.
+Do not extrapolate this to every tool prompt or claim R7 improvement before its
+matched run. Hermes resume instructions: `docs/research/R7_HERMES_HANDOFF.md`.
