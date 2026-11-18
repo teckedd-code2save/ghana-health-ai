@@ -27,6 +27,12 @@ The earlier submitted/running descriptions below are historical checkpoints.
   520,958,547 bytes, SHA256
   `2fb8e9310d2c889316ae6a066efb9d18b863edd305d13a1115db1cfbb0221a23`.
   See `recovery-readback.json` inside the local export. No resume was launched.
+- Verified private local recovery archive, outside the worktree:
+  `/Users/welcome/Documents/Research-Exports/ghana-health-ai/r7-offline-recovery-20261118.tar.gz`.
+  SHA256 `7fc173660b9b82cd77efa7e8568c212e7bc97580f260b7e040c5ec72b3ef5fd2`.
+  Includes frozen training inputs/code and the offline inference bundle, not the
+  public base weights or entire research corpus. Read the adjacent README.
+  Do not publish this archive; no new Modal backup was uploaded.
 - Exporter `scripts/prepare_understanding_r7_inference.py collect` now downloads
   weights through Volume reads and hashes locally; it no longer launches a paid
   CPU sandbox. Check egress allowance before future downloads.
