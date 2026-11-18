@@ -12,7 +12,8 @@ import tarfile
 
 ROOT = Path(__file__).resolve().parents[1]
 PREFIX = "/research-handoffs/twi-understanding/2026-11-17-r7"
-PATTERNS = ("R7-STATUS.md", "scripts/*r7*.py", "modal/train/*r7*.py", "modal/*r7*.py", "docs/research/R7*.md")
+PATTERNS = ("R7-STATUS.md", "scripts/*r7*.py", "scripts/archive_r6_behavior_regressions.py",
+            "modal/train/*r7*.py", "modal/*r7*.py", "docs/research/R7*.md")
 EXCLUDED_RUNTIME = {"baseline-launch-py311", "__pycache__", ".venv"}
 SECRET = re.compile(rb"sk-proj-[A-Za-z0-9_-]{16,}|OPENAI_API_KEY\s*=\s*['\"]?[A-Za-z0-9_-]{16,}")
 

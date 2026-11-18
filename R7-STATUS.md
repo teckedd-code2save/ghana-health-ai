@@ -18,7 +18,7 @@ pinned AfriqueQwen 9B base and continues R6; more data does not add parameters.
 | B. Broader evaluation freeze | Behavior pack frozen; all 117 R6 outputs collected and agent-assessed | Eight bilingual source scenarios, 112 derived views, five separate observed regressions; public-task and tool comparisons being prepared |
 | C. Data expansion and correction | Selected admissions sealed; deferred sources remain explicit | 12,067 original bilingual pairs; 129 executed English tool histories; 7,921 replay records; all selected response findings reviewed |
 | D. Encoding and leakage checks | Complete for pack-v1 | 38,607 views native-reencoded; inherited, behavior, tool-dev and 2,004 exact public-benchmark protections; 855 exact duplicate views removed |
-| E. Training and recovery smoke | Smoke package prepared; new GPU submissions held for credit clarification | Pinned R6 initialization, real backward/resume proof, then detached training |
+| E. Training and recovery smoke | Credits clarified; prepared smoke launch in progress | Pinned R6 initialization, real backward/resume proof, then detached training |
 | F. Matched R6/R7 evaluations | Pending E | Raw outputs, per-category gains/losses, uncertainty, failure examples |
 | G. Local comparison and handoff | Pending F | Inspectable calls/results, checkpoint identity, durable Modal backup |
 
@@ -309,11 +309,19 @@ is running yet.
 
 ## Credit Checkpoint
 
-The user reported running low on credits before GPU submission. Clarification is
-pending: Codex or Modal credits. No R7 smoke/training GPU call was submitted.
+The user clarified that **Codex weekly usage**, not Modal credits, is running low
+and explicitly instructed continuation on Modal. The temporary GPU hold is lifted.
+The prepared smoke launch is in progress; its receipt determines submission state.
 The complete CPU-verified smoke package is `tmp/r7-20261117/execution-smoke-v1/`,
 execution SHA256 `d5bdc11126ffab4261e89cee4283f95b5c0e7810a858949c050fd35d80fd920d`.
-Once Modal spending is confirmed, launch this package once with a new receipt;
-do not rebuild the data. The next stages are real backward/resume smoke, full
-training, matched R6 comparisons and the local R7/R6 UI. Supplementary public
-source-group metadata audit remains to be collected from the benchmark worker.
+Do not duplicate the active launch or rebuild the data. Its receipt is
+`tmp/r7-20261117/smoke-v1.receipt.json`. The next stages are real backward/resume
+smoke, full training, matched R6 comparisons and the local R7/R6 UI.
+The supplementary public source-group audit checked all 38,607 witnesses and
+found zero identity/hash intersections, addressing the original protection's
+group-field naming mismatch without altering its sealed artifacts. Supplement:
+`public-benchmark-protection-supplement-v1`, manifest
+`ee762fa34ad52c1e6b0d35d21c02e59badaa341187c786c8328d3369c202111a`.
+The detailed dataset profile is `pack-profile-v1/REPORT.md`; it reports 15,365
+alias-connected groups (not proven independent tasks), 390 target-only groups
+shared across collections, and 2,766 views without explicit language labels.
