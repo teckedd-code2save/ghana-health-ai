@@ -23,14 +23,26 @@ see `tmp/r7-20261118-local-export/recovery-readback.json`.
 The user reported a billing problem. The authorized US$0 monthly out-of-pocket
 Modal spend limit is saved and verified. No new paid jobs, automatic resumes or
 large storage additions may proceed without renewed budget authorization.
-Storage continues to accrue charges; no stored data was deleted. Follow
+Storage continues to accrue charges. The subsequently approved cache-only cleanup
+is complete; protected research data is unchanged. Follow
 `docs/research/COST_CONTROL.md`. Earlier submission checkpoints below are retained
 as history, not current authorization to launch. This override is also in the
 Hermes handoff. Current workspace inspection reported no active app containers.
 
-Read-only storage inventory and a proposed item-level cleanup are saved privately
-in `tmp/modal-storage-audit-20261118/REVIEW.md`. No corpus, trained weight,
-checkpoint or cache was deleted. Account billing details are not published here.
+Storage inventory and the completed item-level cleanup are saved privately in
+`tmp/modal-storage-audit-20261118/REVIEW.md` and `cleanup-receipt.json`.
+Only the five explicitly approved public-cache directories were removed:
+572,760,524,632 logical bytes (533.425 GiB). Every remaining cache entry and the
+five protected corpus/model/recovery volumes matched the before/after metadata
+inventories. No trained weights, corpus or recovery state were deleted. No remote
+compute was started. Account billing details are not published here.
+
+The local Apple Silicon route is prepared: both R7 and R6 adapters were converted
+to MLX, with all 248 base projection dimensions and LoRA deltas checked per model.
+The isolated local environment and comparison code are ready for the full-weight
+smoke test, not yet a functioning demo. The 17.9 GB pinned public base download is
+incomplete. Full base conversion, actual local replies and quality evaluation
+remain pending. See [local testing instructions](docs/research/R7_LOCAL_MAC.md).
 
 Updated 18 November 2026. Issue #61. Branch `codex/61-r7-data-training`, stacked
 on corrected R6 commit `587e375`. Earlier submission notes below are historical.
@@ -51,8 +63,8 @@ pinned AfriqueQwen 9B base and continues R6; more data does not add parameters.
 | C. Data expansion and correction | Selected admissions sealed; deferred sources remain explicit | 12,067 original bilingual pairs; 129 executed English tool histories; 7,921 replay records; all selected response findings reviewed |
 | D. Encoding and leakage checks | Complete for pack-v1 | 38,607 views native-reencoded; inherited, behavior, tool-dev and 2,004 exact public-benchmark protections; 855 exact duplicate views removed |
 | E. Training and recovery smoke | Completed; final adapter downloaded and verified | 2,413 updates; all 38,607 scheduled views; exact SHA above |
-| F. Matched R6/R7 evaluations | Pending; paid work held | No new R7 scores or improvement claim; authorized compute route needed |
-| G. Local comparison and handoff | Offline identity bundle ready; inference pending F | R6/R7 weights saved locally; no paid service launched |
+| F. Matched R6/R7 evaluations | Pending; paid work held | No new R7 scores or improvement claim; local compressed-base tests will be a separate track |
+| G. Local comparison and handoff | Adapter conversion verified; base download incomplete | Separate histories, same guards/decoding and local output receipts implemented; actual inference still pending |
 
 ## Data Policy
 

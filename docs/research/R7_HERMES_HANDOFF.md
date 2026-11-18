@@ -36,10 +36,15 @@ The earlier submitted/running descriptions below are historical checkpoints.
 - Exporter `scripts/prepare_understanding_r7_inference.py collect` now downloads
   weights through Volume reads and hashes locally; it no longer launches a paid
   CPU sandbox. Check egress allowance before future downloads.
-- Private storage audit and cleanup proposal:
-  `tmp/modal-storage-audit-20261118/REVIEW.md`. No deletion has occurred.
-- Continue local preparation and investigate a validated low-memory inference
-  route, or obtain an explicitly authorized external compute allocation.
+- Approved cleanup completed: exactly five public-cache directories, 533.425 GiB.
+  Private evidence: `tmp/modal-storage-audit-20261118/cleanup-receipt.json`.
+  All retained cache metadata and the five protected research volumes matched
+  their pre-cleanup inventories. No corpus, trained weights or recovery files
+  were deleted. No further deletion is authorized.
+- Local MLX R7/R6 adapters are converted and checked; the isolated Mac runtime
+  is installed. Pinned 17.9 GB base download remains incomplete. Continue from
+  [R7_LOCAL_MAC.md](R7_LOCAL_MAC.md), not a new Modal launch. Confirm an unmetered
+  connection before resuming a large download. Full local inference is unverified.
   Do not deploy the Modal bundle or resume GPU work under the current restriction.
 - Preserve R6/R7 independent histories, identical decoding/guards and raw outputs.
   Quantized-local measurements must be labeled separately from BF16 benchmarks.
@@ -56,11 +61,11 @@ Keep each model's own conversation history and identical decoding/guard settings
 Do not substitute a stronger model's answers or restart corpus exploration.
 No public dataset upload, production promotion or ASR/TTS changes in this pass.
 
-**R7 full training is submitted as a detached Modal job.** The real-weight smoke
-passed. Full training completion and evaluation remain pending. Check the
-existing training receipt first; do not prepare or launch a duplicate run.
+**R7 full training has completed.** The real-weight smoke and full training
+receipts are preserved. Evaluation remains pending. Do not prepare or launch a
+duplicate training run. The submission section below records the original job.
 
-## Resume Here: Submitted Training
+## Historical Training Submission
 
 - Receipt: `tmp/r7-20261117/train-v1.receipt.json`.
 - Run: `understanding_20261118T010701Z`.

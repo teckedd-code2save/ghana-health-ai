@@ -62,8 +62,17 @@ The user reported a billing problem and authorized a **US$0 monthly out-of-pocke
 spend limit** in Modal. It was saved and visibly verified in the billing UI.
 No new paid research jobs or automatic resumes are authorized until the user
 explicitly changes this restriction. R7 training already completed; matched
-evaluation and deployment must wait for budget clearance. Read-only checks and
-local work may continue. No data was deleted and no invoice was paid.
+paid evaluation and deployment must wait for budget clearance. Read-only checks
+and local work may continue. No invoice was paid.
+
+The user subsequently approved exactly five public-cache directories totaling
+533.425 GiB. Their deletion completed on 18 November, with before/after metadata
+checks confirming the retained cache entries and five protected research volumes
+were unchanged. Corpus, trained weights and R7 recovery files remain protected.
+The private receipt is `tmp/modal-storage-audit-20261118/cleanup-receipt.json`.
+This is not permission for further deletion or for re-downloading retired models
+into paid storage. Check whether the user's connection is metered before a large
+local download; local inference avoids provider charges, not internet or power costs.
 
 Modal's UI warns that **volume storage charges still accrue** when the spend limit
 stops workloads. A zero spend limit does not clear existing charges or provide
