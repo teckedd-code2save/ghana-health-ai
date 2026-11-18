@@ -83,6 +83,31 @@ bin/rollback <sha>    # roll back to a specific SHA
 - Pushing directly to `main` (the workflow assumes PR-then-merge)
 - Wide refactors mixed into a bugfix PR
 
+## Required Cost Controls
+
+These apply to every agent, including research handoffs. See
+[the cost-control checklist](docs/research/COST_CONTROL.md).
+
+- Before paid compute, model downloads, bulk annotation, evaluation or deployment,
+  check current provider usage, applicable unexpired credits, invoices, active
+  jobs, storage size/cost, and both usage and out-of-pocket spend limits.
+- Record a bounded job estimate covering compute, memory, storage growth,
+  checkpoints, retries and network transfer. Obtain an explicit dollar ceiling
+  and stop condition. Access to an API key or a prior "continue" is not unlimited
+  spending authorization. Unknown billing/headroom means no new paid launch.
+- Recheck after the first batch, at least hourly while paid work runs, and before
+  any resume, retry, scale-up or new model download. Report material changes.
+- Preserve recoverability, but do not retain unlimited checkpoints, duplicate
+  model caches or repeated full backups without a storage budget and retention
+  plan. Storage can keep billing with all compute stopped.
+- If the user reports inability to pay or exhausted credits, hold new paid jobs
+  and automatic resumes. Keep read-only inspection/local work moving. Ask before
+  changing account billing settings or deleting any stored data; never pay,
+  increase limits, top up or change plans without explicit authorization.
+- Handoffs must include the current spend restriction, last cost check, active
+  jobs, retention decisions and next authorized action. A documented policy is
+  not proof of an automatic spending monitor or provider-enforced storage cap.
+
 ## Where to find things
 
 - **Issues / roadmap:** https://github.com/teckedd-code2save/ghana-health-ai/issues

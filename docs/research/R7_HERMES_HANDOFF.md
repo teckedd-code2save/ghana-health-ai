@@ -1,5 +1,22 @@
 # R7: Hermes Continuation Handoff
 
+## Superseding Cost Restriction: 18 November 2026
+
+Read `docs/research/COST_CONTROL.md` before the earlier continuation instructions.
+The user reported a billing problem and authorized a US$0 monthly out-of-pocket
+Modal spend limit, which is now saved. Do not launch evaluations, restart jobs,
+deploy paid inference or add large caches without renewed budget authorization.
+Storage still accrues charges; do not delete anything without approval.
+
+Read-only reconciliation found the existing R7 training call **completed**, with
+2,413 updates and all 38,607 scheduled views consumed. The reported final adapter
+SHA256 is `f6e6b484ca404146016eefabd170738e66791880775238e435e31577300e57a7`;
+this is terminal worker evidence, not a fresh independent adapter-byte readback
+or evidence of improved quality. Local result:
+`tmp/r7-20261117/train-v1.receipt.result.json`. R7 evaluations remain pending.
+No active app containers were reported in the workspace check at this audit.
+The earlier submitted/running descriptions below are historical checkpoints.
+
 Updated 18 November 2026 UTC. Issue #61. Read this before starting another job.
 The user is conserving **Codex weekly usage**, not withdrawing Modal compute
 authorization. Continue on Modal. Do not call OpenAI; its project is out of credits.

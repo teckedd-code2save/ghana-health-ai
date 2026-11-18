@@ -1,5 +1,21 @@
 # R7 Execution Record
 
+## Current Override: Training Complete, Paid Work Held
+
+18 November 2026: read-only reconciliation of the existing Modal call confirms
+R7 training completed with 2,413 updates, 38,607 view exposures and 1,849,881
+effective target tokens. Terminal evidence is saved as
+`tmp/r7-20261117/train-v1.receipt.result.json`; no matched R7 evaluation or
+independent final adapter-byte readback has yet been completed in this pass.
+
+The user reported a billing problem. The authorized US$0 monthly out-of-pocket
+Modal spend limit is saved and verified. No new paid jobs, automatic resumes or
+large storage additions may proceed without renewed budget authorization.
+Storage continues to accrue charges; no stored data was deleted. Follow
+`docs/research/COST_CONTROL.md`. Earlier submission checkpoints below are retained
+as history, not current authorization to launch. This override is also in the
+Hermes handoff. Current workspace inspection reported no active app containers.
+
 Updated 18 November 2026. Issue #61. Branch `codex/61-r7-data-training`, stacked
 on corrected R6 commit `587e375`. R7 training is submitted on Modal; no completed
 R7 model or R7 evaluation result is claimed yet.

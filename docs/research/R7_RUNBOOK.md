@@ -3,6 +3,10 @@
 Current state and measured results live in `R7-STATUS.md`. This runbook describes
 operations; a command listed here is not evidence that it has run.
 
+**Cost gate:** read `COST_CONTROL.md` before any paid command. The user's current
+US$0 out-of-pocket restriction supersedes earlier Modal compute authorization.
+R7 completed overnight; do not relaunch it. Evaluations wait for budget clearance.
+
 ## Working Locations
 
 - Worktree: `/Users/welcome/.codex/worktrees/r4-train/ghana-health-ai`.
