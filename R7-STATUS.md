@@ -18,7 +18,7 @@ pinned AfriqueQwen 9B base and continues R6; more data does not add parameters.
 | B. Broader evaluation freeze | Behavior pack frozen; all 117 R6 outputs collected and agent-assessed | Eight bilingual source scenarios, 112 derived views, five separate observed regressions; public-task and tool comparisons being prepared |
 | C. Data expansion and correction | Selected admissions sealed; deferred sources remain explicit | 12,067 original bilingual pairs; 129 executed English tool histories; 7,921 replay records; all selected response findings reviewed |
 | D. Encoding and leakage checks | Complete for pack-v1 | 38,607 views native-reencoded; inherited, behavior, tool-dev and 2,004 exact public-benchmark protections; 855 exact duplicate views removed |
-| E. Training and recovery smoke | Credits clarified; prepared smoke launch in progress | Pinned R6 initialization, real backward/resume proof, then detached training |
+| E. Training and recovery smoke | Smoke submitted on Modal; full training awaits its result | Pinned R6 initialization, real backward/resume proof, then detached training |
 | F. Matched R6/R7 evaluations | Pending E | Raw outputs, per-category gains/losses, uncertainty, failure examples |
 | G. Local comparison and handoff | Pending F | Inspectable calls/results, checkpoint identity, durable Modal backup |
 
@@ -133,12 +133,12 @@ suite adds fresh chats, fixed-history corrections and independent follow-ups,
 with category membership, distinctness and changed-constraint checks reported
 separately. New phrasing alone does not create an independent source group.
 
-Infrastructure verification: **380 tests passed** in the latest integrated R7
+Infrastructure verification: **466 tests passed** in the latest integrated R7
 suite. Earlier interim UI/path test failures were corrected; old failed runs are
 not counted as passes. An independent preflight found no blocking assembler/tool
 mask defect: 5,160 native views and 129 reconstructed tool histories passed.
 All 7,921 replay records were separately native-reencoded. The assembled final
-pack still requires complete verification before launching training.
+pack also passed complete verification and native re-encoding before sealing.
 This does not claim that teacher output or a new model passed semantic evaluation.
 
 ## Selected-Source Audit
@@ -299,24 +299,30 @@ Latest completed backup: `1ba6aab9f10d275e6587804b6305fd27f7c6e7567af5ad05b62a34
 378,014,184 bytes / 372 files, remote read-back verified. It predates final pack
 assembly; a later snapshot must include that release and its training receipts.
 Data preparation code is committed as `e1d7c0f`; the training/tool contracts are
-in `82e2513`. UI/evaluation extensions remain in progress on the same branch.
+in `82e2513`. UI/evaluation extensions are committed as `de2ecde`. All are pushed
+to `origin/codex/61-r7-data-training`; no production deployment was made.
 
-Resume from the active complete-pack assembly and verification,
-then run the real-weight backward/resume smoke and detached training. The R6
-baseline is complete. R7/R6 UI and matched public/tool comparisons are being
-prepared separately without altering the current R6 workbench. No R7 training
-is running yet.
+Resume by checking the existing smoke receipt, then collect its result and
+prepare the training package only after a passing result. Do not rebuild the
+sealed data or duplicate submissions. The R6 behavior baseline is complete;
+the R6 tool benchmark is submitted. The R7/R6 UI and matched evaluation code
+are ready, but require an actual completed R7 checkpoint. The R6 workbench is
+unchanged. No full R7 training is running yet.
 
 ## Credit Checkpoint
 
 The user clarified that **Codex weekly usage**, not Modal credits, is running low
 and explicitly instructed continuation on Modal. The temporary GPU hold is lifted.
-The prepared smoke launch is in progress; its receipt determines submission state.
+The smoke launch is submitted; its receipt determines submission state.
 The complete CPU-verified smoke package is `tmp/r7-20261117/execution-smoke-v1/`,
 execution SHA256 `d5bdc11126ffab4261e89cee4283f95b5c0e7810a858949c050fd35d80fd920d`.
 Do not duplicate the active launch or rebuild the data. Its receipt is
 `tmp/r7-20261117/smoke-v1.receipt.json`. The next stages are real backward/resume
 smoke, full training, matched R6 comparisons and the local R7/R6 UI.
+Smoke run: `understanding_20261118T004044Z`, Modal call
+`fc-01M7P23T89EHSKVG0VMC6HXMKR`. R6 tool evaluation receipt:
+`tmp/r7-20261117/tool-r6-v1.receipt.json`, call
+`fc-01M7P1XC5TYKMX9FCCW4248TKQ`. Neither submission is a claim of success.
 The supplementary public source-group audit checked all 38,607 witnesses and
 found zero identity/hash intersections, addressing the original protection's
 group-field naming mismatch without altering its sealed artifacts. Supplement:
