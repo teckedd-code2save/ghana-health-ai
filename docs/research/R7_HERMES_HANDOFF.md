@@ -11,15 +11,36 @@ Storage still accrues charges; do not delete anything without approval.
 Read-only reconciliation found the existing R7 training call **completed**, with
 2,413 updates and all 38,607 scheduled views consumed. The reported final adapter
 SHA256 is `f6e6b484ca404146016eefabd170738e66791880775238e435e31577300e57a7`;
-this is terminal worker evidence, not a fresh independent adapter-byte readback
-or evidence of improved quality. Local result:
+this has now been independently confirmed by downloading and hashing the full
+adapter locally. It is not evidence of improved quality. Local result:
 `tmp/r7-20261117/train-v1.receipt.result.json`. R7 evaluations remain pending.
 No active app containers were reported in the workspace check at this audit.
 The earlier submitted/running descriptions below are historical checkpoints.
 
+### Local Export and Next Authorized Action
+
+- Full R6/R7 adapters and 16 verified evidence files:
+  `tmp/r7-20261118-local-export/` (373,855,185 verified bytes before recovery-state export).
+- Offline inference bundle: `tmp/r7-20261118-local-bundle/`, SHA256
+  `9162b42765a5d2f93b4d1f642495093e753570bb16b023fac78354a42475c614`.
+- Final full-state checkpoint is independently downloaded and verified too:
+  520,958,547 bytes, SHA256
+  `2fb8e9310d2c889316ae6a066efb9d18b863edd305d13a1115db1cfbb0221a23`.
+  See `recovery-readback.json` inside the local export. No resume was launched.
+- Exporter `scripts/prepare_understanding_r7_inference.py collect` now downloads
+  weights through Volume reads and hashes locally; it no longer launches a paid
+  CPU sandbox. Check egress allowance before future downloads.
+- Private storage audit and cleanup proposal:
+  `tmp/modal-storage-audit-20261118/REVIEW.md`. No deletion has occurred.
+- Continue local preparation and investigate a validated low-memory inference
+  route, or obtain an explicitly authorized external compute allocation.
+  Do not deploy the Modal bundle or resume GPU work under the current restriction.
+- Preserve R6/R7 independent histories, identical decoding/guards and raw outputs.
+  Quantized-local measurements must be labeled separately from BF16 benchmarks.
+
 Updated 18 November 2026 UTC. Issue #61. Read this before starting another job.
-The user is conserving **Codex weekly usage**, not withdrawing Modal compute
-authorization. Continue on Modal. Do not call OpenAI; its project is out of credits.
+The latest cost restriction supersedes earlier permission to continue on Modal.
+Do not call OpenAI; its project was reported out of credits.
 
 ## Goal and Current Boundary
 

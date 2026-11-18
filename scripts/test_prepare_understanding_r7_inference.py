@@ -4,6 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
 
 import prepare_understanding_r7_inference as builder
 import r2_inference as r2
@@ -191,6 +192,42 @@ class ProofTests(unittest.TestCase):
         out.mkdir()
         with self.assertRaisesRegex(ValueError, "new immutable"):
             builder.prepare(self.root / "missing", self.receipt, self.readback, out, receipt_sha=r2.sha(self.receipt))
+
+    def test_collect_downloads_verified_weights_without_modal_compute(self):
+        r6dir = self.readback / r7.R6_DIRECTORY.removeprefix('/artifacts/')
+        r6dir.mkdir(parents=True)
+        for name, raw in [('adapter_config.json', b'{}'), ('adapter_model.safetensors', b'R6 fixture')]:
+            (r6dir / name).write_bytes(raw)
+        def read_file(remote):
+            yield (self.readback / remote.lstrip('/')).read_bytes()
+        fake = SimpleNamespace(Volume=SimpleNamespace(from_name=lambda *a, **k:
+            SimpleNamespace(read_file=read_file)))
+        with patch.dict('sys.modules', {'modal': fake}), \
+             patch.object(r7, 'R6_CONFIG', r2.sha(r6dir / 'adapter_config.json')), \
+             patch.object(r7, 'R6_WEIGHTS', r2.sha(r6dir / 'adapter_model.safetensors')):
+            result = builder.collect(self.receipt, self.root / 'downloaded', receipt_sha=r2.sha(self.receipt))
+            resumed = builder.collect(self.receipt, self.root / 'downloaded', receipt_sha=r2.sha(self.receipt), resume=True)
+        self.assertEqual(resumed['downloaded_bytes'], 0)
+        self.assertEqual(resumed['verified_bytes'], result['verified_bytes'])
+        self.assertEqual(result['downloaded_bytes'], result['verified_bytes'])
+        self.assertFalse(result['remote_compute_started'])
+        self.assertFalse(result['gpu_called'])
+        actual = r2.read(self.root / 'downloaded/adapter-readback.json')
+        self.assertEqual(actual['r7_response']['files']['adapter_model.safetensors'],
+            r2.sha(self.run / 'responses-adapter/adapter_model.safetensors'))
+
+    def test_collect_rejects_changed_downloaded_weights(self):
+        def read_file(remote):
+            if remote.endswith('/adapter_model.safetensors'):
+                yield b'corrupted bytes'
+            elif remote.startswith(r7.R6_DIRECTORY.removeprefix('/artifacts')):
+                yield b'{}'
+            else:
+                yield (self.readback / remote.lstrip('/')).read_bytes()
+        fake = SimpleNamespace(Volume=SimpleNamespace(from_name=lambda *a, **k:
+            SimpleNamespace(read_file=read_file)))
+        with patch.dict('sys.modules', {'modal': fake}), self.assertRaisesRegex(ValueError, 'hash differs'):
+            builder.collect(self.receipt, self.root / 'changed', receipt_sha=r2.sha(self.receipt))
 
     def test_inherited_pass_snapshot_is_not_mistaken_for_final_export(self):
         exports = r2.read(self.run / 'adapters.json')

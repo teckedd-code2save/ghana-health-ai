@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Read back exact Modal artifacts, then seal a private R7/R6/base inference bundle.
 
-collect reads metadata through the Volume API and hashes adapters in a short
-CPU-only, read-only Modal container. It never requests a GPU.
+collect downloads metadata and adapters through the read-only Volume API and
+hashes them locally. It starts no Modal compute. Check egress allowance first.
 prepare is offline; existing bundles and conversations are never modified.
 """
 import argparse
@@ -28,16 +28,26 @@ def collect(receipt, out, *, receipt_sha, resume=False):
     out.mkdir(parents=True, mode=0o700, exist_ok=resume)
     volume = modal.Volume.from_name(r7.VOLUME, create_if_missing=False)
     hashes = {}
+    downloaded_bytes = 0
 
     def download(remote):
+        nonlocal downloaded_bytes
         base.require(remote.startswith("/artifacts/"), "Invalid readback root")
         relative = remote.removeprefix("/artifacts/")
         path = base.safe(out, relative)
         if not path.exists():
             path.parent.mkdir(parents=True, exist_ok=True)
-            with path.open("xb") as stream:
-                for chunk in volume.read_file("/" + relative):
-                    stream.write(chunk)
+            temporary = None
+            try:
+                with tempfile.NamedTemporaryFile(dir=path.parent, prefix=".readback-", delete=False) as stream:
+                    temporary = Path(stream.name)
+                    for chunk in volume.read_file("/" + relative):
+                        stream.write(chunk)
+                        downloaded_bytes += len(chunk)
+                temporary.replace(path)
+            finally:
+                if temporary is not None:
+                    temporary.unlink(missing_ok=True)
         hashes[remote] = base.sha(path)
         return path
 
@@ -53,34 +63,22 @@ def collect(receipt, out, *, receipt_sha, resume=False):
     expected = dict(hashes)
     for adapter in adapters.values():
         expected.update({adapter["directory"] + "/" + name: checksum for name, checksum in adapter["files"].items()})
-    app = modal.App.lookup("ghana-understanding-r7-readback-private", create_if_missing=True)
-    sandbox = modal.Sandbox.create(app=app, image=modal.Image.debian_slim(python_version="3.11"),
-        cpu=1, memory=512, timeout=180, block_network=True, volumes={"/artifacts": volume.read_only()})
-    try:
-        process = sandbox.exec("python", "-c", """
-import hashlib, json, os, sys
-result = {}
-for path in json.loads(sys.argv[1]):
-    with open(path, "rb") as stream:
-        checksum = hashlib.file_digest(stream, "sha256").hexdigest()
-    result[path] = {"sha256": checksum, "bytes_read": os.path.getsize(path)}
-print(json.dumps(result))
-""", json.dumps(sorted(expected)), timeout=150)
-        output, error = process.stdout.read(), process.stderr.read()
-        base.require(process.wait() == 0, "Modal readback failed: " + error[:1000])
-        actual = json.loads(output)
-        base.require(set(actual) == set(expected) and all(actual[p]["sha256"] == checksum
-            and actual[p]["bytes_read"] > 0 for p, checksum in expected.items()), "Modal readback hash differs")
-    finally:
-        sandbox.terminate()
+    actual = {}
+    for remote in sorted(expected):
+        path = download(remote)
+        actual[remote] = {"sha256": base.sha(path), "bytes_read": path.stat().st_size}
+    base.require(set(actual) == set(expected) and all(actual[p]["sha256"] == checksum
+        and actual[p]["bytes_read"] > 0 for p, checksum in expected.items()), "Modal readback hash differs")
     readbacks = {variant: {**adapter, "bytes_read": {
         name: actual[adapter["directory"] + "/" + name]["bytes_read"] for name in adapter["files"]},
-        "verified": True, "method": "SHA-256 of full mounted Modal bytes; CPU-only read-only verification"}
+        "verified": True, "method": "SHA-256 of full Volume API downloads; local verification, no Modal compute"}
         for variant, adapter in adapters.items()}
     base.save(out / "adapter-readback.json", readbacks)
     base.save(out / "modal-readback.json", {"volume": r7.VOLUME, "files": actual,
-        "collected_at": datetime.now(timezone.utc).isoformat(), "gpu_called": False})
-    return {"readback_root": str(out.resolve()), "files_verified": len(actual), "gpu_called": False}
+        "collected_at": datetime.now(timezone.utc).isoformat(), "gpu_called": False, "remote_compute_started": False})
+    return {"readback_root": str(out.resolve()), "files_verified": len(actual), "gpu_called": False,
+            "remote_compute_started": False, "downloaded_bytes": downloaded_bytes,
+            "verified_bytes": sum(v['bytes_read'] for v in actual.values())}
 
 
 def prepare(parent_bundle, receipt, readback_root, out, *, receipt_sha, app_name=r7.APP_NAME):

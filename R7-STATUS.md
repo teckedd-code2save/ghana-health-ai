@@ -5,8 +5,20 @@
 18 November 2026: read-only reconciliation of the existing Modal call confirms
 R7 training completed with 2,413 updates, 38,607 view exposures and 1,849,881
 effective target tokens. Terminal evidence is saved as
-`tmp/r7-20261117/train-v1.receipt.result.json`; no matched R7 evaluation or
-independent final adapter-byte readback has yet been completed in this pass.
+`tmp/r7-20261117/train-v1.receipt.result.json`. Matched R7 evaluation remains
+pending; training completion is not evidence of improved quality.
+
+Independent adapter-byte readback is now complete: 16 evidence/adapter files,
+373,855,185 bytes, downloaded through the read-only Volume API and SHA-256
+verified locally. No remote compute was started. R7 final adapter SHA256 is
+`f6e6b484ca404146016eefabd170738e66791880775238e435e31577300e57a7`.
+Artifacts: `tmp/r7-20261118-local-export/`. Offline R6/R7/base inference bundle:
+`tmp/r7-20261118-local-bundle/`, manifest
+`9162b42765a5d2f93b4d1f642495093e753570bb16b023fac78354a42475c614`.
+This bundle is not deployed and has produced no new model replies.
+Final full recovery state (520,958,547 bytes) is also downloaded and matches
+`2fb8e9310d2c889316ae6a066efb9d18b863edd305d13a1115db1cfbb0221a23`;
+see `tmp/r7-20261118-local-export/recovery-readback.json`.
 
 The user reported a billing problem. The authorized US$0 monthly out-of-pocket
 Modal spend limit is saved and verified. No new paid jobs, automatic resumes or
@@ -16,9 +28,12 @@ Storage continues to accrue charges; no stored data was deleted. Follow
 as history, not current authorization to launch. This override is also in the
 Hermes handoff. Current workspace inspection reported no active app containers.
 
+Read-only storage inventory and a proposed item-level cleanup are saved privately
+in `tmp/modal-storage-audit-20261118/REVIEW.md`. No corpus, trained weight,
+checkpoint or cache was deleted. Account billing details are not published here.
+
 Updated 18 November 2026. Issue #61. Branch `codex/61-r7-data-training`, stacked
-on corrected R6 commit `587e375`. R7 training is submitted on Modal; no completed
-R7 model or R7 evaluation result is claimed yet.
+on corrected R6 commit `587e375`. Earlier submission notes below are historical.
 
 ## Goal
 
@@ -35,9 +50,9 @@ pinned AfriqueQwen 9B base and continues R6; more data does not add parameters.
 | B. Broader evaluation freeze | Behavior pack frozen; all 117 R6 outputs collected and agent-assessed | Eight bilingual source scenarios, 112 derived views, five separate observed regressions; public-task and tool comparisons being prepared |
 | C. Data expansion and correction | Selected admissions sealed; deferred sources remain explicit | 12,067 original bilingual pairs; 129 executed English tool histories; 7,921 replay records; all selected response findings reviewed |
 | D. Encoding and leakage checks | Complete for pack-v1 | 38,607 views native-reencoded; inherited, behavior, tool-dev and 2,004 exact public-benchmark protections; 855 exact duplicate views removed |
-| E. Training and recovery smoke | Smoke passed; full training submitted detached | Real R6 backward and bitwise recovery passed; call `fc-01M7P3443CKHMZGBK47M0V2CCG` |
-| F. Matched R6/R7 evaluations | Pending E | Raw outputs, per-category gains/losses, uncertainty, failure examples |
-| G. Local comparison and handoff | Pending F | Inspectable calls/results, checkpoint identity, durable Modal backup |
+| E. Training and recovery smoke | Completed; final adapter downloaded and verified | 2,413 updates; all 38,607 scheduled views; exact SHA above |
+| F. Matched R6/R7 evaluations | Pending; paid work held | No new R7 scores or improvement claim; authorized compute route needed |
+| G. Local comparison and handoff | Offline identity bundle ready; inference pending F | R6/R7 weights saved locally; no paid service launched |
 
 ## Data Policy
 

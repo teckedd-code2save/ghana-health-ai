@@ -48,6 +48,10 @@ AGENTS.md makes this a required operating procedure for every agent.
 - Do not duplicate terabyte caches into a second paid backup to save storage.
   Preserve essential private artifacts in verified off-provider storage before
   removing their last provider copy. Use content-addressed/incremental backups.
+- Prefer read-only Volume metadata and direct file downloads for inventories and
+  model exports. Hash locally rather than launching a paid container solely to
+  checksum artifacts. Check the remaining egress allowance first. A folder named
+  "cache" can contain original datasets; it is not blanket deletion permission.
 - Present exact deletion candidates, expected savings and dependencies for user
   approval. Never delete datasets, reviews, adapters or recovery checkpoints
   based solely on age or a file-name pattern.
