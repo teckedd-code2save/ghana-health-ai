@@ -58,10 +58,19 @@ are supervised. English tool competence does not establish Twi tool competence.
   not a placeholder clearance flag.
 - Each original row receives an admission, exclusion or review-needed decision.
 
-Alignment contains 369,545 one-pass target tokens. Controlled follow-ups add
-197,002 and tool views add 15,168. These are available target-token counts,
-not evidence of completed training. The final mixture and actual consumption
-will be reported by the sealed training package and Modal run receipts.
+Before combined assembly, alignment contains 369,545 one-pass target tokens;
+controlled follow-ups add 197,002 and tool views add 15,168. These are component
+counts, not additional independent sources or completed training.
+
+The sealed `pack-v1` combines 36,966 source records into 39,462 full-history
+prefix/text views, removes 855 exact within-collection duplicates and retains
+**38,607 views / 1,849,881 effective target tokens**. Its one-pass schedule contains
+2,413 optimizer updates. Direct response targets contribute 735,911 tokens;
+meaning/alignment 603,289; English retention 466,685; language 31,856; and executed
+tools 12,140. Native encoding and the inherited/fresh/public-task holdout checks
+passed. These are planned exposures until a completed consumption receipt exists.
+The protected public set preserves the exact 2,004 corrected-R6 benchmark cases;
+foundation-model exposure remains unknown.
 
 ## Limits and Evaluation
 

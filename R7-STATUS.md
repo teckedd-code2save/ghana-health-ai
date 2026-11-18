@@ -16,9 +16,9 @@ pinned AfriqueQwen 9B base and continues R6; more data does not add parameters.
 | --- | --- | --- |
 | A. Source inventory and provenance | Full selected-source scan produced; review in progress | Original OASST, AfriHealth, parallel references and R5/R6 audit with immutable source hashes |
 | B. Broader evaluation freeze | Behavior pack frozen; all 117 R6 outputs collected and agent-assessed | Eight bilingual source scenarios, 112 derived views, five separate observed regressions; public-task and tool comparisons being prepared |
-| C. Data expansion and correction | All selected response findings reviewed; final replay integration in progress | 12,067 original bilingual pairs; 129 executed English tool histories; all-997 response scan, inherited replay recovery; failed Twi teacher output excluded |
-| D. Encoding and leakage checks | In progress, infrastructure | Native tool/text encoding tests; real overlap scan; measured token mixture |
-| E. Training and recovery smoke | Pending C/D | Verified R6 initialization, backward/resume smoke, detached Modal receipt |
+| C. Data expansion and correction | Selected admissions sealed; deferred sources remain explicit | 12,067 original bilingual pairs; 129 executed English tool histories; 7,921 replay records; all selected response findings reviewed |
+| D. Encoding and leakage checks | Complete for pack-v1 | 38,607 views native-reencoded; inherited, behavior, tool-dev and 2,004 exact public-benchmark protections; 855 exact duplicate views removed |
+| E. Training and recovery smoke | Smoke package prepared; new GPU submissions held for credit clarification | Pinned R6 initialization, real backward/resume proof, then detached training |
 | F. Matched R6/R7 evaluations | Pending E | Raw outputs, per-category gains/losses, uncertainty, failure examples |
 | G. Local comparison and handoff | Pending F | Inspectable calls/results, checkpoint identity, durable Modal backup |
 
@@ -133,13 +133,12 @@ suite adds fresh chats, fixed-history corrections and independent follow-ups,
 with category membership, distinctness and changed-constraint checks reported
 separately. New phrasing alone does not create an independent source group.
 
-Infrastructure verification: the previous integrated suite passed 297 tests.
-A subsequent run during UI construction found two unfinished-UI test errors and
-one temporary-path test error; it is not recorded as a passing run. The path test
-is corrected and its focused suite passes. An independent preflight found no
-blocking assembler/tool-mask defect: 5,160 native views and 129 reconstructed
-tool histories passed, with 34 focused tests. The assembled final pack still
-requires complete verification before launching training.
+Infrastructure verification: **380 tests passed** in the latest integrated R7
+suite. Earlier interim UI/path test failures were corrected; old failed runs are
+not counted as passes. An independent preflight found no blocking assembler/tool
+mask defect: 5,160 native views and 129 reconstructed tool histories passed.
+All 7,921 replay records were separately native-reencoded. The assembled final
+pack still requires complete verification before launching training.
 This does not claim that teacher output or a new model passed semantic evaluation.
 
 ## Selected-Source Audit
@@ -197,6 +196,16 @@ Final replay admission integrates these decisions separately. No whole-translati
 native or clinical certification is claimed. Useful prior R5 responses retain
 their original reviews and provenance.
 
+Replay v2 is now sealed at `replay-admission-v2/`, manifest
+`c923b3c777819a9691298ccedf52a5da7941a85d5db7ed3291b450395bbd6f0b`.
+It admits 7,921 full records: 1,501 response histories (633 R5 + 868 R6), 3,758
+meaning records, 1,475 English-retention records and 1,187 language texts.
+Of the 9,398 prior records examined, the remainder comprises 183 protected,
+1,215 exact duplicates, six genuine-issue holds, 61 record-concern holds and 12
+native-boundary failures. The two exact-deletion histories are included with
+their inherited research tier. These counts precede combined prefix expansion,
+cross-source deduplication and the additional public-benchmark protections.
+
 Controlled follow-up augmentation is now sealed at
 `tmp/r7-20261117/alignment-followups-v2/`: **4,782 exercises across 2,391 paired
 source groups**, with 1,594 examples of each of three forms: a new request,
@@ -209,6 +218,32 @@ source reference is supervised. Transfer to free-form Twi correction handling
 will be measured against R6, not assumed.
 V2 additionally binds transformation-code and pinned tokenizer hashes; v1 remains
 unchanged for audit.
+
+## Sealed Training Package
+
+Path: `tmp/r7-20261117/pack-v1/`.
+Manifest: `999d53cdbc79f4d0268edf4e2f9ec270756155f3341c81069deec82ad8243d53`.
+36,966 admitted input records produce 39,462 candidate assistant-prefix/text
+views. After 855 exact within-collection tokenized duplicates are removed,
+38,607 remain. No additional source/content holdout matches were found by the
+declared checks; this does not claim unknown foundation training was clean.
+17,856 distinct `source_id` values are present, not 38,607 independent sources
+or conversations. The one-pass schedule has 2,413 optimizer updates, 6,178,465
+input tokens and 1,849,881 effective target tokens, with no truncation.
+
+| Training collection | Views | Effective target tokens | Token share |
+| --- | ---: | ---: | ---: |
+| Meaning and original alignment | 31,902 | 603,289 | 32.61% |
+| Direct responses | 2,644 | 735,911 | 39.78% |
+| English retention | 2,554 | 466,685 | 25.23% |
+| Language replay | 1,187 | 31,856 | 1.72% |
+| Executed English tools | 320 | 12,140 | 0.66% |
+
+The source-backed expansion is largest in alignment. Controlled follow-ups are
+translation exercises, not natural dialogue. New medical-source expansion and
+bulk generated Twi conversations remain deferred; R7 does not silently include
+failed teacher output. Full native verification succeeded before the package
+was atomically published. GPU training has not started at this checkpoint.
 
 ## Frozen Behavior Evaluation
 
@@ -260,8 +295,25 @@ Each archive is named by its SHA256 and verified by reading it back from Modal.
 Local receipts are in `tmp/r7-20261117/backups/`. The backup contains work in
 progress, not an admitted training release. Existing R6 evidence is untouched.
 
-Resume from final replay integration, assemble and verify the complete R7 pack,
+Latest completed backup: `1ba6aab9f10d275e6587804b6305fd27f7c6e7567af5ad05b62a34b1f1953544.tar.gz`,
+378,014,184 bytes / 372 files, remote read-back verified. It predates final pack
+assembly; a later snapshot must include that release and its training receipts.
+Data preparation code is committed as `e1d7c0f`; the training/tool contracts are
+in `82e2513`. UI/evaluation extensions remain in progress on the same branch.
+
+Resume from the active complete-pack assembly and verification,
 then run the real-weight backward/resume smoke and detached training. The R6
 baseline is complete. R7/R6 UI and matched public/tool comparisons are being
 prepared separately without altering the current R6 workbench. No R7 training
 is running yet.
+
+## Credit Checkpoint
+
+The user reported running low on credits before GPU submission. Clarification is
+pending: Codex or Modal credits. No R7 smoke/training GPU call was submitted.
+The complete CPU-verified smoke package is `tmp/r7-20261117/execution-smoke-v1/`,
+execution SHA256 `d5bdc11126ffab4261e89cee4283f95b5c0e7810a858949c050fd35d80fd920d`.
+Once Modal spending is confirmed, launch this package once with a new receipt;
+do not rebuild the data. The next stages are real backward/resume smoke, full
+training, matched R6 comparisons and the local R7/R6 UI. Supplementary public
+source-group metadata audit remains to be collected from the benchmark worker.
