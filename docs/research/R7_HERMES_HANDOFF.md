@@ -1,5 +1,30 @@
 # R7: Hermes Continuation Handoff
 
+## Latest Handoff: 21 November 2026
+
+The no-paid-work restriction still applies. All 49 approved Ghana Health AI and
+akan-speech Modal deployments have now been stopped and verified; unrelated
+deployments were not changed. Private receipt: `tmp/cost-hold-20261121/app-shutdown.json`.
+Do not reactivate old endpoint or demo commands. Storage still needs separate
+attention; a new exact cache-only proposal is pending, not deletion permission.
+
+Priority: finish **private R6 and R7 weight backups on HF** using
+[R6_R7_HF_BACKUPS.md](R6_R7_HF_BACKUPS.md). Packages are locally verified at
+`/Users/welcome/Documents/Research-Exports/ghana-health-ai/hf-backups-20261121-v2/`.
+The owner is signing in locally; no HF write credential was available at the last
+check. Do not claim uploads succeeded until both exact revisions and readback
+receipts exist. Both original adapters and R7 recovery remain in the existing
+private archive and on Modal. Do not upload private corpus/billing archives.
+
+The owner confirmed unmetered internet. The exact public base download resumed
+using HTTP fallback after Xet stalled. Inspect the active downloader and partial
+file before resuming; never duplicate it or substitute a different base. Actual
+local model loading and R7/R6 comparison remain pending. No R7 gain is claimed.
+The durable local downloader has `download-base-status.json` and
+`download-base-20261121.log` beside the private archive. It performs one bounded
+public download and verifies the full weight hash; it cannot launch cloud compute.
+Inspect the recorded PID/status before starting another download.
+
 ## Superseding Cost Restriction: 18 November 2026
 
 Read `docs/research/COST_CONTROL.md` before the earlier continuation instructions.

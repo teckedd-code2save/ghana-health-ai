@@ -81,6 +81,23 @@ budget. Reducing stored bytes is a separate, approved cleanup task.
 
 ## Provider References
 
+### 21 November Operational Update
+
+- Stopped and readback-verified all 49 approved Ghana Health AI and akan-speech
+  deployed apps. No unrelated app or data volume was removed. Private receipt:
+  `tmp/cost-hold-20261121/app-shutdown.json`.
+- Fresh storage inventory and a further cache-only proposal are retained in
+  `tmp/modal-storage-audit-20261121/`. The proposal is not approved for deletion.
+  Corpus, owner-trained models and R7 recovery are explicitly protected.
+- No new paid compute or API work was launched. The owner confirmed unmetered
+  local internet for the pinned public base download.
+- HF R6/R7 private backup preparation is complete; upload is pending local write
+  authentication. No plan upgrade or paid private storage is authorized. Stop
+  on quota rejection; see [backup procedure](R6_R7_HF_BACKUPS.md).
+- Browser access failed during this audit, so the billing UI/spend-limit setting
+  was not reverified on 21 November. Its last verified setting remains 18 November.
+  CLI app/storage readback is separate evidence, not a billing-page readback.
+
 - [Modal billing and incremental charges](https://modal.com/docs/guide/billing)
 - [Usage budgets versus net spend limits](https://modal.com/docs/guide/budgets)
 - [Current compute and storage rates](https://modal.com/pricing)

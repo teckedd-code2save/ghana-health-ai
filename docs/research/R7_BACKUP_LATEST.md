@@ -1,5 +1,11 @@
 # Verified R7 Resume Locations
 
+21 November addition: R6/R7 HF packages with actual weights are locally prepared
+and verified, but upload is awaiting local write-capable HF authentication.
+Read [R6_R7_HF_BACKUPS.md](R6_R7_HF_BACKUPS.md) for exact package identities,
+upload/verification steps and recovery boundaries. Keep the existing copies below.
+The approved cloud app shutdown changed no corpus or model volume.
+
 Verified 18 November 2026 UTC. Modal volume: `ghana-health-understand-train`.
 
 Full data/code snapshot (607,656,162 bytes, SHA256 is the filename):

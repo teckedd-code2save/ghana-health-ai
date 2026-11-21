@@ -1,9 +1,10 @@
 # R7 Local Testing on Apple Silicon
 
-18 November 2026. Prepared, **not yet inference-verified**. The slow download was
-paused with partial files retained, pending confirmation of an unmetered
-connection. No download or inference job remains running from this pass. No Modal job, hosted
-inference endpoint, API fallback or public upload is needed for this route.
+21 November 2026. Prepared, **not yet inference-verified**. The owner confirmed
+unmetered internet and the pinned base download resumed. HTTP fallback is being
+used after Xet stalled; transfer is slow and partial files are retained. Inspect
+the downloader before starting another. No Modal job, hosted inference endpoint,
+API fallback or public upload is needed for this route.
 
 ## Current State
 
@@ -33,6 +34,11 @@ R7 and R6 must use this same converted base and identical local controls.
   and per-module check receipts in `manifest.json`.
 - Download destination: `afrique-base-bf16/` under the durable root. Keep its
   `.cache/huggingface/download/` contents so the client can reuse partial data.
+- Current one-shot downloader: `download-base-20261121.py` under the durable
+  root, with `download-base-status.json` and `download-base-20261121.log`. It
+  has a single-run lock, a 24-hour bound and final weight SHA256 verification.
+  It does not auto-start model conversion or inference. Check its recorded PID
+  and status before issuing the manual resume command below.
 - Frozen tokenizer bundle: `tmp/r7-20261118-local-bundle/` in the worktree.
 - Original adapters/recovery: `tmp/r7-20261118-local-export/` in the worktree.
 
@@ -56,7 +62,7 @@ Resume the public pinned files (the original download used the existing Conda
 HF client; keep that client for partial-cache compatibility):
 
 ```bash
-/Users/welcome/miniconda3/bin/python -c 'from huggingface_hub import snapshot_download; print(snapshot_download("McGill-NLP/AfriqueQwen3.5-9B-50Langs-Instruct-v1", revision="693f12e444a30971ca53889128d7bade9491ecb3", local_dir="/Users/welcome/Documents/Research-Exports/ghana-health-ai/afrique-base-bf16", allow_patterns=["*.json", "*.jinja", "model.safetensors"], max_workers=2, token=False))'
+HF_HUB_DISABLE_XET=1 HF_HUB_DISABLE_TELEMETRY=1 /Users/welcome/miniconda3/bin/python -c 'from huggingface_hub import snapshot_download; print(snapshot_download("McGill-NLP/AfriqueQwen3.5-9B-50Langs-Instruct-v1", revision="693f12e444a30971ca53889128d7bade9491ecb3", local_dir="/Users/welcome/Documents/Research-Exports/ghana-health-ai/afrique-base-bf16", allow_patterns=["*.json", "*.jinja", "model.safetensors"], max_workers=1, token=False))'
 ```
 
 Only after the download completes, convert locally. The script verifies frozen
