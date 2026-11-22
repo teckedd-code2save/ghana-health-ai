@@ -1,20 +1,24 @@
 # R7 Execution Record
 
-## Latest Preservation Update: 21 November 2026
+## Latest Preservation Update: 22 November 2026
 
 - All 49 deployed `ghana-*` and `akan-speech-*` Modal apps were stopped with
   owner approval and readback verified. Unrelated deployments were left alone.
   This prevents those endpoints waking workers; it does not remove stored data.
 - R6 and R7 HF backup packages now contain actual trained adapter weights,
   frozen assets and model cards. R7 also includes its final full recovery state.
-  Local checks passed. **HF upload remains pending local write authentication**;
+  Local checks passed. **R6 is uploaded and all nine files passed full HF
+  download/hash verification. R7's upload was interrupted and remains incomplete**;
   see [backup instructions and exact identities](docs/research/R6_R7_HF_BACKUPS.md).
-- The pinned base download resumed after the owner confirmed unmetered internet.
-  It remains incomplete; no local R7 quality result or ready demo is claimed.
-- No further caches, corpus or checkpoints were deleted. A new cache-only
-  proposal is awaiting approval. No new paid compute or API call was launched.
-  Private shutdown and storage receipts are saved in `tmp/cost-hold-20261121/`
-  and `tmp/modal-storage-audit-20261121/`.
+- The pinned base download resumed after the owner confirmed unmetered internet,
+  then stopped during the interruption. Its partial files remain intact; no
+  downloader is currently active. No local R7 quality result or ready demo is claimed.
+- The owner approved the exact 20 additional public-cache directories; cleanup
+  completed with 539.476 GiB removed and all 19 other volumes plus retained cache
+  metadata verified unchanged. No corpus, trained checkpoints or recovery files
+  were deleted. No further deletion is authorized, and no paid compute/model API
+  work was launched. Private receipts are in `tmp/cost-hold-20261121/` and
+  `tmp/modal-storage-audit-20261121/`.
 
 ## Current Override: Training Complete, Paid Work Held
 

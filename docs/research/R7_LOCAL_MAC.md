@@ -1,9 +1,10 @@
 # R7 Local Testing on Apple Silicon
 
-21 November 2026. Prepared, **not yet inference-verified**. The owner confirmed
-unmetered internet and the pinned base download resumed. HTTP fallback is being
-used after Xet stalled; transfer is slow and partial files are retained. Inspect
-the downloader before starting another. No Modal job, hosted inference endpoint,
+22 November 2026. Prepared, **not yet inference-verified**. The owner confirmed
+unmetered internet and the pinned base download resumed, then stopped during the
+interruption at 23:09 UTC on 21 November. No downloader is currently active;
+partial files are retained. Check the status before an authorized resume, using
+HTTP fallback after Xet stalled. No Modal job, hosted inference endpoint,
 API fallback or public upload is needed for this route.
 
 ## Current State

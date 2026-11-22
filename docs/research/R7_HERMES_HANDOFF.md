@@ -1,24 +1,31 @@
 # R7: Hermes Continuation Handoff
 
-## Latest Handoff: 21 November 2026
+## Latest Handoff: 22 November 2026
 
 The no-paid-work restriction still applies. All 49 approved Ghana Health AI and
 akan-speech Modal deployments have now been stopped and verified; unrelated
 deployments were not changed. Private receipt: `tmp/cost-hold-20261121/app-shutdown.json`.
-Do not reactivate old endpoint or demo commands. Storage still needs separate
-attention; a new exact cache-only proposal is pending, not deletion permission.
+Do not reactivate old endpoint or demo commands. The owner subsequently approved
+the exact 20-cache proposal; it completed with 539.476 GiB removed. All 19 other
+volumes and retained cache metadata, including the exact base, matched before/after.
+Private receipt: `tmp/modal-storage-audit-20261121/cleanup-receipt.json`. No further
+deletion is authorized. The logical inventory is below the documented free storage
+allowance, but provider billing and deletion lag are separate.
 
-Priority: finish **private R6 and R7 weight backups on HF** using
+Priority: finish the **private R7 weight backup on HF** using
 [R6_R7_HF_BACKUPS.md](R6_R7_HF_BACKUPS.md). Packages are locally verified at
 `/Users/welcome/Documents/Research-Exports/ghana-health-ai/hf-backups-20261121-v2/`.
-The owner is signing in locally; no HF write credential was available at the last
-check. Do not claim uploads succeeded until both exact revisions and readback
-receipts exist. Both original adapters and R7 recovery remain in the existing
+The saved HF login works. R6 is uploaded at `bb5d0466e753d0f02c6633042172abe48339438a`
+and its separate full nine-file download/hash check passed. R7's HTTP upload was
+interrupted before a commit; its repo still held only `.gitattributes` when
+checked on 22 November. No uploader remains active. Do not claim R7 uploaded
+or repeat R6's completed upload. Both original adapters and R7 recovery remain in the existing
 private archive and on Modal. Do not upload private corpus/billing archives.
 
 The owner confirmed unmetered internet. The exact public base download resumed
-using HTTP fallback after Xet stalled. Inspect the active downloader and partial
-file before resuming; never duplicate it or substitute a different base. Actual
+using HTTP fallback after Xet stalled, then stopped during the interruption
+at 23:09 UTC on 21 November. No downloader remains active. Inspect the recorded
+status and partial files before an authorized resume; never substitute a different base. Actual
 local model loading and R7/R6 comparison remain pending. No R7 gain is claimed.
 The durable local downloader has `download-base-status.json` and
 `download-base-20261121.log` beside the private archive. It performs one bounded
@@ -278,11 +285,12 @@ files, remote readback verified**. It predates the completed smoke/training
 receipt and this final handoff; use the accompanying Hermes supplement for
 those. Earlier archives are preserved, not the latest state.
 
-Run `MODAL_PROFILE=createdliving1000 /Users/welcome/miniconda3/bin/python
-scripts/backup_r7_progress.py --upload` after updating this handoff and receipts.
-It includes this document and private JSON evidence, excludes disposable Python
-environments, and verifies remote bytes. Full executable training packages also
-live with their run on Modal once worker startup reaches artifact persistence.
+The historical paid-workflow command was `scripts/backup_r7_progress.py --upload`.
+Do NOT run it under the current cost hold: no further cloud storage additions
+are authorized. Save the updated private handoff and receipts outside the
+worktree under `/Users/welcome/Documents/Research-Exports/ghana-health-ai` instead.
+The already-existing frozen training package remains on Modal and in the local
+offline recovery archive; neither needs another upload to continue locally.
 Push code/docs to the research branch, never directly to main. Do not touch the
 original dirty tree, frozen datasets or old model/evaluation evidence.
 
@@ -290,13 +298,14 @@ original dirty tree, frozen datasets or old model/evaluation evidence.
 
 Continue R7 from docs/research/R7_HERMES_HANDOFF.md in
 /Users/welcome/.codex/worktrees/r4-train/ghana-health-ai on
-codex/61-r7-data-training. First reconcile the existing smoke, tool-evaluation
-and training receipts against Modal; never duplicate jobs. The data pack is
-sealed and fully checked, smoke passed, and full training is already submitted
-as fc-01M7P3443CKHMZGBK47M0V2CCG. Monitor it, verify consumption, run matched R6/R7 behavior,
-public and executed-tool evaluations, and serve R7 first against R6 in the local
-UI. Preserve independent histories and equal guard settings. Keep R6's existing
-UI and production unchanged. Continue on Modal, no OpenAI calls. Record honest
-results and exact job/artifact identities, update the execution map, push the
-research branch and verify a private Modal handoff backup. Do not restart data
-research or stop after each batch. Latest status/receipts supersede this snapshot.
+codex/61-r7-data-training. No paid work is authorized. R7 training already
+completed; do not relaunch it or reactivate stopped cloud endpoints. Inspect the
+latest R6/R7 HF upload/restore receipts before retrying any backup. Protect all
+corpus, model and recovery files; both approved cache cleanups are completed
+and no further deletion is authorized. Inspect the running local base download
+before starting another. After its full hash check, follow R7_LOCAL_MAC.md for
+local conversion, real model loading, smoke checks and R7-first/R6-second
+comparison. Preserve independent histories and equal guard settings. Record
+quantized-local results separately from BF16 benchmarks; no R7 quality gain is
+yet verified. Update the execution map and private local handoff, and push only
+code/docs to the research branch. Do not upload private corpus/billing archives.

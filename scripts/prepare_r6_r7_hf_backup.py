@@ -277,6 +277,45 @@ def verify_remote(folder, receipt, revision, api=None):
     print(json.dumps({"repo": repo, "revision": revision, "verified_files": len(checked)}), flush=True)
 
 
+def restore_check(folder, output, receipt, revision, resume=False):
+    from huggingface_hub import HfApi, snapshot_download
+    import re
+
+    require(not receipt.exists(), "Use a new receipt path")
+    require(resume or not output.exists(), "Use a new restore path or --resume")
+    require(re.fullmatch(r"[a-f0-9]{40}", revision), "Restore needs an exact HF commit")
+    manifest = verify_package(folder)
+    repo = "teckedd/gha-twi-understanding-" + manifest["variant"]
+    binding = {"repo": repo, "revision": revision, "package_sha256": sha(folder / "CHECKSUMS.json")}
+    if resume:
+        require(json.loads((output / "restore-request.json").read_text()) == binding,
+                "Restore request changed; cannot resume")
+    info = HfApi().model_info(repo, revision=revision)
+    require(info.private is True and info.sha == revision, "Private committed checkpoint not verified")
+    expected = {**manifest["files"], "CHECKSUMS.json": {
+        "bytes": (folder / "CHECKSUMS.json").stat().st_size, "sha256": sha(folder / "CHECKSUMS.json")}}
+    # A fresh local cache verifies restoration through HF rather than reusing the source package.
+    output.mkdir(parents=True, mode=0o700, exist_ok=resume)
+    if not resume:
+        write(output / "restore-request.json", binding)
+    snapshot = Path(snapshot_download(repo, revision=revision, cache_dir=output,
+                                     allow_patterns=list(expected), token=True, max_workers=1))
+    checked = {}
+    for name, proof in expected.items():
+        path = (snapshot / name).resolve()
+        require(path.is_relative_to(output.resolve()), "Escaping restored path")
+        require(path.stat().st_size == proof["bytes"] and sha(path) == proof["sha256"],
+                "Restored file mismatch: " + name)
+        checked[name] = proof
+    receipt.parent.mkdir(parents=True, exist_ok=True)
+    write(receipt, {"repo": repo, "revision": revision, "private": True,
+                    "snapshot": str(snapshot), "files": checked, "resumed": resume,
+                    "full_checkpoint_download_and_hash_verified": True,
+                    "restore_inference_test": False, "training_resume_test": False,
+                    "cloud_compute_launched": False})
+    print(json.dumps({"restored": repo, "revision": revision, "verified_files": len(checked)}), flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -291,13 +330,21 @@ def main():
     check.add_argument("--folder", type=Path, required=True)
     check.add_argument("--receipt", type=Path, required=True)
     check.add_argument("--revision", required=True)
+    restore = commands.add_parser("restore-check")
+    restore.add_argument("--folder", type=Path, required=True)
+    restore.add_argument("--out", type=Path, required=True)
+    restore.add_argument("--receipt", type=Path, required=True)
+    restore.add_argument("--revision", required=True)
+    restore.add_argument("--resume", action="store_true")
     args = parser.parse_args()
     if args.command == "prepare":
         prepare(args.export, args.bundle, args.out)
     elif args.command == "upload":
         upload(args.folder, args.receipt)
-    else:
+    elif args.command == "verify":
         verify_remote(args.folder, args.receipt, args.revision)
+    else:
+        restore_check(args.folder, args.out, args.receipt, args.revision, args.resume)
 
 
 if __name__ == "__main__":

@@ -79,30 +79,38 @@ stops workloads. A zero spend limit does not clear existing charges or provide
 a zero-total-bill guarantee. Its default allowance must not be treated as a user
 budget. Reducing stored bytes is a separate, approved cleanup task.
 
-## Provider References
-
-### 21 November Operational Update
+## 21 November Operational Update
 
 - Stopped and readback-verified all 49 approved Ghana Health AI and akan-speech
   deployed apps. No unrelated app or data volume was removed. Private receipt:
   `tmp/cost-hold-20261121/app-shutdown.json`.
-- Fresh storage inventory and a further cache-only proposal are retained in
-  `tmp/modal-storage-audit-20261121/`. The proposal is not approved for deletion.
-  Corpus, owner-trained models and R7 recovery are explicitly protected.
+- The subsequently approved 20-path cleanup completed: 539.476 GiB removed.
+  All 19 other volumes and every retained cache entry matched their before/after
+  metadata, including the exact R6/R7 foundation. Corpus, owner-trained models
+  and every recovery checkpoint remain protected. Private receipt and evidence:
+  `tmp/modal-storage-audit-20261121/cleanup-receipt.json` and `CLEANUP-COMPLETED.md`.
+  No further deletion is authorized.
+- Remaining logical inventory is below the documented free storage allowance;
+  account-specific totals and headroom remain in the private receipt. This is not
+  a billing readback or an immediate zero-total-bill guarantee; existing charges
+  and deletion lag still apply. Recheck headroom before adding any stored data.
 - No new paid compute or API work was launched. The owner confirmed unmetered
   local internet for the pinned public base download.
-- HF R6/R7 private backup preparation is complete; upload is pending local write
-  authentication. No plan upgrade or paid private storage is authorized. Stop
+- HF R6/R7 private packages are prepared; local login is working. R6's upload and
+  full byte-restoration check passed. R7's transfer was interrupted and remains
+  incomplete, verified on 22 November. No plan upgrade or paid storage is authorized. Stop
   on quota rejection; see [backup procedure](R6_R7_HF_BACKUPS.md).
 - Browser access failed during this audit, so the billing UI/spend-limit setting
   was not reverified on 21 November. Its last verified setting remains 18 November.
   CLI app/storage readback is separate evidence, not a billing-page readback.
+
+## Provider References
 
 - [Modal billing and incremental charges](https://modal.com/docs/guide/billing)
 - [Usage budgets versus net spend limits](https://modal.com/docs/guide/budgets)
 - [Current compute and storage rates](https://modal.com/pricing)
 - [Volume billing and deletion lag](https://modal.com/docs/guide/volumes#pricing)
 
-Rates were checked on 18 November 2026; verify them again for future estimates.
+Storage rates were rechecked on 21 November 2026; verify again for future estimates.
 Modal documents daily storage snapshots and possible billing for up to four
 days after deletion. Cleanup does not retrospectively cancel incurred charges.

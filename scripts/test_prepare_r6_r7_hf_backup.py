@@ -3,11 +3,59 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
-from prepare_r6_r7_hf_backup import BASE_SHA, MODEL, REVISION, sha, upload, verify_package
+from prepare_r6_r7_hf_backup import BASE_SHA, MODEL, REVISION, restore_check, sha, upload, verify_package
 from check_afrique_training_contract import ASSET_HASHES
 
 
 class BackupBoundary(unittest.TestCase):
+    def test_restored_bytes_must_match_before_receipt_is_written(self):
+        for corrupt in (False, True):
+            with self.subTest(corrupt=corrupt), tempfile.TemporaryDirectory() as d:
+                root = Path(d)
+                source = root / "source"
+                source.mkdir()
+                (source / "CHECKSUMS.json").write_text("{}")
+                (source / "adapter_model.safetensors").write_text("weights")
+                manifest = {"variant": "r6", "files": {"adapter_model.safetensors": {
+                    "bytes": 7, "sha256": sha(source / "adapter_model.safetensors")}}}
+                api = Mock()
+                api.model_info.return_value.private = True
+                api.model_info.return_value.sha = "a" * 40
+
+                def download(*args, cache_dir, **kwargs):
+                    snapshot = cache_dir / "snapshot"
+                    snapshot.mkdir()
+                    (snapshot / "CHECKSUMS.json").write_text("{}")
+                    (snapshot / "adapter_model.safetensors").write_text("changed" if corrupt else "weights")
+                    return str(snapshot)
+
+                receipt = root / "receipt.json"
+                with patch("prepare_r6_r7_hf_backup.verify_package", return_value=manifest), \
+                        patch("huggingface_hub.HfApi", return_value=api), \
+                        patch("huggingface_hub.snapshot_download", side_effect=download):
+                    if corrupt:
+                        with self.assertRaisesRegex(ValueError, "Restored file mismatch"):
+                            restore_check(source, root / "restore", receipt, "a" * 40)
+                        self.assertFalse(receipt.exists())
+                    else:
+                        restore_check(source, root / "restore", receipt, "a" * 40)
+                        saved = json.loads(receipt.read_text())
+                        self.assertTrue(saved["full_checkpoint_download_and_hash_verified"])
+                        self.assertFalse(saved["restore_inference_test"])
+                        self.assertFalse(saved["training_resume_test"])
+
+    def test_restore_does_not_overwrite_existing_directory(self):
+        with tempfile.TemporaryDirectory() as d, patch("huggingface_hub.HfApi") as api:
+            with self.assertRaisesRegex(ValueError, "new restore path"):
+                restore_check(Path(d), Path(d), Path(d) / "receipt.json", "a" * 40)
+            api.assert_not_called()
+
+    def test_restore_requires_pinned_commit(self):
+        with tempfile.TemporaryDirectory() as d, patch("huggingface_hub.HfApi") as api:
+            with self.assertRaisesRegex(ValueError, "exact HF commit"):
+                restore_check(Path(d), Path(d) / "new", Path(d) / "receipt.json", "main")
+            api.assert_not_called()
+
     def test_upload_refuses_public_repository(self):
         api = Mock()
         api.whoami.return_value = {"name": "teckedd", "isPro": False}

@@ -1,7 +1,7 @@
 # R6 and R7 Checkpoint Backups
 
-Updated 21 November 2026. **Prepared and locally verified; HF uploads pending
-write-capable local authentication.** A model card alone is not a weight backup.
+Updated 22 November 2026. **R6 uploaded and fully byte-restored; R7 upload interrupted.**
+The owner has signed in locally. A model card alone is not a weight backup.
 Do not report a successful upload without a committed revision and verification
 receipt. No paid compute, paid storage upgrade or public dataset upload is authorized.
 
@@ -17,8 +17,14 @@ Durable package root:
 Use its `r6/` and `r7/` directories. Earlier prepared versions remain local;
 this v2 adds explicit benchmark/data tables and stronger identity verification.
 
-Planned private HF repositories: `teckedd/gha-twi-understanding-r6` and
-`teckedd/gha-twi-understanding-r7`. Neither is confirmed uploaded by this record.
+| Private HF repository | Verified commit | Upload state |
+| --- | --- | --- |
+| [R6](https://huggingface.co/teckedd/gha-twi-understanding-r6) | `bb5d0466e753d0f02c6633042172abe48339438a` | All nine package files verified, including trained weights |
+| R7: `teckedd/gha-twi-understanding-r7` | Pending | Upload interrupted; checked on 22 November, still only `.gitattributes`, no weights |
+
+Upload receipts are `hf-r6-upload-20261121.json` and, when completed,
+`hf-r7-upload-20261121.json` under the durable root. Keep these committed-revision
+receipts; do not re-upload an already verified package just to resume other work.
 
 | Artifact | SHA256 |
 | --- | --- |
@@ -34,8 +40,8 @@ its local download is incomplete. Do not stack adapters: load R6 OR R7.
 
 ## Upload and Verify
 
-From the research worktree, after the owner signs in locally with an HF write
-token (never pass a token in chat, command arguments or Git):
+Historical initial upload commands. Inspect the receipts before using them again;
+never pass a token in chat, command arguments or Git:
 
 ```bash
 ROOT=/Users/welcome/Documents/Research-Exports/ghana-health-ai
@@ -57,13 +63,42 @@ before proceeding. Existing source licenses and consent restrictions still apply
 
 After upload it reads the exact committed file inventory. Large files are checked
 against server-reported LFS SHA256 and size; small files are downloaded and hashed.
-The receipt explicitly distinguishes that verification from a full weight
-round-trip download or inference restore, neither of which has been claimed.
+The upload receipt distinguishes that verification from a full weight download
+or an inference restore. R6's separate full download-and-hash check passed for
+all nine files; receipt: `hf-r6-restore-20261121.json`. Model inference and training
+resume have not been tested through HF. R7 has no successful upload/restore receipt.
 
 If upload succeeded but verification was interrupted, use the printed HF commit
 with `verify --folder ... --receipt ... --revision <exact-40-character-commit>`.
 Inspect the remote commit before retrying an upload; do not create blind retries.
 Never overwrite existing receipts. Preserve the exact committed revision for restore.
+
+## Byte-Restoration Check
+
+`restore-check` downloads the exact committed package through HF into a separate
+local cache, then checks every file's size and SHA256 against the original package.
+It writes success only after all bytes match. It does not execute pickle state,
+run model inference or resume training. Use a fresh output path on the first run:
+
+```bash
+HF_HUB_DISABLE_XET=1 "$PY" scripts/prepare_r6_r7_hf_backup.py restore-check \
+  --folder "$ROOT/hf-backups-20261121-v2/r6" \
+  --out "$ROOT/hf-r6-restore-20261121" \
+  --receipt "$ROOT/hf-r6-restore-20261121.json" \
+  --revision bb5d0466e753d0f02c6633042172abe48339438a
+```
+
+For an interrupted download, `--resume` requires the existing request's repository,
+commit and package hash to match exactly. It reuses partial bytes without weakening
+the final checks. R6's initial Xet readback stalled; HTTP fallback resumed it.
+Keep restore receipts distinct from upload receipts and model-quality evaluations.
+
+R7's first Xet upload hit repeated timeouts. It was stopped and the remote head
+checked before retrying through HTTP. That HTTP attempt was interrupted before
+a commit. The repository remained at its empty initial commit
+`483f0596a0d3b090665ac2e4b2cdf95effb3222d` when checked on 22 November.
+No upload process remains active. On an authorized continuation, inspect the
+head again, then resume using `HF_HUB_DISABLE_XET=1`; do not re-upload R6.
 
 ## Recovery Boundaries
 
