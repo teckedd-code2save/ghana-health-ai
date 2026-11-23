@@ -1,6 +1,6 @@
 # R7: Hermes Continuation Handoff
 
-## Latest Handoff: 22 November 2026
+## Latest Handoff: 23 November 2026
 
 The no-paid-work restriction still applies. All 49 approved Ghana Health AI and
 akan-speech Modal deployments have now been stopped and verified; unrelated
@@ -12,20 +12,24 @@ Private receipt: `tmp/modal-storage-audit-20261121/cleanup-receipt.json`. No fur
 deletion is authorized. The logical inventory is below the documented free storage
 allowance, but provider billing and deletion lag are separate.
 
-Priority: finish the **private R7 weight backup on HF** using
+Both trained-weight backups are now private on HF. Follow
 [R6_R7_HF_BACKUPS.md](R6_R7_HF_BACKUPS.md). Packages are locally verified at
 `/Users/welcome/Documents/Research-Exports/ghana-health-ai/hf-backups-20261121-v2/`.
 The saved HF login works. R6 is uploaded at `bb5d0466e753d0f02c6633042172abe48339438a`
-and its separate full nine-file download/hash check passed. R7's HTTP upload was
-interrupted before a commit; its repo still held only `.gitattributes` when
-checked on 22 November. No uploader remains active. Do not claim R7 uploaded
-or repeat R6's completed upload. Both original adapters and R7 recovery remain in the existing
-private archive and on Modal. Do not upload private corpus/billing archives.
+and its separate full nine-file download/hash check passed. R7's full-package
+HTTP retry failed on the large recovery-state file. The new explicit
+`hf-r7-inference-20261123/r7/` package was committed separately at
+`bc5a25dc6772a7503827936c491647a575279495`; all nine remote files passed hash
+verification. A fresh nine-file byte-restoration check passed too, with receipt
+`hf-r7-restore-20261123.json` under the durable root. Do not repeat these
+uploads. Full R7 recovery is still local/on Modal, not on HF. Do not upload the
+combined private corpus/billing archives or retry the failing atomic full package.
 
 The owner confirmed unmetered internet. The exact public base download resumed
-using HTTP fallback after Xet stalled, then stopped during the interruption
-at 23:09 UTC on 21 November. No downloader remains active. Inspect the recorded
-status and partial files before an authorized resume; never substitute a different base. Actual
+using HTTP fallback after Xet stalled. The 22 November retry stopped with a
+connection timeout at 7,529,989,401 / 17,907,663,008 bytes. It resumed at 20:06 UTC
+on 23 November (PID 30096; inspect the live status, never trust an old PID alone).
+Inspect the recorded status and partial files before a resume; never substitute a different base. Actual
 local model loading and R7/R6 comparison remain pending. No R7 gain is claimed.
 The durable local downloader has `download-base-status.json` and
 `download-base-20261121.log` beside the private archive. It performs one bounded

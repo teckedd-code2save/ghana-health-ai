@@ -1,8 +1,11 @@
 # Verified R7 Resume Locations
 
-22 November addition: R6/R7 packages with actual weights are locally verified.
-R6 is uploaded privately and passed a full nine-file download/hash check. R7's
-upload was interrupted; its HF repository still has no weights. Local login works.
+23 November addition: both original trained adapters are now privately on HF.
+R6 commit: `bb5d0466e753d0f02c6633042172abe48339438a`; its separate nine-file
+download/hash check passed. R7 commit: `bc5a25dc6772a7503827936c491647a575279495`;
+remote hashes and the separate nine-file byte-restoration check passed.
+R7's HF package is explicitly inference-only. Full training recovery is retained
+locally and on Modal; uploading it remains pending after repeated timeouts.
 Read [R6_R7_HF_BACKUPS.md](R6_R7_HF_BACKUPS.md) for exact package identities,
 upload/verification steps and recovery boundaries. Keep the existing copies below.
 The approved cloud app shutdown changed no corpus or model volume. The additional

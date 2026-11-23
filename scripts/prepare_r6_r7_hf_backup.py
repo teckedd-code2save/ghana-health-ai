@@ -16,11 +16,11 @@ def write(path, value):
     path.write_text(json.dumps(value, indent=2) + "\n")
 
 
-def prepare(export, bundle, output):
+def prepare(export, bundle, output, r7_inference_only=False):
     from check_afrique_training_contract import ASSET_HASHES
     require(not output.exists(), "Use a new immutable output directory")
     output.mkdir(parents=True, mode=0o700)
-    for version in ("r6", "r7"):
+    for version in (("r7",) if r7_inference_only else ("r6", "r7")):
         relative, weights_sha, config_sha = VARIANTS[version]
         source = export / relative
         require(sha(source / "adapter_model.safetensors") == weights_sha, "Wrong adapter")
@@ -34,7 +34,10 @@ def prepare(export, bundle, output):
             require(sha(bundle / "tokenizer" / name) == checksum, "Changed frozen tokenizer")
             shutil.copyfile(bundle / "tokenizer" / name, destination / "tokenizer" / name)
         recovery = {"included": False, "reason": "R6 optimizer/RNG state is retained on Modal, not in this local export"}
-        if version == "r7":
+        if version == "r7" and r7_inference_only:
+            recovery = {"included": False, "state_sha256": RECOVERY_SHA,
+                        "reason": "Full recovery state remains in local and Modal archives; HF recovery upload pending"}
+        elif version == "r7":
             state = export / R7_RUN / "responses/attempt-226621fo/update-00002413"
             require(sha(state / "state.pt") == RECOVERY_SHA, "Wrong R7 recovery state")
             manifest = json.loads((state / "manifest.json").read_text())
@@ -53,6 +56,7 @@ def prepare(export, bundle, output):
             "adapter_config_sha256": config_sha, "recovery": recovery,
             "standalone_full_model": False, "base_weights_included": False,
             "corpus_included": False, "paid_compute_launched": False,
+            "backup_scope": "inference_only" if r7_inference_only else "original_export",
             "restriction": "Private research backup; not a clinical or commercial certification"})
         data_note = ("R6 continued R5. The registered pack contains 6,290 records and 8,373 views; "
                      "7,902 distinct views were consumed across 9,940 presentations and 622 updates."
@@ -106,6 +110,17 @@ Sources, admissions and remaining gaps:
 [R7 dataset card](https://github.com/teckedd-code2save/ghana-health-ai/blob/a41488f/docs/research/R7_DATASET_CARD.md),
 [execution record](https://github.com/teckedd-code2save/ghana-health-ai/blob/a41488f/R7-STATUS.md).
 """)
+        recovery_note = (
+            "This is an inference-only checkpoint backup. The R7 optimizer, scheduler "
+            "and RNG recovery state is NOT uploaded here. It remains in the original "
+            "local and Modal archives; its HF upload is pending. Restoring this adapter "
+            "does not constitute restoring the full training state."
+            if r7_inference_only else
+            "For R7, `recovery/update-00002413/` includes the adapter/optimizer/scheduler/RNG "
+            "state and committed manifest. Resuming also requires the original frozen code "
+            "and sealed dataset, retained in the private research archive. R6 full optimizer "
+            "state is not included in this export."
+        )
         card = f"""---
 language:
 - tw
@@ -158,10 +173,8 @@ provenance are documented in the project research dataset cards.
    `codex/61-r7-data-training`. Quantized scores are separate from BF16 scores.
 
 `SOURCE_IDENTITY.json` distinguishes inference restoration from training resume.
-For R7, `recovery/update-00002413/` includes the adapter/optimizer/scheduler/RNG
-state and committed manifest. Resuming also requires the original frozen code
-and sealed dataset, retained in the private research archive; it is not a new
-training authorization. R6 full optimizer state is not included in this export.
+{recovery_note}
+This is not a new training authorization.
 Never load arbitrary pickle checkpoints; the R7 state is an owner-created,
 hash-verified artifact. No HF restore inference or training-resume test is claimed
 until separately recorded. Keep the existing local and Modal copies.
@@ -169,7 +182,8 @@ until separately recorded. Keep the existing local and Modal copies.
         (destination / "README.md").write_text(card)
         files = {p.relative_to(destination).as_posix(): {"bytes": p.stat().st_size, "sha256": sha(p)}
                  for p in sorted(destination.rglob("*")) if p.is_file()}
-        write(destination / "CHECKSUMS.json", {"version": 1, "variant": version, "files": files})
+        write(destination / "CHECKSUMS.json", {"version": 1, "variant": version, "files": files,
+              "backup_scope": "inference_only" if r7_inference_only else "original_export"})
         print(json.dumps({"prepared": version, "bytes": sum(f["bytes"] for f in files.values()),
                           "manifest_sha256": sha(destination / "CHECKSUMS.json")}), flush=True)
 
@@ -178,9 +192,12 @@ def verify_package(folder):
     from check_afrique_training_contract import ASSET_HASHES
     manifest = json.loads((folder / "CHECKSUMS.json").read_text())
     require(manifest["variant"] in VARIANTS and manifest["version"] == 1, "Unknown package")
+    scope = manifest.get("backup_scope", "original_export")
+    require(scope in ("original_export", "inference_only"), "Unknown backup scope")
+    require(scope != "inference_only" or manifest["variant"] == "r7", "Unexpected inference-only variant")
     allowed = {"adapter_model.safetensors", "adapter_config.json", "README.md", "SOURCE_IDENTITY.json"}
     allowed.update("tokenizer/" + name for name in ASSET_HASHES)
-    if manifest["variant"] == "r7":
+    if manifest["variant"] == "r7" and scope != "inference_only":
         allowed.update("recovery/update-00002413/" + name for name in ("state.pt", "manifest.json", "COMMITTED.json"))
     require(set(manifest["files"]) == allowed, "Non-checkpoint content is not authorized for upload")
     expected = set(manifest["files"]) | {"CHECKSUMS.json"}
@@ -201,7 +218,11 @@ def verify_package(folder):
             "Changed source identity")
     require(identity["corpus_included"] is False and identity["base_weights_included"] is False,
             "Invalid backup scope")
-    if manifest["variant"] == "r7":
+    require(identity.get("backup_scope", "original_export") == scope, "Conflicting backup scope")
+    if scope == "inference_only":
+        require(identity["recovery"]["included"] is False and
+                identity["recovery"]["state_sha256"] == RECOVERY_SHA, "Invalid inference-only recovery identity")
+    elif manifest["variant"] == "r7":
         recovery = folder / "recovery/update-00002413"
         state = json.loads((recovery / "manifest.json").read_text())
         committed = json.loads((recovery / "COMMITTED.json").read_text())
@@ -323,6 +344,8 @@ def main():
     make.add_argument("--export", type=Path, required=True)
     make.add_argument("--bundle", type=Path, required=True)
     make.add_argument("--out", type=Path, required=True)
+    make.add_argument("--r7-inference-only", action="store_true",
+                      help="Prepare only R7 inference files; keep full recovery in its original archives")
     send = commands.add_parser("upload")
     send.add_argument("--folder", type=Path, required=True)
     send.add_argument("--receipt", type=Path, required=True)
@@ -338,7 +361,7 @@ def main():
     restore.add_argument("--resume", action="store_true")
     args = parser.parse_args()
     if args.command == "prepare":
-        prepare(args.export, args.bundle, args.out)
+        prepare(args.export, args.bundle, args.out, args.r7_inference_only)
     elif args.command == "upload":
         upload(args.folder, args.receipt)
     elif args.command == "verify":
@@ -348,4 +371,12 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    from huggingface_hub.utils import logging as hub_logging
+    # Upload exceptions can contain presigned URLs. Never print their messages or chains.
+    hub_logging.set_verbosity_error()
+    try:
+        main()
+    except Exception as error:
+        print(json.dumps({"status": "failed", "error_type": type(error).__name__,
+                          "detail": "No success claimed. Check private repository state before resuming."}), flush=True)
+        raise SystemExit(1) from None

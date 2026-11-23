@@ -96,9 +96,11 @@ budget. Reducing stored bytes is a separate, approved cleanup task.
   and deletion lag still apply. Recheck headroom before adding any stored data.
 - No new paid compute or API work was launched. The owner confirmed unmetered
   local internet for the pinned public base download.
-- HF R6/R7 private packages are prepared; local login is working. R6's upload and
-  full byte-restoration check passed. R7's transfer was interrupted and remains
-  incomplete, verified on 22 November. No plan upgrade or paid storage is authorized. Stop
+- As of 23 November, both trained adapters are privately on HF with remote hashes
+  verified. Both separate full byte-restoration checks passed. R7's
+  inference-only upload avoids the repeatedly failing full recovery transfer;
+  full training state is still safe locally/on Modal, not on HF.
+  No plan upgrade or paid storage is authorized. Stop
   on quota rejection; see [backup procedure](R6_R7_HF_BACKUPS.md).
 - Browser access failed during this audit, so the billing UI/spend-limit setting
   was not reverified on 21 November. Its last verified setting remains 18 November.

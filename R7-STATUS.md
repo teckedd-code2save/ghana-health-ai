@@ -1,18 +1,24 @@
 # R7 Execution Record
 
-## Latest Preservation Update: 22 November 2026
+## Latest Preservation Update: 23 November 2026
 
 - All 49 deployed `ghana-*` and `akan-speech-*` Modal apps were stopped with
   owner approval and readback verified. Unrelated deployments were left alone.
   This prevents those endpoints waking workers; it does not remove stored data.
 - R6 and R7 HF backup packages now contain actual trained adapter weights,
   frozen assets and model cards. R7 also includes its final full recovery state.
-  Local checks passed. **R6 is uploaded and all nine files passed full HF
-  download/hash verification. R7's upload was interrupted and remains incomplete**;
+  The full R7 recovery upload timed out again on 22 November. An explicit
+  inference-only package unblocked the trained-weight backup on 23 November:
+  **R6 and R7 trained weights are now private on HF with remote hashes verified**.
+  Both passed independent nine-file download-and-SHA256 restoration checks.
+  R7 commit: `bc5a25dc6772a7503827936c491647a575279495`. Its full training state
+  remains local/on Modal, not on HF. The original full packages are untouched;
   see [backup instructions and exact identities](docs/research/R6_R7_HF_BACKUPS.md).
-- The pinned base download resumed after the owner confirmed unmetered internet,
-  then stopped during the interruption. Its partial files remain intact; no
-  downloader is currently active. No local R7 quality result or ready demo is claimed.
+- The pinned base download stopped during the PC shutdown, preserving 6.30 GB
+  of partial data. The 22 November retry stopped with a connection timeout at
+  7,529,989,401 bytes of 17,907,663,008. It resumed at 20:06 UTC on 23 November.
+  Check the durable status file before restarting it. No local R7 quality result
+  or ready demo is claimed.
 - The owner approved the exact 20 additional public-cache directories; cleanup
   completed with 539.476 GiB removed and all 19 other volumes plus retained cache
   metadata verified unchanged. No corpus, trained checkpoints or recovery files

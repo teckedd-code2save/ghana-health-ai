@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
-from prepare_r6_r7_hf_backup import BASE_SHA, MODEL, REVISION, restore_check, sha, upload, verify_package
+from prepare_r6_r7_hf_backup import BASE_SHA, MODEL, REVISION, RECOVERY_SHA, restore_check, sha, upload, verify_package
 from check_afrique_training_contract import ASSET_HASHES
 
 
@@ -136,6 +136,35 @@ class BackupBoundary(unittest.TestCase):
             (p / "CHECKSUMS.json").write_text(json.dumps({"version": 1, "variant": "r7", "files": {"train.jsonl": {}}}))
             with self.assertRaisesRegex(ValueError, "Non-checkpoint content"):
                 verify_package(p)
+
+    def test_inference_scope_is_explicit_and_cannot_hide_missing_recovery(self):
+        with tempfile.TemporaryDirectory() as d:
+            folder = Path(d)
+            files, variant, assets = self.package(folder)
+            identity_path = folder / "SOURCE_IDENTITY.json"
+            identity = json.loads(identity_path.read_text())
+            identity.update(variant="r7", backup_scope="inference_only",
+                            recovery={"included": False, "state_sha256": RECOVERY_SHA})
+            identity_path.write_text(json.dumps(identity))
+            self.remanifest(folder, files)
+            manifest_path = folder / "CHECKSUMS.json"
+            manifest = json.loads(manifest_path.read_text())
+            manifest.update(variant="r7", backup_scope="inference_only")
+            manifest_path.write_text(json.dumps(manifest))
+            with patch.dict("prepare_r6_r7_hf_backup.VARIANTS", {"r7": variant}), patch.dict(ASSET_HASHES, assets):
+                self.assertEqual(verify_package(folder)["backup_scope"], "inference_only")
+                del manifest["backup_scope"]
+                manifest_path.write_text(json.dumps(manifest))
+                with self.assertRaisesRegex(ValueError, "Non-checkpoint content"):
+                    verify_package(folder)
+                manifest["backup_scope"] = "inference_only"
+                identity["recovery"]["included"] = True
+                identity_path.write_text(json.dumps(identity))
+                manifest["files"]["SOURCE_IDENTITY.json"] = {
+                    "bytes": identity_path.stat().st_size, "sha256": sha(identity_path)}
+                manifest_path.write_text(json.dumps(manifest))
+                with self.assertRaisesRegex(ValueError, "Invalid inference-only recovery"):
+                    verify_package(folder)
 
 
 if __name__ == "__main__":

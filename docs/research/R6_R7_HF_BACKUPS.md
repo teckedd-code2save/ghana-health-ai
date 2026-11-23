@@ -1,6 +1,7 @@
 # R6 and R7 Checkpoint Backups
 
-Updated 22 November 2026. **R6 uploaded and fully byte-restored; R7 upload interrupted.**
+Updated 23 November 2026. **Both trained adapters are privately on HF.**
+Both passed independent nine-file download-and-SHA256 restoration checks.
 The owner has signed in locally. A model card alone is not a weight backup.
 Do not report a successful upload without a committed revision and verification
 receipt. No paid compute, paid storage upgrade or public dataset upload is authorized.
@@ -10,20 +11,25 @@ receipt. No paid compute, paid storage upgrade or public dataset upload is autho
 | Checkpoint | Verified local package | Scope |
 | --- | ---: | --- |
 | R6 | 193,187,626 bytes before checksum manifest | Final PEFT adapter, configuration, frozen tokenizer assets, identity, model card |
-| R7 | 714,146,552 bytes before checksum manifest | Same, plus full final training state at update 2,413 and its committed manifest |
+| R7 full local package | 714,146,552 bytes before checksum manifest | Same, plus full final training state at update 2,413; full HF upload failed |
+| R7 inference-only HF package | 193,187,649 bytes before checksum manifest | Actual trained adapter, configuration, frozen assets, identity and model card; no optimizer/RNG state |
 
 Durable package root:
 `/Users/welcome/Documents/Research-Exports/ghana-health-ai/hf-backups-20261121-v2/`.
 Use its `r6/` and `r7/` directories. Earlier prepared versions remain local;
 this v2 adds explicit benchmark/data tables and stronger identity verification.
+The independent R7 HF package is at
+`/Users/welcome/Documents/Research-Exports/ghana-health-ai/hf-r7-inference-20261123/r7/`.
+Its explicit `backup_scope: inference_only` is checked in both the manifest and
+source identity. Legacy full R7 packages still require every recovery file.
 
 | Private HF repository | Verified commit | Upload state |
 | --- | --- | --- |
 | [R6](https://huggingface.co/teckedd/gha-twi-understanding-r6) | `bb5d0466e753d0f02c6633042172abe48339438a` | All nine package files verified, including trained weights |
-| R7: `teckedd/gha-twi-understanding-r7` | Pending | Upload interrupted; checked on 22 November, still only `.gitattributes`, no weights |
+| [R7](https://huggingface.co/teckedd/gha-twi-understanding-r7) | `bc5a25dc6772a7503827936c491647a575279495` | All nine inference-package files verified, including trained weights |
 
-Upload receipts are `hf-r6-upload-20261121.json` and, when completed,
-`hf-r7-upload-20261121.json` under the durable root. Keep these committed-revision
+Upload receipts are `hf-r6-upload-20261121.json` and
+`hf-r7-upload-20261123.json` under the durable root. Keep these committed-revision
 receipts; do not re-upload an already verified package just to resume other work.
 
 | Artifact | SHA256 |
@@ -32,6 +38,7 @@ receipts; do not re-upload an already verified package just to resume other work
 | R7 trained adapter | `f6e6b484ca404146016eefabd170738e66791880775238e435e31577300e57a7` |
 | R6 package CHECKSUMS.json | `19edab3b516305965a083ad1b22d515185f0e74c0021feaa2ec68698255687c0` |
 | R7 package CHECKSUMS.json | `de3bd768830fb3a9270fe63f686a25a32d785d5e995774c61fc4b7d68f5998df` |
+| R7 inference-only CHECKSUMS.json | `4356f95605f07a1c018a6773cfbf527359fe967e3abe0a5531a9a027fe3fa748` |
 
 These are adapters, not standalone 9B models. Both require the exact foundation
 `McGill-NLP/AfriqueQwen3.5-9B-50Langs-Instruct-v1` at revision
@@ -50,8 +57,8 @@ PY=/Users/welcome/miniconda3/bin/python
   --folder "$ROOT/hf-backups-20261121-v2/r6" \
   --receipt "$ROOT/hf-r6-upload-20261121.json"
 "$PY" scripts/prepare_r6_r7_hf_backup.py upload \
-  --folder "$ROOT/hf-backups-20261121-v2/r7" \
-  --receipt "$ROOT/hf-r7-upload-20261121.json"
+  --folder "$ROOT/hf-r7-inference-20261123/r7" \
+  --receipt "$ROOT/hf-r7-upload-20261123.json"
 ```
 
 The uploader checks the account, refuses public repositories, enforces a file
@@ -66,7 +73,8 @@ against server-reported LFS SHA256 and size; small files are downloaded and hash
 The upload receipt distinguishes that verification from a full weight download
 or an inference restore. R6's separate full download-and-hash check passed for
 all nine files; receipt: `hf-r6-restore-20261121.json`. Model inference and training
-resume have not been tested through HF. R7 has no successful upload/restore receipt.
+resume have not been tested through HF. R7's separate full byte-restoration
+check passed too; receipt: `hf-r7-restore-20261123.json`.
 
 If upload succeeded but verification was interrupted, use the printed HF commit
 with `verify --folder ... --receipt ... --revision <exact-40-character-commit>`.
@@ -97,15 +105,22 @@ R7's first Xet upload hit repeated timeouts. It was stopped and the remote head
 checked before retrying through HTTP. That HTTP attempt was interrupted before
 a commit. The repository remained at its empty initial commit
 `483f0596a0d3b090665ac2e4b2cdf95effb3222d` when checked on 22 November.
-No upload process remains active. On an authorized continuation, inspect the
-head again, then resume using `HF_HUB_DISABLE_XET=1`; do not re-upload R6.
+The 22 November HTTP retry failed on a multipart upload of the 520,958,547-byte
+`state.pt`; no commit was made. On 23 November, a new explicit inference-only
+package committed the trained weights independently. It preserves the exact
+original adapter/config/tokenizer hashes. No source package was overwritten.
+Do not rerun the failed whole-package upload unchanged. A future recovery upload
+should be independently resumable and must verify the reassembled original SHA.
+CLI failures report exception types only; signed transfer URLs must not appear
+in public logs, documents or Git.
 
 ## Recovery Boundaries
 
 - R6 can be restored for inference with its adapter and pinned base. Its full
   optimizer/RNG checkpoint remains on Modal and is not included in this package.
-- R7 includes its final adapter/optimizer/scheduler/RNG state, but training resume
-  also requires the original sealed data and code in the existing private archive.
+- R7's full local package includes its final adapter/optimizer/scheduler/RNG state.
+  The HF inference package does not; full recovery remains local/on Modal.
+  Training resume also requires the original sealed data and code in the private archive.
   This is preservation, not permission to launch another paid job.
 - No raw corpus, recordings, reviews, credentials or private billing records are
   included. Do not upload the combined private recovery archive as a model repo.

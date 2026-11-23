@@ -1,9 +1,9 @@
 # R7 Local Testing on Apple Silicon
 
-22 November 2026. Prepared, **not yet inference-verified**. The owner confirmed
-unmetered internet and the pinned base download resumed, then stopped during the
-interruption at 23:09 UTC on 21 November. No downloader is currently active;
-partial files are retained. Check the status before an authorized resume, using
+23 November 2026. Prepared, **not yet inference-verified**. The owner confirmed
+unmetered internet. The latest base download stopped on 22 November with a
+connection timeout at 7.53 / 17.91 GB, and resumed at 20:06 UTC on 23 November.
+Partial files are retained. Check the durable status before any further resume, using
 HTTP fallback after Xet stalled. No Modal job, hosted inference endpoint,
 API fallback or public upload is needed for this route.
 
