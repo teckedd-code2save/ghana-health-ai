@@ -31,10 +31,13 @@ connection timeout at 7,529,989,401 / 17,907,663,008 bytes. It resumed at 20:06 
 on 23 November (PID 30096; inspect the live status, never trust an old PID alone).
 Inspect the recorded status and partial files before a resume; never substitute a different base. Actual
 local model loading and R7/R6 comparison remain pending. No R7 gain is claimed.
-The durable local downloader has `download-base-status.json` and
-`download-base-20261121.log` beside the private archive. It performs one bounded
-public download and verifies the full weight hash; it cannot launch cloud compute.
-Inspect the recorded PID/status before starting another download.
+At 20:17 UTC the prefix moved to `base-transfer-aria2/model.safetensors.part`
+for eight-connection continuation. Use `scripts/download_r7_base_local.py`, not
+the old sequential helper. Preserve the staging file and its `.aria2` control
+file; its apparent size is not completed bytes. The durable status is still
+`download-base-status.json`; sanitized log: `download-base-aria2.log`. The script
+has a single-run lock, six-hour bound and full SHA256 gate, with no cloud compute.
+Inspect live PID/status before any restart.
 
 ## Superseding Cost Restriction: 18 November 2026
 

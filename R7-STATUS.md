@@ -17,6 +17,8 @@
 - The pinned base download stopped during the PC shutdown, preserving 6.30 GB
   of partial data. The 22 November retry stopped with a connection timeout at
   7,529,989,401 bytes of 17,907,663,008. It resumed at 20:06 UTC on 23 November.
+  At 20:17 UTC, the saved prefix moved to an aria2 resumable transfer with eight
+  connections; preserve its staging/control files and use the new downloader.
   Check the durable status file before restarting it. No local R7 quality result
   or ready demo is claimed.
 - The owner approved the exact 20 additional public-cache directories; cleanup

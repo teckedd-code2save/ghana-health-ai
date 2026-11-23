@@ -3,8 +3,11 @@
 23 November 2026. Prepared, **not yet inference-verified**. The owner confirmed
 unmetered internet. The latest base download stopped on 22 November with a
 connection timeout at 7.53 / 17.91 GB, and resumed at 20:06 UTC on 23 November.
-Partial files are retained. Check the durable status before any further resume, using
-HTTP fallback after Xet stalled. No Modal job, hosted inference endpoint,
+At 20:17 UTC it switched to resumable eight-connection aria2, retaining the
+sequential prefix. Read `download-base-status.json` for current progress. The
+staging file can report its final size before all ranges arrive: size alone is
+not completion. Only the final whole-file SHA256 permits conversion.
+No Modal job, hosted inference endpoint,
 API fallback or public upload is needed for this route.
 
 ## Current State
@@ -35,11 +38,15 @@ R7 and R6 must use this same converted base and identical local controls.
   and per-module check receipts in `manifest.json`.
 - Download destination: `afrique-base-bf16/` under the durable root. Keep its
   `.cache/huggingface/download/` contents so the client can reuse partial data.
-- Current one-shot downloader: `download-base-20261121.py` under the durable
-  root, with `download-base-status.json` and `download-base-20261121.log`. It
-  has a single-run lock, a 24-hour bound and final weight SHA256 verification.
-  It does not auto-start model conversion or inference. Check its recorded PID
-  and status before issuing the manual resume command below.
+- Current downloader: `scripts/download_r7_base_local.py`, with
+  `download-base-status.json` and sanitized `download-base-aria2.log` in the
+  durable root. It uses the same single-run lock, a six-hour bound and full
+  SHA256 verification. Preserve `base-transfer-aria2/model.safetensors.part`
+  AND its `.aria2` control file when interrupted. The old sequential helper now
+  refuses to run while this staged transfer exists, preventing duplicate downloads.
+- aria2 1.37.0 was installed locally through Homebrew with automatic cleanup
+  disabled. Its required dependency changes are separate from the isolated MLX
+  environment. No account upgrade, credential or cloud service is involved.
 - Frozen tokenizer bundle: `tmp/r7-20261118-local-bundle/` in the worktree.
 - Original adapters/recovery: `tmp/r7-20261118-local-export/` in the worktree.
 
@@ -59,11 +66,11 @@ ROOT=/Users/welcome/Documents/Research-Exports/ghana-health-ai
 PY="$ROOT/local-runtime/bin/python"
 ```
 
-Resume the public pinned files (the original download used the existing Conda
-HF client; keep that client for partial-cache compatibility):
+Resume only when no existing downloader holds the lock. This uses the pinned
+public HTTP URL without a token; it cannot invoke inference or training:
 
 ```bash
-HF_HUB_DISABLE_XET=1 HF_HUB_DISABLE_TELEMETRY=1 /Users/welcome/miniconda3/bin/python -c 'from huggingface_hub import snapshot_download; print(snapshot_download("McGill-NLP/AfriqueQwen3.5-9B-50Langs-Instruct-v1", revision="693f12e444a30971ca53889128d7bade9491ecb3", local_dir="/Users/welcome/Documents/Research-Exports/ghana-health-ai/afrique-base-bf16", allow_patterns=["*.json", "*.jinja", "model.safetensors"], max_workers=1, token=False))'
+/Users/welcome/miniconda3/bin/python scripts/download_r7_base_local.py --root "$ROOT"
 ```
 
 Only after the download completes, convert locally. The script verifies frozen
