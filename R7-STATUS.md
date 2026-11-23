@@ -2,6 +2,11 @@
 
 ## Latest Preservation Update: 23 November 2026
 
+20:57 UTC: local base transfer paused while the owner considers other hosting
+options. Last reported progress was 66%; aria2 saved its control file and stopped.
+No conversion, inference or local demo has run. Preserve the partial/control
+files; do not automatically restart the download or launch a paid alternative.
+
 - All 49 deployed `ghana-*` and `akan-speech-*` Modal apps were stopped with
   owner approval and readback verified. Unrelated deployments were left alone.
   This prevents those endpoints waking workers; it does not remove stored data.
@@ -19,6 +24,7 @@
   7,529,989,401 bytes of 17,907,663,008. It resumed at 20:06 UTC on 23 November.
   At 20:17 UTC, the saved prefix moved to an aria2 resumable transfer with eight
   connections; preserve its staging/control files and use the new downloader.
+  It was subsequently paused at 20:57 UTC as noted above.
   Check the durable status file before restarting it. No local R7 quality result
   or ready demo is claimed.
 - The owner approved the exact 20 additional public-cache directories; cleanup

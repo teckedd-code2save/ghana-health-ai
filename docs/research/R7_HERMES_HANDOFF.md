@@ -2,6 +2,12 @@
 
 ## Latest Handoff: 23 November 2026
 
+At 20:57 UTC the owner asked to defer the Mac route and consider alternatives.
+The transfer was paused at 66%, with aria2 resume files preserved and no running
+downloader. Do not auto-resume or deploy another service. The next decision is
+local continuation versus a verified free notebook/demo or institution-provided
+machine. None of those alternatives has been provisioned or tested.
+
 The no-paid-work restriction still applies. All 49 approved Ghana Health AI and
 akan-speech Modal deployments have now been stopped and verified; unrelated
 deployments were not changed. Private receipt: `tmp/cost-hold-20261121/app-shutdown.json`.
